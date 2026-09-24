@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { StatCard, LoadingSpinner, Badge } from '../../components/ui';
+import { StatCard, LoadingSpinner, Badge, Modal } from '../../components/ui';
 import {
   Activity, Pill, FileText, Droplets, CalendarDays, MessageSquare, Bot,
   Heart, TrendingUp, TrendingDown, Clock, CheckCircle, AlertTriangle,
   ArrowRight, Plus, Salad, ClipboardList, AlertCircle, Bell, BellRing,
   Volume2, VolumeX, Sparkles, Check, Utensils, Flame, Coffee, Sun, Moon,
-  ShieldCheck, Eye, Compass, RefreshCw
+  ShieldCheck, Eye, Video, Stethoscope, PhoneCall, UserCheck, Shield
 } from 'lucide-react';
 import { formatDate, formatTime, isToday, formatDateTime } from '../../data/demoDate';
 import { recordDose } from '../../services/dataService';
@@ -28,6 +28,11 @@ export default function PatientDashboard() {
 
   // Active meal tab in Diet Plan
   const [selectedMeal, setSelectedMeal] = useState('breakfast');
+
+  // Consultation Modal State
+  const [consultModalOpen, setConsultModalOpen] = useState(false);
+  const [consultType, setConsultType] = useState('doctor'); // 'doctor' or 'pharmacist'
+  const [consultNote, setConsultNote] = useState('');
 
   useEffect(() => { setTimeout(() => setLoading(false), 300); }, []);
 
@@ -192,6 +197,15 @@ export default function PatientDashboard() {
     });
   };
 
+  const handleRequestConsultation = () => {
+    setConsultModalOpen(false);
+    addToast({
+      type: 'success',
+      message: `Consultation request for ${consultType === 'doctor' ? 'Diabetologist Review' : 'Pharmacist Counselling'} submitted successfully!`,
+    });
+    setConsultNote('');
+  };
+
   // Default diabetic schedule if today's doses are empty
   const defaultTabletSchedule = [
     {
@@ -239,46 +253,46 @@ export default function PatientDashboard() {
   const testReminders = [
     {
       id: 't-hba1c',
-      name: 'HbA1c Glycated Hemoglobin',
+      name: 'HbA1c Blood Test',
       target: '< 7.0%',
       lastResult: latestHbA1c ? `${latestHbA1c.value}% on ${formatDate(latestHbA1c.date)}` : '7.2% on 18 Sep 2026',
       dueDate: 'Due in 12 Days',
       status: 'Due Soon',
       variant: 'warning',
-      frequency: 'Every 3 Months (Quarterly ADA)',
+      frequency: 'Quarterly ADA',
       icon: Droplets,
     },
     {
       id: 't-eye',
-      name: 'Dilated Retinal Eye Screening',
-      target: 'Retinopathy Prevention',
+      name: 'Retinal Eye Screening',
+      target: 'Retinopathy Check',
       lastResult: 'Normal exam in 2025',
       dueDate: '15 Oct 2026',
       status: 'Scheduled',
       variant: 'info',
-      frequency: 'Annual Ophthalmologic Check',
+      frequency: 'Annual Eye Check',
       icon: Eye,
     },
     {
       id: 't-kidney',
-      name: 'Kidney Microalbumin / ACR & eGFR',
-      target: 'Urine ACR < 30 mg/g',
+      name: 'Urine ACR & Kidney eGFR',
+      target: 'ACR < 30 mg/g',
       lastResult: '22 mg/g (Normal)',
       dueDate: '28 Nov 2026',
       status: 'Upcoming',
       variant: 'primary',
-      frequency: 'Bi-Annual Renal Monitor',
+      frequency: 'Bi-Annual Renal',
       icon: Activity,
     },
     {
       id: 't-foot',
-      name: 'Diabetic Foot & Neuropathy Exam',
-      target: 'Monofilament 10g Intact',
-      lastResult: 'Sensory intact, pulses +2',
+      name: 'Foot Neuropathy Exam',
+      target: '10g Monofilament',
+      lastResult: 'Sensory intact',
       dueDate: '10 Dec 2026',
       status: 'Up to Date',
       variant: 'success',
-      frequency: 'Annual Clinical Inspection',
+      frequency: 'Annual Clinical Check',
       icon: ShieldCheck,
     },
     {
@@ -373,7 +387,7 @@ export default function PatientDashboard() {
     { label: 'Add Health Entry', icon: Salad, color: 'text-green-600 bg-green-50', onClick: () => navigate('/patient/lifestyle?action=add') },
     { label: 'Log Glucose', icon: Droplets, color: 'text-teal-600 bg-teal-50', onClick: () => navigate('/patient/glucose?action=add') },
     { label: 'Ask Assistant', icon: Bot, color: 'text-purple-600 bg-purple-50', onClick: () => navigate('/patient/assistant') },
-    { label: 'Request Counselling', icon: Heart, color: 'text-rose-600 bg-rose-50', onClick: () => navigate('/patient/assistant?action=counselling') },
+    { label: 'Request Counselling', icon: Heart, color: 'text-rose-600 bg-rose-50', onClick: () => setConsultModalOpen(true) },
     { label: 'View Prescriptions', icon: FileText, color: 'text-amber-600 bg-amber-50', onClick: () => navigate('/patient/medications') },
   ];
 
@@ -533,68 +547,66 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      {/* ── 3 CORE COLUMNS (Immediately after Glucose Monitor) ── */}
+      {/* ── 4 CORE CARE MANAGEMENT COLUMNS (Immediately after Glucose Monitor) ── */}
       {/* 1. Scheduler Column (Ring Alarm to take tablet) */}
       {/* 2. Patient Test Reminder */}
       {/* 3. Diabetic Diet Plan */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 4. Clinical Consulting Column (Doctor & Pharm D Consultations) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
 
         {/* ── COLUMN 1: Tablet Scheduler & Audio Alarm ── */}
         <div className="card flex flex-col border-2 border-teal-600/30 hover:border-teal-600/50 shadow-sm transition-all">
-          <div className="card-header bg-gradient-to-r from-teal-900 to-teal-800 text-white rounded-t-2xl flex items-center justify-between p-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-teal-700/80 border border-teal-500/40 flex items-center justify-center shadow-inner">
-                <Pill size={19} className="text-teal-200" />
+          <div className="card-header bg-gradient-to-r from-teal-900 to-teal-850 text-white rounded-t-2xl flex items-center justify-between p-3.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-teal-700/80 border border-teal-500/40 flex items-center justify-center shadow-inner shrink-0">
+                <Pill size={18} className="text-teal-200" />
               </div>
-              <div>
-                <h2 className="font-extrabold text-sm sm:text-base text-white leading-tight">1. Tablet Scheduler</h2>
-                <p className="text-[11px] text-teal-200/90 font-medium">Audible Dose Alarm & Schedule</p>
+              <div className="min-w-0">
+                <h2 className="font-extrabold text-sm text-white leading-tight truncate">1. Tablet Scheduler</h2>
+                <p className="text-[10px] text-teal-200/90 font-medium truncate">Audible Alarm & Schedule</p>
               </div>
             </div>
             
-            {/* Audio Toggle */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setAlarmSoundEnabled(!alarmSoundEnabled)}
-                className={`p-1.5 rounded-lg border transition text-xs flex items-center gap-1 cursor-pointer ${
-                  alarmSoundEnabled
-                    ? 'bg-teal-600/90 border-teal-400/60 text-white'
-                    : 'bg-teal-950/80 border-teal-800 text-teal-300'
-                }`}
-                title={alarmSoundEnabled ? 'Alarm Sound: ON' : 'Alarm Sound: OFF'}
-              >
-                {alarmSoundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
-                <span className="text-[10px] font-bold">{alarmSoundEnabled ? 'Sound ON' : 'Muted'}</span>
-              </button>
-            </div>
+            <button
+              onClick={() => setAlarmSoundEnabled(!alarmSoundEnabled)}
+              className={`p-1.5 rounded-lg border transition text-xs flex items-center gap-1 cursor-pointer shrink-0 ${
+                alarmSoundEnabled
+                  ? 'bg-teal-600/90 border-teal-400/60 text-white'
+                  : 'bg-teal-950/80 border-teal-800 text-teal-300'
+              }`}
+              title={alarmSoundEnabled ? 'Alarm Sound: ON' : 'Alarm Sound: OFF'}
+            >
+              {alarmSoundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              <span className="text-[10px] font-bold">{alarmSoundEnabled ? 'ON' : 'Muted'}</span>
+            </button>
           </div>
 
-          <div className="card-body flex-1 space-y-3.5 p-4 bg-slate-50/50">
+          <div className="card-body flex-1 space-y-3 p-3.5 bg-slate-50/50">
             {/* Active Alarm Banner (Flashing when ringing) */}
             {ringingAlarm && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-950 shadow-md animate-bounce-slow flex flex-col gap-2">
+              <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-950 shadow-md animate-bounce-slow flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center animate-pulse shrink-0">
-                    <BellRing size={18} />
+                  <div className="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center animate-pulse shrink-0">
+                    <BellRing size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-black uppercase tracking-wider text-rose-700">⏰ Dose Alarm Ringing</p>
-                    <p className="text-sm font-extrabold text-rose-950 truncate">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-rose-700">⏰ Dose Alarm Ringing</p>
+                    <p className="text-xs font-extrabold text-rose-950 truncate">
                       Take {ringingAlarm.tablet} Now ({ringingAlarm.time})
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-1.5 pt-1">
                   <button
                     onClick={() => handleMarkTabletTaken(ringingAlarm.id, ringingAlarm.tablet)}
-                    className="flex-1 py-1.5 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    className="flex-1 py-1 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                   >
-                    <Check size={14} />
-                    <span>Take & Stop Alarm</span>
+                    <Check size={12} />
+                    <span>Take & Stop</span>
                   </button>
                   <button
                     onClick={stopAlarm}
-                    className="py-1.5 px-3 bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold rounded-lg cursor-pointer"
+                    className="py-1 px-2.5 bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 text-[11px] font-bold rounded-lg cursor-pointer"
                   >
                     Dismiss
                   </button>
@@ -603,11 +615,11 @@ export default function PatientDashboard() {
             )}
 
             {/* Dose List with Alarm Action */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
-                <span>Today's Tablet Regimen</span>
-                <span className="text-[11px] font-extrabold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                  {tabletScheduleItems.filter(t => t.status === 'taken').length}/{tabletScheduleItems.length} Taken
+                <span>Today's Tablets</span>
+                <span className="text-[10px] font-extrabold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                  {tabletScheduleItems.filter(t => t.status === 'taken').length}/{tabletScheduleItems.length} Done
                 </span>
               </div>
 
@@ -618,7 +630,7 @@ export default function PatientDashboard() {
                 return (
                   <div
                     key={item.id}
-                    className={`p-3 rounded-xl border-2 transition-all ${
+                    className={`p-2.5 rounded-xl border-2 transition-all ${
                       isRinging
                         ? 'border-rose-400 bg-rose-50/80 shadow-md ring-2 ring-rose-300'
                         : isTaken
@@ -626,51 +638,49 @@ export default function PatientDashboard() {
                         : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-1.5">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-sm text-slate-950 truncate">
+                        <div className="flex items-center gap-1">
+                          <span className="font-extrabold text-xs text-slate-950 truncate">
                             {item.medicineName}
                           </span>
-                          <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1 rounded">
                             {item.dose}
                           </span>
                         </div>
-                        <p className="text-[11px] font-semibold text-teal-850 mt-0.5">
-                          {item.timing} • <span className="text-slate-600">{item.instruction}</span>
+                        <p className="text-[10px] font-semibold text-teal-850 mt-0.5 truncate">
+                          {item.timing} • {item.instruction}
                         </p>
                       </div>
 
-                      <span className="text-xs font-extrabold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md shrink-0">
+                      <span className="text-[11px] font-extrabold text-slate-800 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded shrink-0">
                         {item.scheduledTime}
                       </span>
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between gap-1">
                       <Badge variant={isTaken ? 'success' : isRinging ? 'danger' : 'warning'}>
-                        {isTaken ? 'TAKEN' : isRinging ? 'RINGING ALARM' : 'DUE / PENDING'}
+                        {isTaken ? 'TAKEN' : isRinging ? 'ALARM' : 'DUE'}
                       </Badge>
 
-                      <div className="flex items-center gap-1.5">
-                        {/* Ring Alarm Button */}
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => triggerTabletAlarm(item.medicineName, item.scheduledTime, item.id)}
-                          className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs active:scale-95"
+                          className="px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded text-[10px] font-bold flex items-center gap-1 transition cursor-pointer"
                           title="Ring alarm for this tablet"
                         >
-                          <Bell size={13} className="text-amber-700" />
-                          <span>Ring Alarm</span>
+                          <Bell size={11} className="text-amber-700" />
+                          <span>Alarm</span>
                         </button>
 
-                        {/* Mark Taken Button */}
                         {!isTaken && (
                           <button
                             onClick={() => handleMarkTabletTaken(item.id, item.medicineName)}
-                            className="px-2 py-1 bg-teal-800 hover:bg-teal-900 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition cursor-pointer shadow-xs active:scale-95"
-                            title="Mark dose as taken"
+                            className="px-1.5 py-0.5 bg-teal-800 hover:bg-teal-900 text-white rounded text-[10px] font-bold flex items-center gap-0.5 transition cursor-pointer"
+                            title="Mark as taken"
                           >
-                            <Check size={13} />
-                            <span>Mark Taken</span>
+                            <Check size={11} />
+                            <span>Taken</span>
                           </button>
                         )}
                       </div>
@@ -681,65 +691,65 @@ export default function PatientDashboard() {
             </div>
 
             {/* Test Alarm Sound Trigger */}
-            <div className="p-2.5 rounded-xl bg-teal-50/80 border border-teal-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BellRing size={16} className="text-teal-700 shrink-0" />
-                <span className="text-xs font-bold text-teal-950">Test Medical Alarm Chime</span>
+            <div className="p-2 rounded-xl bg-teal-50/80 border border-teal-200 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <BellRing size={14} className="text-teal-700 shrink-0" />
+                <span className="text-[11px] font-bold text-teal-950">Test Alarm Chime</span>
               </div>
               <button
-                onClick={() => triggerTabletAlarm('Metformin HCl 500mg', 'Test Alarm')}
-                className="btn-primary btn-sm text-[11px] py-1 px-2.5 shadow-xs"
+                onClick={() => triggerTabletAlarm('Metformin 500mg', 'Test Alarm')}
+                className="btn-primary btn-sm text-[10px] py-0.5 px-2 shadow-xs"
               >
                 Test Sound
               </button>
             </div>
           </div>
 
-          <div className="card-footer bg-slate-50 p-3 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-600">Syncs with Care Log</span>
+          <div className="card-footer bg-slate-50 p-2.5 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-slate-600">Syncs with Prescriptions</span>
             <button
               onClick={() => navigate('/patient/medications')}
-              className="text-xs font-extrabold text-teal-850 hover:text-teal-950 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-extrabold text-teal-850 hover:text-teal-950 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>Manage Regimen</span>
-              <ArrowRight size={13} />
+              <span>Manage</span>
+              <ArrowRight size={12} />
             </button>
           </div>
         </div>
 
         {/* ── COLUMN 2: Patient Test Reminder ── */}
         <div className="card flex flex-col border-2 border-blue-600/30 hover:border-blue-600/50 shadow-sm transition-all">
-          <div className="card-header bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-t-2xl flex items-center justify-between p-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-700/80 border border-blue-500/40 flex items-center justify-center shadow-inner">
-                <ClipboardList size={19} className="text-blue-200" />
+          <div className="card-header bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-t-2xl flex items-center justify-between p-3.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-blue-700/80 border border-blue-500/40 flex items-center justify-center shadow-inner shrink-0">
+                <ClipboardList size={18} className="text-blue-200" />
               </div>
-              <div>
-                <h2 className="font-extrabold text-sm sm:text-base text-white leading-tight">2. Patient Test Reminder</h2>
-                <p className="text-[11px] text-blue-200/90 font-medium">Diagnostic & Preventative Screenings</p>
+              <div className="min-w-0">
+                <h2 className="font-extrabold text-sm text-white leading-tight truncate">2. Patient Test Reminder</h2>
+                <p className="text-[10px] text-blue-200/90 font-medium truncate">Clinical Lab Checks</p>
               </div>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-wider bg-blue-800 border border-blue-400/40 px-2 py-0.5 rounded-full text-blue-100">
-              5 Key Checks
+            <span className="text-[9px] font-black uppercase tracking-wider bg-blue-800 border border-blue-400/40 px-2 py-0.5 rounded-full text-blue-100 shrink-0">
+              5 Checks
             </span>
           </div>
 
-          <div className="card-body flex-1 space-y-3 p-4 bg-slate-50/50 overflow-y-auto max-h-[460px]">
+          <div className="card-body flex-1 space-y-2.5 p-3.5 bg-slate-50/50 overflow-y-auto max-h-[460px]">
             {testReminders.map((test) => (
               <div
                 key={test.id}
-                className="p-3 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-300 hover:shadow-xs transition"
+                className="p-2.5 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-300 transition"
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <test.icon size={15} className="text-blue-700 shrink-0" />
-                      <p className="font-extrabold text-xs sm:text-sm text-slate-950 truncate">
+                      <test.icon size={13} className="text-blue-700 shrink-0" />
+                      <p className="font-extrabold text-xs text-slate-950 truncate">
                         {test.name}
                       </p>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-600 mt-1">
-                      Target: <span className="font-bold text-slate-900">{test.target}</span> • {test.frequency}
+                    <p className="text-[10px] font-semibold text-slate-600 mt-0.5 truncate">
+                      Target: {test.target} • {test.frequency}
                     </p>
                   </div>
                   <Badge variant={test.variant}>
@@ -747,105 +757,104 @@ export default function PatientDashboard() {
                   </Badge>
                 </div>
 
-                <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                <div className="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px]">
                   <span className="text-slate-600 font-medium truncate">
                     Last: <span className="font-bold text-slate-900">{test.lastResult}</span>
                   </span>
-                  <span className="font-extrabold text-blue-900 shrink-0 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  <span className="font-extrabold text-blue-900 shrink-0 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
                     {test.dueDate}
                   </span>
                 </div>
               </div>
             ))}
 
-            {/* Screening Advisory Notice */}
-            <div className="p-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-xs text-blue-950 flex items-center gap-2">
-              <ShieldCheck size={16} className="text-blue-700 shrink-0" />
-              <p className="font-medium text-[11px] leading-tight">
-                ADA 2024 Guidelines recommend quarterly HbA1c and annual microvascular checks to avoid neuropathy.
+            <div className="p-2 rounded-xl bg-blue-50/90 border border-blue-200 text-xs text-blue-950 flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-blue-700 shrink-0" />
+              <p className="font-medium text-[10px] leading-tight">
+                ADA: Quarterly HbA1c and annual microvascular checks prevent complications.
               </p>
             </div>
           </div>
 
-          <div className="card-footer bg-slate-50 p-3 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
+          <div className="card-footer bg-slate-50 p-2.5 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
             <button
               onClick={() => navigate('/appointments?type=investigation')}
-              className="text-xs font-bold text-blue-800 hover:text-blue-950 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-bold text-blue-800 hover:text-blue-950 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>Book Diagnostic Test</span>
-              <CalendarDays size={13} />
+              <span>Book Test</span>
+              <CalendarDays size={12} />
             </button>
             <button
               onClick={() => navigate('/patient/investigations')}
-              className="text-xs font-extrabold text-blue-800 hover:text-blue-950 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-extrabold text-blue-800 hover:text-blue-950 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>View History</span>
-              <ArrowRight size={13} />
+              <span>History</span>
+              <ArrowRight size={12} />
             </button>
           </div>
         </div>
 
         {/* ── COLUMN 3: Diabetic Diet Plan ── */}
         <div className="card flex flex-col border-2 border-emerald-600/30 hover:border-emerald-600/50 shadow-sm transition-all">
-          <div className="card-header bg-gradient-to-r from-emerald-900 to-teal-950 text-white rounded-t-2xl flex items-center justify-between p-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-700/80 border border-emerald-500/40 flex items-center justify-center shadow-inner">
-                <Salad size={19} className="text-emerald-200" />
+          <div className="card-header bg-gradient-to-r from-emerald-900 to-teal-950 text-white rounded-t-2xl flex items-center justify-between p-3.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-emerald-700/80 border border-emerald-500/40 flex items-center justify-center shadow-inner shrink-0">
+                <Salad size={18} className="text-emerald-200" />
               </div>
-              <div>
-                <h2 className="font-extrabold text-sm sm:text-base text-white leading-tight">3. Diabetic Diet Plan</h2>
-                <p className="text-[11px] text-emerald-200/90 font-medium">Low-GI Nutrition & Meal Timing</p>
+              <div className="min-w-0">
+                <h2 className="font-extrabold text-sm text-white leading-tight truncate">3. Diabetic Diet Plan</h2>
+                <p className="text-[10px] text-emerald-200/90 font-medium truncate">Low-GI Nutrition</p>
               </div>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-800 border border-emerald-400/40 px-2 py-0.5 rounded-full text-emerald-100">
-              1,600 kcal Target
+            <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-800 border border-emerald-400/40 px-2 py-0.5 rounded-full text-emerald-100 shrink-0">
+              1,600 kcal
             </span>
           </div>
 
-          <div className="card-body flex-1 space-y-3 p-4 bg-slate-50/50">
+          <div className="card-body flex-1 space-y-2.5 p-3.5 bg-slate-50/50">
             {/* Daily Macro Budget Indicator */}
-            <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-800 mb-1.5">
+            <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-800 mb-1">
                 <span className="flex items-center gap-1 text-slate-900">
-                  <Flame size={14} className="text-amber-600" />
-                  Daily Nutrition Budget
+                  <Flame size={13} className="text-amber-600" />
+                  Macro Budget
                 </span>
-                <span className="text-emerald-800 font-extrabold">&lt; 130g Carbs / Day</span>
+                <span className="text-emerald-800 font-extrabold">&lt; 130g Carbs</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-                <div className="p-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <span className="text-slate-600 block text-[10px] font-bold">Carbs</span>
-                  <span className="font-black text-emerald-900">32g / 130g</span>
+              <div className="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+                <div className="p-1 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <span className="text-slate-600 block text-[9px]">Carbs</span>
+                  <span className="font-black text-emerald-900">32/130g</span>
                 </div>
-                <div className="p-1.5 bg-blue-50 rounded-lg border border-blue-200">
-                  <span className="text-slate-600 block text-[10px] font-bold">Protein</span>
-                  <span className="font-black text-blue-900">18g / 75g</span>
+                <div className="p-1 bg-blue-50 rounded-lg border border-blue-200">
+                  <span className="text-slate-600 block text-[9px]">Protein</span>
+                  <span className="font-black text-blue-900">18/75g</span>
                 </div>
-                <div className="p-1.5 bg-teal-50 rounded-lg border border-teal-200">
-                  <span className="text-slate-600 block text-[10px] font-bold">Hydration</span>
-                  <span className="font-black text-teal-900">2.2L / 3.0L</span>
+                <div className="p-1 bg-teal-50 rounded-lg border border-teal-200">
+                  <span className="text-slate-600 block text-[9px]">Water</span>
+                  <span className="font-black text-teal-900">2.2/3.0L</span>
                 </div>
               </div>
             </div>
 
-            {/* Meal Selector Tabs */}
+            {/* Meal Selector Tabs (Using safe, exported icons: Coffee, Sun, Sparkles, Moon) */}
             <div className="flex bg-slate-200/70 p-1 rounded-xl gap-1 text-xs font-bold">
               {[
                 { id: 'breakfast', label: 'Breakfast', icon: Coffee },
                 { id: 'lunch', label: 'Lunch', icon: Sun },
-                { id: 'snack', label: 'Snacks', icon: Apple },
+                { id: 'snack', label: 'Snack', icon: Sparkles },
                 { id: 'dinner', label: 'Dinner', icon: Moon },
               ].map((m) => (
                 <button
                   key={m.id}
                   onClick={() => setSelectedMeal(m.id)}
-                  className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1 transition cursor-pointer text-[11px] font-extrabold ${
+                  className={`flex-1 py-1 rounded-lg flex items-center justify-center gap-0.5 transition cursor-pointer text-[10px] font-extrabold ${
                     selectedMeal === m.id
                       ? 'bg-white text-emerald-950 shadow-xs'
                       : 'text-slate-700 hover:text-slate-950'
                   }`}
                 >
-                  <m.icon size={12} />
+                  <m.icon size={11} />
                   <span>{m.label}</span>
                 </button>
               ))}
@@ -853,57 +862,221 @@ export default function PatientDashboard() {
 
             {/* Selected Meal Details Card */}
             {dietMeals[selectedMeal] && (
-              <div className="p-3.5 bg-white rounded-xl border-2 border-emerald-300 shadow-xs space-y-2">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <h3 className="font-black text-sm text-slate-950 flex items-center gap-1.5">
-                    <Utensils size={15} className="text-emerald-700" />
+              <div className="p-3 bg-white rounded-xl border-2 border-emerald-300 shadow-xs space-y-1.5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <h3 className="font-black text-xs text-slate-950 flex items-center gap-1">
+                    <Utensils size={13} className="text-emerald-700" />
                     {dietMeals[selectedMeal].title}
                   </h3>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-950 px-2 py-0.5 rounded-full border border-emerald-300">
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-950 px-1.5 py-0.2 rounded border border-emerald-300">
                     {dietMeals[selectedMeal].gi}
                   </span>
                 </div>
 
-                <ul className="space-y-1.5 text-xs text-slate-800 font-medium">
+                <ul className="space-y-1 text-[11px] text-slate-800 font-medium">
                   {dietMeals[selectedMeal].items.map((it, idx) => (
-                    <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                    <li key={idx} className="flex items-start gap-1 leading-snug">
                       <span className="text-emerald-600 font-bold">•</span>
                       <span>{it}</span>
                     </li>
                   ))}
                 </ul>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-700">
-                  <span>Carbs: {dietMeals[selectedMeal].carbs}</span>
-                  <span>Protein: {dietMeals[selectedMeal].protein}</span>
+                <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-700">
+                  <span>C: {dietMeals[selectedMeal].carbs}</span>
+                  <span>P: {dietMeals[selectedMeal].protein}</span>
                   <span className="text-emerald-900 font-extrabold">{dietMeals[selectedMeal].calories}</span>
                 </div>
 
-                <p className="text-[11px] font-medium text-emerald-950 bg-emerald-50/80 p-2 rounded-lg border border-emerald-200/60 leading-tight">
+                <p className="text-[10px] font-medium text-emerald-950 bg-emerald-50/80 p-1.5 rounded-lg border border-emerald-200/60 leading-tight">
                   💡 <strong>Tip:</strong> {dietMeals[selectedMeal].tip}
                 </p>
               </div>
             )}
           </div>
 
-          <div className="card-footer bg-slate-50 p-3 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
+          <div className="card-footer bg-slate-50 p-2.5 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
             <button
               onClick={() => navigate('/patient/lifestyle?action=add')}
-              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-0.5 cursor-pointer"
             >
-              <span>+ Log Meal Intake</span>
+              <span>+ Log Meal</span>
             </button>
             <button
               onClick={() => navigate('/patient/lifestyle')}
-              className="text-xs font-extrabold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-[11px] font-extrabold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-0.5 cursor-pointer"
             >
-              <span>Full Diet Log</span>
-              <ArrowRight size={13} />
+              <span>Diet Log</span>
+              <ArrowRight size={12} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── COLUMN 4: Consulting (Clinical Consultation & Doctor Review) ── */}
+        <div className="card flex flex-col border-2 border-purple-600/30 hover:border-purple-600/50 shadow-sm transition-all">
+          <div className="card-header bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white rounded-t-2xl flex items-center justify-between p-3.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-purple-700/80 border border-purple-500/40 flex items-center justify-center shadow-inner shrink-0">
+                <Stethoscope size={18} className="text-purple-200" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-extrabold text-sm text-white leading-tight truncate">4. Doctor Consulting</h2>
+                <p className="text-[10px] text-purple-200/90 font-medium truncate">Clinical Tele-Consults</p>
+              </div>
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-wider bg-purple-800 border border-purple-400/40 px-2 py-0.5 rounded-full text-purple-100 shrink-0">
+              Live Care
+            </span>
+          </div>
+
+          <div className="card-body flex-1 space-y-3 p-3.5 bg-slate-50/50">
+            {/* Upcoming Consultation Status Card */}
+            <div className="p-3 bg-white rounded-xl border-2 border-purple-200 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                  Next Appointment
+                </span>
+                <Badge variant="success">CONFIRMED</Badge>
+              </div>
+
+              <div className="flex items-start gap-2.5 pt-0.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-800 shrink-0 font-bold">
+                  <UserCheck size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-black text-slate-950 truncate">Dr. Sarah Jenkins, MD</p>
+                  <p className="text-[10px] font-bold text-purple-900">Chief Endocrinologist</p>
+                  <p className="text-[11px] font-extrabold text-slate-800 mt-1 flex items-center gap-1">
+                    <Clock size={12} className="text-purple-700" />
+                    Tomorrow • 10:30 AM (Tele-Consult)
+                  </p>
+                </div>
+              </div>
+
+              {/* Instant Tele-Consult Join Button */}
+              <button
+                onClick={() => {
+                  addToast({ type: 'info', message: 'Connecting to Dr. Sarah Jenkins Tele-Consult Room...' });
+                  navigate('/appointments');
+                }}
+                className="w-full py-1.5 bg-purple-800 hover:bg-purple-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+              >
+                <Video size={14} />
+                <span>Join Tele-Consult Room</span>
+              </button>
+            </div>
+
+            {/* Quick Consultation Services */}
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-extrabold text-slate-700 px-1">Consultation Services</p>
+
+              <button
+                onClick={() => {
+                  setConsultType('doctor');
+                  setConsultModalOpen(true);
+                }}
+                className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/40 text-left transition flex items-center justify-between group cursor-pointer"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Stethoscope size={15} className="text-purple-700 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-950 leading-tight">Diabetologist Review</p>
+                    <p className="text-[10px] text-slate-600 truncate">HbA1c & prescription optimization</p>
+                  </div>
+                </div>
+                <ArrowRight size={13} className="text-slate-400 group-hover:text-purple-800 transition" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setConsultType('pharmacist');
+                  setConsultModalOpen(true);
+                }}
+                className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/40 text-left transition flex items-center justify-between group cursor-pointer"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Heart size={15} className="text-rose-600 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-950 leading-tight">Pharm D Counselling</p>
+                    <p className="text-[10px] text-slate-600 truncate">Adherence & medication guidance</p>
+                  </div>
+                </div>
+                <ArrowRight size={13} className="text-slate-400 group-hover:text-purple-800 transition" />
+              </button>
+            </div>
+
+            <div className="p-2 rounded-xl bg-purple-50/80 border border-purple-200 text-xs text-purple-950 flex items-center gap-1.5">
+              <Shield size={14} className="text-purple-700 shrink-0" />
+              <p className="font-medium text-[10px] leading-tight">
+                All consultations are encrypted and compliant with medical privacy standards.
+              </p>
+            </div>
+          </div>
+
+          <div className="card-footer bg-slate-50 p-2.5 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
+            <button
+              onClick={() => navigate('/messages')}
+              className="text-[11px] font-bold text-purple-800 hover:text-purple-950 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <MessageSquare size={12} />
+              <span>Chat Doctor</span>
+            </button>
+            <button
+              onClick={() => navigate('/appointments')}
+              className="text-[11px] font-extrabold text-purple-800 hover:text-purple-950 hover:underline flex items-center gap-0.5 cursor-pointer"
+            >
+              <span>Appointments</span>
+              <ArrowRight size={12} />
             </button>
           </div>
         </div>
 
       </div>
+
+      {/* ── Consultation Request Modal ── */}
+      <Modal
+        open={consultModalOpen}
+        onClose={() => setConsultModalOpen(false)}
+        title={consultType === 'doctor' ? 'Book Doctor Consultation' : 'Request Pharmacist Counselling'}
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-700 font-medium">
+            Schedule a session with your assigned {consultType === 'doctor' ? 'Doctor (Diabetologist)' : 'Clinical Pharmacist (Pharm D)'} to review lab results, discuss tablet side effects, or adjust targets.
+          </p>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-900 block">Consultation Topic / Chief Complaint</label>
+            <textarea
+              rows={3}
+              value={consultNote}
+              onChange={(e) => setConsultNote(e.target.value)}
+              placeholder="e.g. Discuss fasting glucose spikes, morning dizziness after Metformin, or diet adjustments..."
+              className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:border-purple-700 focus:outline-none"
+            />
+          </div>
+
+          <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 flex items-center gap-2 text-xs text-purple-950 font-medium">
+            <CalendarDays size={16} className="text-purple-700 shrink-0" />
+            <span>Next available slot: Tomorrow at 10:30 AM via Tele-Consult Video.</span>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              onClick={() => setConsultModalOpen(false)}
+              className="btn-ghost btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRequestConsultation}
+              className="btn-primary btn-sm bg-purple-800 hover:bg-purple-900 border-none"
+            >
+              Confirm Consultation
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Care Checklist */}
       <div className="card">
