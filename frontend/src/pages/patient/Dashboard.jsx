@@ -113,7 +113,7 @@ export default function PatientDashboard() {
     { label: 'Log Glucose', icon: Droplets, color: 'text-teal-600 bg-teal-50', onClick: () => navigate('/patient/glucose?action=add') },
     { label: 'Ask Assistant', icon: Bot, color: 'text-purple-600 bg-purple-50', onClick: () => navigate('/patient/assistant') },
     { label: 'Request Counselling', icon: Heart, color: 'text-rose-600 bg-rose-50', onClick: () => navigate('/patient/assistant?action=counselling') },
-    { label: 'View Prescription', icon: FileText, color: 'text-amber-600 bg-amber-50', onClick: () => navigate('/patient/medications?tab=prescriptions') },
+    { label: 'View Prescriptions', icon: FileText, color: 'text-amber-600 bg-amber-50', onClick: () => navigate('/patient/medications') },
   ];
 
   const dueScreenings = screenings.filter(s => s.status === 'due' || s.status === 'overdue');

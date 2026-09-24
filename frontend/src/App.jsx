@@ -52,8 +52,7 @@ function AppRoutes() {
         {/* Authenticated Layout Routes */}
         <Route element={<AppLayout />}>
           {/* Informational Project Presentation / Clinical Guidelines */}
-          <Route path="/overview" element={<ProjectOverview />} />
-
+          <Route path="/overview" element={<ProjectOverview />} /> 
           {/* Patient Routes */}
           <Route path="/patient/dashboard" element={<PatientDashboard />} />
           <Route path="/patient/glucose" element={<GlucoseMonitor />} />
