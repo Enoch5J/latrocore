@@ -108,9 +108,9 @@ export default function PatientDashboard() {
   if (loading) return <LoadingSpinner text="Loading dashboard..." />;
 
   const quickActions = [
-    { label: 'Log Glucose', icon: Droplets, color: 'text-teal-600 bg-teal-50', onClick: () => navigate('/patient/glucose?action=add') },
     { label: 'Record Medication', icon: Pill, color: 'text-blue-600 bg-blue-50', onClick: () => navigate('/patient/medications') },
     { label: 'Add Health Entry', icon: Salad, color: 'text-green-600 bg-green-50', onClick: () => navigate('/patient/lifestyle?action=add') },
+    { label: 'Log Glucose', icon: Droplets, color: 'text-teal-600 bg-teal-50', onClick: () => navigate('/patient/glucose?action=add') },
     { label: 'Ask Assistant', icon: Bot, color: 'text-purple-600 bg-purple-50', onClick: () => navigate('/patient/assistant') },
     { label: 'Request Counselling', icon: Heart, color: 'text-rose-600 bg-rose-50', onClick: () => navigate('/patient/assistant?action=counselling') },
     { label: 'View Prescription', icon: FileText, color: 'text-amber-600 bg-amber-50', onClick: () => navigate('/patient/medications?tab=prescriptions') },

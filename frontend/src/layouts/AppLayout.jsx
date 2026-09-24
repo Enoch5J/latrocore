@@ -12,10 +12,10 @@ import {
 const ROLE_NAV = {
   patient: [
     { to: '/patient/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/patient/glucose', icon: Activity, label: 'Glucose Monitor' },
     { to: '/patient/medications', icon: Pill, label: 'Medications' },
-    { to: '/patient/investigations', icon: FileText, label: 'Investigations' },
     { to: '/patient/lifestyle', icon: Salad, label: 'Lifestyle' },
+    { to: '/patient/glucose', icon: Activity, label: 'Glucose Monitor' },
+    { to: '/patient/investigations', icon: FileText, label: 'Investigations' },
     { to: '/patient/screening', icon: ClipboardList, label: 'Screening' },
     { to: '/patient/safety', icon: AlertTriangle, label: 'Safety Alerts' },
     { to: '/patient/assistant', icon: Bot, label: 'AI Assistant' },
