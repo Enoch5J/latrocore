@@ -33,6 +33,103 @@ const INPUT_PLACEHOLDERS = {
   kn: 'ಪ್ರಶ್ನೆ ಕೇಳಿ (ಉದಾ: ಗ್ಲೂಕೋಸ್, ಮಾತ್ರೆಗಳು)...',
 };
 
+export function AIFaceAvatar({ size = 36, className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 54 54"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`shrink-0 select-none ${className}`}
+    >
+      <defs>
+        <filter id="ai-glow-filter" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="ai-face-head" x1="10" y1="8" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="60%" stopColor="#E2E8F0" />
+          <stop offset="100%" stopColor="#CBD5E1" />
+        </linearGradient>
+        <linearGradient id="ai-face-visor" x1="12" y1="14" x2="42" y2="38" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#0B132B" />
+          <stop offset="45%" stopColor="#0F172A" />
+          <stop offset="100%" stopColor="#1E293B" />
+        </linearGradient>
+        <linearGradient id="ai-face-cyan" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#2DD4BF" />
+          <stop offset="100%" stopColor="#38BDF8" />
+        </linearGradient>
+        <linearGradient id="ai-face-ear" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#06B6D4" />
+          <stop offset="100%" stopColor="#0D9488" />
+        </linearGradient>
+        <linearGradient id="ai-face-sheen" x1="16" y1="15" x2="38" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* Cyber Antenna with Radiant Node */}
+      <circle cx="27" cy="4.5" r="2.8" fill="#2DD4BF" filter="url(#ai-glow-filter)" />
+      <path d="M27 7V12" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round" />
+
+      {/* Futuristic Audio Pods / Ears (Left & Right) */}
+      <rect x="3.5" y="21" width="5" height="13" rx="2.5" fill="url(#ai-face-ear)" />
+      <circle cx="6" cy="27.5" r="1.5" fill="#E0F2FE" />
+      <rect x="45.5" y="21" width="5" height="13" rx="2.5" fill="url(#ai-face-ear)" />
+      <circle cx="48" cy="27.5" r="1.5" fill="#E0F2FE" />
+
+      {/* Ceramic Head Chassis */}
+      <rect x="7" y="11" width="40" height="34" rx="16" fill="url(#ai-face-head)" stroke="#94A3B8" strokeWidth="1.2" />
+
+      {/* High-Gloss Curved Obsidian Visor Display */}
+      <rect x="11.5" y="15" width="31" height="25" rx="12" fill="url(#ai-face-visor)" />
+
+      {/* Glass Specular Glint Reflection */}
+      <path
+        d="M15 17.5C21 16 33 16 39 18.5C36.5 22.5 30 23 15 17.5Z"
+        fill="url(#ai-face-sheen)"
+      />
+
+      {/* Expressive Glowing AI Eyes (Curved Smiling Radiant Cyan / Emerald) */}
+      <g filter="url(#ai-glow-filter)">
+        {/* Left Eye */}
+        <path
+          d="M17 26.5C17.2 23 19.5 21 22.5 21C25.5 21 27.5 23 27.5 26.5C27 27.2 25.5 27.5 22.5 27.5C19.5 27.5 17 27.2 17 26.5Z"
+          fill="url(#ai-face-cyan)"
+        />
+        <circle cx="23.5" cy="23.5" r="1.1" fill="#FFFFFF" />
+
+        {/* Right Eye */}
+        <path
+          d="M26.5 26.5C26.5 23 28.5 21 31.5 21C34.5 21 37 23 37 26.5C37 27.2 34.5 27.5 31.5 27.5C28.5 27.5 26.5 27.2 26.5 26.5Z"
+          fill="url(#ai-face-cyan)"
+        />
+        <circle cx="32.5" cy="23.5" r="1.1" fill="#FFFFFF" />
+      </g>
+
+      {/* Cute Glowing Cheek Blush Dots */}
+      <circle cx="15.5" cy="31" r="1.8" fill="#2DD4BF" opacity="0.65" filter="url(#ai-glow-filter)" />
+      <circle cx="38.5" cy="31" r="1.8" fill="#2DD4BF" opacity="0.65" filter="url(#ai-glow-filter)" />
+
+      {/* Friendly Glowing Digital Smile Curve */}
+      <path
+        d="M23 32C24.5 34.5 29.5 34.5 31 32"
+        stroke="url(#ai-face-cyan)"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        filter="url(#ai-glow-filter)"
+      />
+
+      {/* Forehead Micro-Core Spark */}
+      <circle cx="27" cy="17" r="1" fill="#38BDF8" opacity="0.9" />
+    </svg>
+  );
+}
+
 export default function FloatingAIAssistant() {
   const { currentUser } = useApp();
   const [isOpen, setIsOpen] = useState(false);
@@ -230,10 +327,10 @@ export default function FloatingAIAssistant() {
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="relative shrink-0">
-                    <div className="w-9 h-9 rounded-xl bg-teal-800/90 border border-teal-500/40 flex items-center justify-center shadow-inner">
-                      <Bot size={20} className="text-teal-200" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-slate-900 to-teal-950 border border-teal-400/40 flex items-center justify-center shadow-inner overflow-hidden">
+                      <AIFaceAvatar size={28} />
                     </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-teal-950 rounded-full animate-pulse" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-teal-950 rounded-full animate-pulse shadow-[0_0_6px_#34d399]" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-nowrap">
@@ -313,8 +410,8 @@ export default function FloatingAIAssistant() {
                   className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-xl bg-teal-800 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                      <Bot size={15} />
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-b from-slate-900 to-teal-950 border border-teal-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs overflow-hidden">
+                      <AIFaceAvatar size={20} />
                     </div>
                   )}
 
@@ -445,26 +542,40 @@ export default function FloatingAIAssistant() {
         </>
       )}
 
-      {/* ── Floating Circular Trigger Button (Bottom-Right Corner) ── */}
+      {/* ── Floating AI Assistant Avatar Trigger (Bottom-Right Corner) ── */}
       {!isOpen && (
-        <div className="fixed bottom-8 sm:bottom-9 right-4 sm:right-6 z-40 flex items-center gap-2.5 group">
+        <div className="fixed bottom-6 sm:bottom-8 right-5 sm:right-7 z-40 flex items-center group">
           <button
             onClick={() => setIsOpen(true)}
-            className="hidden sm:flex items-center gap-2 bg-slate-950/95 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-full shadow-xl border border-slate-800 transition-all hover:scale-102 cursor-pointer"
-          >
-            <Sparkles size={14} className="text-teal-400" />
-            <span>Ask LATROCORE AI</span>
-          </button>
-
-          <button
-            onClick={() => setIsOpen(true)}
-            className="w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 bg-gradient-to-br from-teal-700 via-teal-800 to-teal-950 text-white hover:shadow-teal-900/50 ring-4 ring-white/95 cursor-pointer"
+            className="relative flex items-center justify-center cursor-pointer transition-all duration-300 transform group-hover:scale-110 active:scale-95 focus:outline-none"
             aria-label="Open Clinical AI Assistant"
           >
-            <div className="relative flex items-center justify-center">
-              <Bot size={26} className="text-white drop-shadow-sm" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 border-2 border-teal-950 rounded-full animate-ping" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 border-2 border-teal-950 rounded-full" />
+            {/* Outer Radiant Pulsing Aura Rings */}
+            <span className="absolute -inset-2.5 rounded-full bg-gradient-to-r from-teal-400 via-cyan-400 to-emerald-400 opacity-60 blur-md group-hover:opacity-100 animate-pulse duration-1000" />
+            <span className="absolute -inset-1 rounded-full bg-gradient-to-tr from-teal-500 to-cyan-400 opacity-30 animate-ping duration-1000 pointer-events-none" />
+
+            {/* Glowing Sphere Container */}
+            <div className="relative w-15 h-15 sm:w-16 sm:h-16 rounded-full p-[3px] bg-gradient-to-tr from-teal-400 via-cyan-300 to-emerald-400 shadow-[0_10px_35px_rgba(20,184,166,0.6)]">
+              <div className="w-full h-full rounded-full bg-gradient-to-b from-slate-900 via-teal-950 to-slate-950 flex items-center justify-center overflow-hidden border border-teal-400/40 relative">
+                {/* Internal Holographic Radial Light Beam */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-400/30 via-transparent to-transparent pointer-events-none" />
+
+                {/* Animated Eye-Catching AI Face Avatar */}
+                <AIFaceAvatar size={42} className="relative z-10 transition-transform duration-300 group-hover:scale-105" />
+
+                {/* Live Online Glowing Beacon */}
+                <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-950 shadow-[0_0_10px_#34d399] animate-pulse z-20" />
+              </div>
+            </div>
+
+            {/* Smooth Floating Label on Hover */}
+            <div className="absolute bottom-full mb-3 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-200">
+              <div className="bg-slate-950/95 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-2xl border border-teal-500/50 flex items-center gap-1.5 whitespace-nowrap">
+                <Sparkles size={13} className="text-teal-400 animate-spin" style={{ animationDuration: '3s' }} />
+                <span className="bg-gradient-to-r from-teal-200 via-cyan-100 to-white bg-clip-text text-transparent">LATROCORE AI</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5" />
+              </div>
+              <div className="w-2 h-2 bg-slate-950 border-r border-b border-teal-500/50 transform rotate-45 -mt-1" />
             </div>
           </button>
         </div>

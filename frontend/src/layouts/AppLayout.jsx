@@ -134,36 +134,38 @@ export default function AppLayout() {
             </NavLink>
           );
         })}
-        <div className="pt-4 mt-4 border-t-2 border-slate-200 space-y-1.5">
-          <NavLink
-            to="/overview"
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-teal-800 text-white shadow-xs'
-                  : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
-              }`
-            }
-          >
-            <BookOpen size={20} className="shrink-0" />
-            {showText && <span className="truncate text-sm font-bold">Project Overview</span>}
-          </NavLink>
-          <NavLink
-            to="/care-summary"
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-teal-800 text-white shadow-xs'
-                  : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
-              }`
-            }
-          >
-            <BarChart3 size={20} className="shrink-0" />
-            {showText && <span className="truncate text-sm font-bold">Care Summary</span>}
-          </NavLink>
-        </div>
+        {activeUser?.role !== 'patient' && (
+          <div className="pt-4 mt-4 border-t-2 border-slate-200 space-y-1.5">
+            <NavLink
+              to="/overview"
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-teal-800 text-white shadow-xs'
+                    : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
+                }`
+              }
+            >
+              <BookOpen size={20} className="shrink-0" />
+              {showText && <span className="truncate text-sm font-bold">Project Overview</span>}
+            </NavLink>
+            <NavLink
+              to="/care-summary"
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-teal-800 text-white shadow-xs'
+                    : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
+                }`
+              }
+            >
+              <BarChart3 size={20} className="shrink-0" />
+              {showText && <span className="truncate text-sm font-bold">Care Summary</span>}
+            </NavLink>
+          </div>
+        )}
       </nav>
     );
   };
