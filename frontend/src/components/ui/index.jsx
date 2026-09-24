@@ -51,9 +51,9 @@ export function Avatar({ user, name, role, size = 'md', className = '' }) {
 // ── Toast ───────────────────────────────────────────────────────────────
 export function ToastContainer({ toasts, onRemove }) {
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)]">
+    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)] pointer-events-none">
       {toasts.map(t => (
-        <div key={t.id} className={`flex items-start gap-3 p-4 rounded-xl shadow-xl border-2 animate-slide-in ${
+        <div key={t.id} className={`pointer-events-auto relative overflow-hidden flex items-start gap-3 p-3.5 rounded-xl shadow-xl border-2 transition-all duration-200 animate-slide-in ${
           t.type === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-medium' :
           t.type === 'error' ? 'bg-rose-50 border-rose-300 text-rose-950 font-medium' :
           t.type === 'warning' ? 'bg-amber-50 border-amber-300 text-amber-950 font-medium' :
@@ -63,11 +63,21 @@ export function ToastContainer({ toasts, onRemove }) {
           {t.type === 'error' && <AlertCircle size={18} className="shrink-0 mt-0.5 text-rose-700" />}
           {t.type === 'warning' && <AlertTriangle size={18} className="shrink-0 mt-0.5 text-amber-700" />}
           {t.type === 'info' && <Info size={18} className="shrink-0 mt-0.5 text-blue-700" />}
-          <div className="flex-1">
-            {t.title && <p className="font-bold text-sm text-slate-950">{t.title}</p>}
-            <p className="text-sm text-slate-900 leading-snug">{t.message}</p>
+          <div className="flex-1 min-w-0">
+            {t.title && <p className="font-bold text-sm text-slate-950 truncate">{t.title}</p>}
+            <p className="text-xs sm:text-sm text-slate-900 leading-snug">{t.message}</p>
           </div>
-          <button onClick={() => onRemove(t.id)} className="shrink-0 hover:opacity-70 cursor-pointer p-1 text-slate-700"><X size={16} /></button>
+          <button onClick={() => onRemove(t.id)} className="shrink-0 hover:opacity-70 cursor-pointer p-1 text-slate-700" aria-label="Dismiss"><X size={15} /></button>
+
+          {/* 1-Second Auto-dismiss Progress Bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10 overflow-hidden">
+            <div
+              className="h-full bg-current opacity-40"
+              style={{
+                animation: 'toastCountdown 1s linear forwards',
+              }}
+            />
+          </div>
         </div>
       ))}
     </div>

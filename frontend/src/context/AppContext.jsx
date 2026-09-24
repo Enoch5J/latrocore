@@ -30,8 +30,11 @@ function appReducer(state, action) {
       const freshData = resetServiceData();
       return { ...state, data: freshData, currentUser: null };
     }
-    case 'ADD_TOAST':
-      return { ...state, toasts: [...state.toasts, { ...action.payload, id: Date.now() }] };
+    case 'ADD_TOAST': {
+      const id = action.payload.id || `toast_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const activeToasts = state.toasts.slice(-1);
+      return { ...state, toasts: [...activeToasts, { ...action.payload, id }] };
+    }
     case 'REMOVE_TOAST':
       return { ...state, toasts: state.toasts.filter(t => t.id !== action.payload) };
     case 'SET_GUIDED_DEMO':
@@ -80,10 +83,11 @@ export function AppProvider({ children }) {
   }, []);
 
   const addToast = useCallback((toast) => {
-    dispatch({ type: 'ADD_TOAST', payload: toast });
+    const id = toast.id || `toast_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    dispatch({ type: 'ADD_TOAST', payload: { ...toast, id } });
     setTimeout(() => {
-      dispatch({ type: 'REMOVE_TOAST', payload: toast.id || Date.now() });
-    }, toast.duration || 4000);
+      dispatch({ type: 'REMOVE_TOAST', payload: id });
+    }, 1000); // Hide within exactly 1 second
   }, []);
 
   const removeToast = useCallback((id) => {
