@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
   Bot, Heart, Users, Settings, AlertTriangle, BookOpen, ChevronDown, ChevronRight,
-  Home, BarChart3
+  Home, BarChart3, BellRing, Utensils, Video
 } from 'lucide-react';
 
 const ROLE_NAV = {
@@ -15,6 +15,10 @@ const ROLE_NAV = {
     { to: '/patient/medications', icon: Pill, label: 'Medications' },
     { to: '/patient/lifestyle', icon: Salad, label: 'Lifestyle' },
     { to: '/patient/glucose', icon: Activity, label: 'Glucose Monitor' },
+    { to: '/patient/dashboard#scheduler', icon: BellRing, label: 'Tablet Scheduler' },
+    { to: '/patient/dashboard#test-reminders', icon: ClipboardList, label: 'Patient Test Reminder' },
+    { to: '/patient/dashboard#diet-plan', icon: Utensils, label: 'Diabetic Diet Plan' },
+    { to: '/patient/dashboard#consulting', icon: Video, label: 'Doctor Consulting' },
     { to: '/patient/investigations', icon: FileText, label: 'Investigations' },
     { to: '/patient/screening', icon: ClipboardList, label: 'Screening' },
     { to: '/patient/safety', icon: AlertTriangle, label: 'Safety Alerts' },
@@ -106,23 +110,30 @@ export default function AppLayout() {
     const showText = forceExpand || sidebarOpen;
     return (
       <nav className="flex-1 py-4 space-y-1.5 px-3 overflow-y-auto">
-        {navItems.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-teal-800 text-white shadow-xs'
-                  : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
-              }`
-            }
-          >
-            <item.icon size={20} className="shrink-0" />
-            {showText && <span className="truncate text-sm font-bold">{item.label}</span>}
-          </NavLink>
-        ))}
+        {navItems.map(item => {
+          const hasHash = item.to.includes('#');
+          const isItemActive = hasHash
+            ? (location.pathname === '/patient/dashboard' && location.hash === item.to.slice(item.to.indexOf('#')))
+            : (!location.hash && location.pathname === item.to);
+
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={
+                `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                  isItemActive
+                    ? 'bg-teal-800 text-white shadow-xs'
+                    : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
+                }`
+              }
+            >
+              <item.icon size={20} className="shrink-0" />
+              {showText && <span className="truncate text-sm font-bold">{item.label}</span>}
+            </NavLink>
+          );
+        })}
         <div className="pt-4 mt-4 border-t-2 border-slate-200 space-y-1.5">
           <NavLink
             to="/overview"

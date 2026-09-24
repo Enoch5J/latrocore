@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { StatCard, LoadingSpinner, Badge, Modal } from '../../components/ui';
 import {
@@ -16,8 +16,22 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Res
 export default function PatientDashboard() {
   const { currentUser, data, addToast, refreshData } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const [chartRange, setChartRange] = useState('7d');
   const [loading, setLoading] = useState(true);
+
+  // Scroll smoothly when user navigates with hash (#scheduler, #test-reminders, #diet-plan, #consulting)
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+      }
+    }
+  }, [location.hash]);
 
   // Tablet Alarm & Scheduler State
   const audioCtxRef = useRef(null);
@@ -531,104 +545,7 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="card">
-        <div className="card-header bg-slate-50/70 rounded-t-2xl border-b border-slate-200">
-          <h2 className="font-extrabold text-base text-slate-950">Quick Actions</h2>
-        </div>
-        <div className="card-body">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-            {quickActions.map((a, i) => (
-              <button
-                key={i}
-                onClick={a.onClick}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-slate-200 hover:border-teal-700 bg-white hover:bg-teal-50/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-xs ${a.color} group-hover:scale-105 transition-transform`}>
-                  <a.icon size={22} />
-                </div>
-                <span className="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-teal-900 leading-tight">
-                  {a.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Section: Glucose Monitor (Chart & Profile) ── */}
-      <div className="card">
-        <div className="card-header flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-800">
-              <Activity size={22} />
-            </div>
-            <div>
-              <h2 className="font-extrabold text-base text-slate-950">Glucose Trend Profile (Glucose Monitor)</h2>
-              <p className="text-xs font-semibold text-slate-700 mt-0.5">Continuous clinical self-monitoring points with glycemic target zones</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              {['7d', '30d'].map(r => (
-                <button
-                  key={r}
-                  onClick={() => setChartRange(r)}
-                  className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
-                    chartRange === r
-                      ? 'bg-teal-800 text-white shadow-xs'
-                      : 'text-slate-800 hover:text-black hover:bg-slate-200/70'
-                  }`}
-                >
-                  {r === '7d' ? '7 Days' : '30 Days'}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => navigate('/patient/glucose')}
-              className="btn-outline btn-sm"
-            >
-              <span>Full Analytics</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
-        <div className="card-body p-3.5 sm:p-6 min-w-0 overflow-hidden">
-          {chartData.length > 0 ? (
-            <div className="w-full min-w-0 overflow-hidden" style={{ minHeight: 280 }}>
-              <ResponsiveContainer width="100%" height={290} minWidth={0}>
-                <ComposedChart data={chartData} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#CBD5E1" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#090D16', fontWeight: 600 }} />
-                  <YAxis domain={[60, 300]} tick={{ fontSize: 11, fill: '#090D16', fontWeight: 600 }} />
-                  <ReTooltip
-                    contentStyle={{ backgroundColor: '#090D16', border: 'none', borderRadius: 12, color: '#FFFFFF', fontSize: 12, fontWeight: 600, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)' }}
-                    formatter={(val) => [`${val} mg/dL`, 'Blood Glucose']}
-                    labelFormatter={(label) => `Date: ${label}`}
-                  />
-                  {targets && (
-                    <>
-                      <ReferenceLine y={targets.fastingGlucoseMax} stroke="#D97706" strokeDasharray="4 4" strokeWidth={2} label={{ value: 'Target Max (130)', fill: '#D97706', fontSize: 10, position: 'right' }} />
-                      <ReferenceLine y={targets.fastingGlucoseMin} stroke="#D97706" strokeDasharray="4 4" strokeWidth={2} label={{ value: 'Target Min (80)', fill: '#D97706', fontSize: 10, position: 'right' }} />
-                    </>
-                  )}
-                  <Line type="monotone" dataKey="value" stroke="#0D7A71" strokeWidth={3} dot={{ r: 3.5, fill: '#0D7A71', stroke: '#FFFFFF', strokeWidth: 1.5 }} activeDot={{ r: 6, fill: '#0D7A71' }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="text-center py-12 text-slate-800 font-bold">No glucose data recorded for this time range</div>
-          )}
-          {!targets && (
-            <p className="text-xs font-bold text-amber-800 mt-2 flex items-center gap-1.5 p-2 bg-amber-50 rounded-lg border border-amber-200">
-              <AlertCircle size={14} className="text-amber-700 shrink-0" />
-              Target range not configured by your clinician yet. Standard fasting targets: 80 - 130 mg/dL.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* ── 4 CORE CARE MANAGEMENT COLUMNS (Immediately after Glucose Monitor) ── */}
+      {/* ── 4 CORE CARE MANAGEMENT COLUMNS (Placed Before Quick Actions) ── */}
       {/* 1. Scheduler Column (Ring Alarm to take tablet) */}
       {/* 2. Patient Test Reminder */}
       {/* 3. Diabetic Diet Plan */}
@@ -636,7 +553,7 @@ export default function PatientDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
 
         {/* ── COLUMN 1: Tablet Scheduler & Audio Alarm ── */}
-        <div className="card flex flex-col border-2 border-teal-600/30 hover:border-teal-600/50 shadow-sm transition-all">
+        <div id="scheduler" className="card flex flex-col scroll-mt-24 border-2 border-teal-600/30 hover:border-teal-600/50 shadow-sm transition-all">
           <div className="card-header bg-gradient-to-r from-teal-900 to-teal-850 text-white rounded-t-2xl flex items-center justify-between p-3.5">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-teal-700/80 border border-teal-500/40 flex items-center justify-center shadow-inner shrink-0">
@@ -799,7 +716,7 @@ export default function PatientDashboard() {
         </div>
 
         {/* ── COLUMN 2: Patient Test Reminder ── */}
-        <div className="card flex flex-col border-2 border-blue-600/30 hover:border-blue-600/50 shadow-sm transition-all">
+        <div id="test-reminders" className="card flex flex-col scroll-mt-24 border-2 border-blue-600/30 hover:border-blue-600/50 shadow-sm transition-all">
           <div className="card-header bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-t-2xl flex items-center justify-between p-3.5">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-blue-700/80 border border-blue-500/40 flex items-center justify-center shadow-inner shrink-0">
@@ -876,7 +793,7 @@ export default function PatientDashboard() {
         </div>
 
         {/* ── COLUMN 3: Diabetic Diet Plan ── */}
-        <div className="card flex flex-col border-2 border-emerald-600/30 hover:border-emerald-600/50 shadow-sm transition-all">
+        <div id="diet-plan" className="card flex flex-col scroll-mt-24 border-2 border-emerald-600/30 hover:border-emerald-600/50 shadow-sm transition-all">
           <div className="card-header bg-gradient-to-r from-emerald-900 to-teal-950 text-white rounded-t-2xl flex items-center justify-between p-3.5">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-emerald-700/80 border border-emerald-500/40 flex items-center justify-center shadow-inner shrink-0">
@@ -994,7 +911,7 @@ export default function PatientDashboard() {
         </div>
 
         {/* ── COLUMN 4: Consulting (Clinical Consultation & Doctor Review) ── */}
-        <div className="card flex flex-col border-2 border-purple-600/30 hover:border-purple-600/50 shadow-sm transition-all">
+        <div id="consulting" className="card flex flex-col scroll-mt-24 border-2 border-purple-600/30 hover:border-purple-600/50 shadow-sm transition-all">
           <div className="card-header bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-950 text-white rounded-t-2xl flex items-center justify-between p-3.5">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-purple-700/80 border border-purple-500/40 flex items-center justify-center shadow-inner shrink-0">
@@ -1112,6 +1029,103 @@ export default function PatientDashboard() {
           </div>
         </div>
 
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card">
+        <div className="card-header bg-slate-50/70 rounded-t-2xl border-b border-slate-200">
+          <h2 className="font-extrabold text-base text-slate-950">Quick Actions</h2>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {quickActions.map((a, i) => (
+              <button
+                key={i}
+                onClick={a.onClick}
+                className="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-slate-200 hover:border-teal-700 bg-white hover:bg-teal-50/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-xs ${a.color} group-hover:scale-105 transition-transform`}>
+                  <a.icon size={22} />
+                </div>
+                <span className="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-teal-900 leading-tight">
+                  {a.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section: Glucose Monitor (Chart & Profile) ── */}
+      <div className="card">
+        <div className="card-header flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-800">
+              <Activity size={22} />
+            </div>
+            <div>
+              <h2 className="font-extrabold text-base text-slate-950">Glucose Trend Profile (Glucose Monitor)</h2>
+              <p className="text-xs font-semibold text-slate-700 mt-0.5">Continuous clinical self-monitoring points with glycemic target zones</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              {['7d', '30d'].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setChartRange(r)}
+                  className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                    chartRange === r
+                      ? 'bg-teal-800 text-white shadow-xs'
+                      : 'text-slate-800 hover:text-black hover:bg-slate-200/70'
+                  }`}
+                >
+                  {r === '7d' ? '7 Days' : '30 Days'}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => navigate('/patient/glucose')}
+              className="btn-outline btn-sm"
+            >
+              <span>Full Analytics</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+        <div className="card-body p-3.5 sm:p-6 min-w-0 overflow-hidden">
+          {chartData.length > 0 ? (
+            <div className="w-full min-w-0 overflow-hidden" style={{ minHeight: 280 }}>
+              <ResponsiveContainer width="100%" height={290} minWidth={0}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#CBD5E1" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#090D16', fontWeight: 600 }} />
+                  <YAxis domain={[60, 300]} tick={{ fontSize: 11, fill: '#090D16', fontWeight: 600 }} />
+                  <ReTooltip
+                    contentStyle={{ backgroundColor: '#090D16', border: 'none', borderRadius: 12, color: '#FFFFFF', fontSize: 12, fontWeight: 600, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)' }}
+                    formatter={(val) => [`${val} mg/dL`, 'Blood Glucose']}
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  {targets && (
+                    <>
+                      <ReferenceLine y={targets.fastingGlucoseMax} stroke="#D97706" strokeDasharray="4 4" strokeWidth={2} label={{ value: 'Target Max (130)', fill: '#D97706', fontSize: 10, position: 'right' }} />
+                      <ReferenceLine y={targets.fastingGlucoseMin} stroke="#D97706" strokeDasharray="4 4" strokeWidth={2} label={{ value: 'Target Min (80)', fill: '#D97706', fontSize: 10, position: 'right' }} />
+                    </>
+                  )}
+                  <Line type="monotone" dataKey="value" stroke="#0D7A71" strokeWidth={3} dot={{ r: 3.5, fill: '#0D7A71', stroke: '#FFFFFF', strokeWidth: 1.5 }} activeDot={{ r: 6, fill: '#0D7A71' }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-800 font-bold">No glucose data recorded for this time range</div>
+          )}
+          {!targets && (
+            <p className="text-xs font-bold text-amber-800 mt-2 flex items-center gap-1.5 p-2 bg-amber-50 rounded-lg border border-amber-200">
+              <AlertCircle size={14} className="text-amber-700 shrink-0" />
+              Target range not configured by your clinician yet. Standard fasting targets: 80 - 130 mg/dL.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* ── Consultation Request Modal ── */}
