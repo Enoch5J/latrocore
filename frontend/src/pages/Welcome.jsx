@@ -109,10 +109,39 @@ export default function Welcome() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeConsoleTab, setActiveConsoleTab] = useState('cgm');
 
-  const handleLogin = (account) => {
+  const handleLogin = async (account) => {
     const user = data?.users?.[account.id];
     if (user) {
       setUser(user);
+      try {
+        const emailMap = {
+          'pat-001': 'patient@latrocore.com',
+          'doc-001': 'doctor@latrocore.com',
+          'pharm-001': 'pharmacist@latrocore.com',
+          'admin-001': 'admin@latrocore.com',
+        };
+        const passMap = {
+          'pat-001': 'patient123',
+          'doc-001': 'doctor123',
+          'pharm-001': 'care123',
+          'admin-001': 'admin123',
+        };
+        const email = emailMap[account.id] || `${account.role}@latrocore.com`;
+        const pass = passMap[account.id] || 'admin123';
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass }),
+        });
+        if (res.ok) {
+          const authData = await res.json();
+          if (authData.access_token) {
+            localStorage.setItem('latrocore_token', authData.access_token);
+          }
+        }
+      } catch (err) {
+        console.warn('Backend login sync error:', err);
+      }
       navigate(account.route);
     }
   };

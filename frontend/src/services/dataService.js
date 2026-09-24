@@ -1,4 +1,5 @@
 import { createSeedData, genId } from '../data/seedData';
+import api from './api';
 
 const STORAGE_KEY = 'latrocore_data';
 const delay = (ms = 200) => new Promise(r => setTimeout(r, ms));
@@ -115,6 +116,21 @@ export async function addGlucoseReading(reading) {
   const id = genId('gl');
   const newReading = { ...reading, id };
   update(d => d.glucoseReadings.push(newReading));
+
+  // Sync to backend observations API if available
+  try {
+    api.addObservation({
+      patient_id: reading.patientId || 'pat-001',
+      type: 'blood_glucose',
+      value: parseFloat(reading.value),
+      unit: reading.unit || 'mg/dL',
+      context: reading.mealContext || 'random',
+      recorded_at: reading.timestamp || new Date().toISOString(),
+    }).catch(e => console.warn('Observation API sync error:', e.message));
+  } catch (err) {
+    console.warn('API observation dispatch error:', err);
+  }
+
   return newReading;
 }
 
@@ -147,6 +163,20 @@ export async function addPrescription(rx) {
   const id = genId('rx');
   const newRx = { ...rx, id, status: 'draft', versions: [{ version: 1, date: new Date().toISOString(), action: 'Created', authorId: rx.doctorId, changes: 'Initial prescription' }] };
   update(d => d.prescriptions.push(newRx));
+
+  // Sync to backend API
+  try {
+    api.createPrescription({
+      patient_id: rx.patientId || 'pat-001',
+      medicines: rx.medicines || [],
+      diagnosis: rx.diagnosis || 'Type 2 Diabetes Mellitus',
+      notes: rx.instructions || '',
+      version: 1,
+    }).catch(e => console.warn('Backend prescription sync error:', e.message));
+  } catch (err) {
+    console.warn('Backend prescription call failed:', err);
+  }
+
   return newRx;
 }
 
@@ -163,6 +193,14 @@ export async function authorizePrescription(id, doctorId) {
         action: 'Authorized', authorId: doctorId, changes: 'Authorized for dispensing',
       });
       rx = d.prescriptions[idx];
+
+      // Sync status to backend
+      try {
+        api.updatePrescriptionStatus(id, 'active', 'Authorized for dispensing')
+          .catch(e => console.warn('Prescription status sync error:', e.message));
+      } catch (err) {
+        console.warn('Prescription status error:', err);
+      }
       // Generate dose events for new meds
       if (rx.medicines) {
         for (const med of rx.medicines) {

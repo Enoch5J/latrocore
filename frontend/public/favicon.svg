@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00625a"/>
+      <stop offset="100%" stop-color="#004d46"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dark Teal Rounded Square -->
+  <rect width="64" height="64" rx="16" fill="url(#bg-grad)"/>
+
+  <!-- White Medical Stethoscope Icon -->
+  <g transform="translate(10.4, 10.4) scale(1.8)" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
+    <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/>
+    <circle cx="20" cy="10" r="2"/>
+  </g>
+</svg>
