@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Avatar } from '../components/ui';
 import {
@@ -77,8 +77,7 @@ export default function AppLayout() {
   }, [currentUser, activeUser, setUser]);
 
   if (!activeUser) {
-    navigate('/');
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   const navItems = ROLE_NAV[activeUser.role] || [];
