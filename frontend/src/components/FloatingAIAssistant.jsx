@@ -16,7 +16,7 @@ const LANGUAGES = [
 ];
 
 const WELCOME_MESSAGES = {
-  en: "Hello! I'm LATROCORE Clinical AI. How can I help you with your blood glucose, medications, or lifestyle today?",
+  en: "Hello! I'm LATROCORE Clinical AI. How can I assist you with your glucose, medications, or diet today?",
   ta: "வணக்கம்! நான் LATROCORE கிளினிக்கல் AI உதவியாளர். உங்கள் இரத்த சர்க்கரை, மருந்துகள் அல்லது உணவு முறை பற்றி நான் எப்படி உதவலாம்?",
   hi: "नमस्ते! मैं LATROCORE क्लिनिकल AI हूँ। आज मैं आपकी रक्त शर्करा, दवाओं या आहार योजना में कैसे मदद कर सकता हूँ?",
   ml: "നമസ്കാരം! ഞാൻ LATROCORE ക്ലിനിക്കൽ AI അസിസ്റ്റന്റാണ്. നിങ്ങളുടെ രക്തത്തിലെ പഞ്ചസാര, മരുന്നുകൾ അല്ലെങ്കിൽ ഡയറ്റ് എന്നിവയിൽ എങ്ങനെ സഹായിക്കണം?",
@@ -26,11 +26,11 @@ const WELCOME_MESSAGES = {
 
 const INPUT_PLACEHOLDERS = {
   en: 'Ask about glucose, medications, meals...',
-  ta: 'உங்கள் கேள்வியை கேட்கவும் (எ.கா. குளுக்கோஸ், மாத்திரை)...',
-  hi: 'अपना प्रश्न लिखें (जैसे ग्लूकोज, दवा, आहार)...',
-  ml: 'ചോദ്യങ്ങൾ ചോദിക്കുക (ഉദാ: ഗ്ലൂക്കോസ്, മരുന്നുകൾ)...',
-  te: 'మీ ప్రశ్నను ఇక్కడ అడగండి (ఉదా: గ్లూకోజ్, మందులు)...',
-  kn: 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಕೇಳಿ (ಉದಾ: ಗ್ಲೂಕೋಸ್, ಮಾತ್ರೆಗಳು)...',
+  ta: 'கேள்வி கேட்கவும் (எ.கா. குளுக்கோஸ்)...',
+  hi: 'प्रश्न पूछें (जैसे ग्लूकोज, दवा, आहार)...',
+  ml: 'ചോദ്യം ചോദിക്കുക (ഉദാ: ഗ്ലൂക്കോസ്)...',
+  te: 'ప్రశ్న అడగండి (ఉదా: గ్లూకోజ్, మందులు)...',
+  kn: 'ಪ್ರಶ್ನೆ ಕೇಳಿ (ಉದಾ: ಗ್ಲೂಕೋಸ್, ಮಾತ್ರೆಗಳು)...',
 };
 
 export default function FloatingAIAssistant() {
@@ -165,7 +165,7 @@ export default function FloatingAIAssistant() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, aiMsg]);
-    }, 400);
+    }, 350);
   };
 
   const handleSelectLanguage = (selectedCode) => {
@@ -205,167 +205,135 @@ export default function FloatingAIAssistant() {
         <>
           {/* Mobile Backdrop Overlay */}
           <div
-            className="sm:hidden fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 animate-fade-in"
+            className="sm:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 animate-fade-in"
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
 
           <div
-            className="fixed z-50 flex flex-col bg-white overflow-hidden shadow-2xl border border-slate-200/90
-              inset-x-0 bottom-0 w-full h-[88vh] rounded-t-3xl sm:rounded-2xl
-              sm:inset-x-auto sm:bottom-10 sm:right-6 sm:w-[420px] sm:max-w-[calc(100vw-2rem)] sm:h-[600px] sm:max-h-[calc(100vh-5rem)]
-              animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-4 duration-250 ease-out"
+            className="fixed z-50 flex flex-col bg-white overflow-hidden shadow-2xl border border-slate-200
+              inset-x-0 bottom-0 w-full h-[90vh] rounded-t-3xl sm:rounded-3xl
+              sm:inset-x-auto sm:bottom-8 sm:right-6 sm:w-[450px] sm:max-w-[calc(100vw-2rem)] sm:h-[630px] sm:max-h-[calc(100vh-4.5rem)]
+              animate-in slide-in-from-bottom-5 duration-200 ease-out"
             role="dialog"
             aria-modal="true"
             aria-label="Clinical AI Assistant"
           >
             {/* Mobile Drag Indicator */}
-            <div className="sm:hidden w-full flex items-center justify-center pt-2 pb-1 bg-teal-900 cursor-grab">
-              <div className="w-10 h-1 rounded-full bg-teal-400/50" />
+            <div className="sm:hidden w-full flex items-center justify-center pt-2 pb-1 bg-teal-950 cursor-grab">
+              <div className="w-10 h-1 rounded-full bg-teal-400/40" />
             </div>
 
-            {/* Header */}
-            <div className="bg-gradient-to-r from-teal-900 via-teal-850 to-teal-900 text-white px-4 py-3.5 flex items-center justify-between border-b border-teal-800/80 shadow-xs shrink-0">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-xl bg-teal-800 border border-teal-600/40 flex items-center justify-center shadow-inner">
-                    <Bot size={20} className="text-teal-200" />
+            {/* ── Clean Unified Header ── */}
+            <div className="bg-gradient-to-r from-teal-900 via-teal-850 to-teal-950 text-white shrink-0 shadow-sm border-b border-teal-800">
+              {/* Top Row: Brand & Action Controls */}
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="relative shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-teal-800/90 border border-teal-500/40 flex items-center justify-center shadow-inner">
+                      <Bot size={20} className="text-teal-200" />
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-teal-950 rounded-full animate-pulse" />
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-teal-950 rounded-full animate-pulse" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-nowrap">
-                    <span className="font-extrabold text-sm text-white tracking-tight leading-tight whitespace-nowrap">
-                      LATROCORE AI
-                    </span>
-                    <span className="text-[10px] bg-teal-800/90 border border-teal-500/40 px-1.5 py-0.5 rounded font-bold text-teal-200 whitespace-nowrap">
-                      Copilot
-                    </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-nowrap">
+                      <h3 className="font-extrabold text-sm text-white tracking-tight leading-tight whitespace-nowrap">
+                        LATROCORE AI
+                      </h3>
+                      <span className="text-[10px] bg-teal-700/80 border border-teal-400/30 px-1.5 py-0.2 rounded font-bold text-teal-100 whitespace-nowrap">
+                        Clinical Copilot
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-teal-200/80 font-medium truncate mt-0.5">
+                      6 Indian & Global Languages
+                    </p>
                   </div>
-                  <p className="text-[11px] text-teal-200/80 font-medium truncate">
-                    6 Indian & Global Languages
-                  </p>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                {/* 6-Language Dropdown Selector */}
-                <div className="relative" ref={langMenuRef}>
+                {/* Right Controls */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Reset Chat */}
                   <button
-                    onClick={() => setLangMenuOpen(!langMenuOpen)}
-                    className="flex items-center gap-1.5 bg-teal-950/80 hover:bg-teal-950 text-white rounded-lg px-2.5 py-1 border border-teal-700/60 text-xs font-bold transition cursor-pointer shadow-xs"
-                    title="Change language (Tamil, English, Hindi, Malayalam, Telugu, Kannada)"
-                    aria-label="Change language"
+                    onClick={resetChat}
+                    className="text-teal-300 hover:text-white hover:bg-teal-800/80 p-1.5 rounded-lg transition cursor-pointer"
+                    title="Reset conversation"
+                    aria-label="Reset chat"
                   >
-                    <Globe size={13} className="text-teal-300 shrink-0" />
-                    <span className="text-[11px] font-black">{currentLangObj.short}</span>
-                    <ChevronDown size={12} className={`text-teal-300 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`} />
+                    <RefreshCw size={15} />
                   </button>
 
-                  {langMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1.5 w-44 bg-slate-900/95 backdrop-blur-md border border-teal-600/60 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-150">
-                      <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-teal-300 border-b border-slate-800">
-                        Choose Language (6)
-                      </div>
-                      <div className="py-0.5 max-h-56 overflow-y-auto no-scrollbar">
-                        {LANGUAGES.map((l) => (
-                          <button
-                            key={l.code}
-                            onClick={() => handleSelectLanguage(l.code)}
-                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-left cursor-pointer ${
-                              lang === l.code
-                                ? 'bg-teal-700 text-white shadow-xs'
-                                : 'text-slate-200 hover:bg-slate-800 hover:text-white'
-                            }`}
-                          >
-                            <span className="truncate">{l.label} ({l.sub})</span>
-                            {lang === l.code && <Check size={13} className="text-emerald-300 shrink-0 ml-1" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Close Button */}
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="text-teal-200 hover:text-white hover:bg-teal-800/80 p-1.5 rounded-lg transition cursor-pointer"
+                    title="Close Assistant (Esc)"
+                    aria-label="Close Assistant"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
+              </div>
 
-                {/* Reset Chat */}
-                <button
-                  onClick={resetChat}
-                  className="text-teal-300 hover:text-white hover:bg-teal-800/70 p-1.5 rounded-lg transition"
-                  title="Reset conversation"
-                  aria-label="Reset chat"
-                >
-                  <RefreshCw size={15} />
-                </button>
+              {/* Second Row: Sleek Segmented 6-Language Tabs */}
+              <div className="bg-teal-950/80 px-3 py-1.5 border-t border-teal-900/60 flex items-center justify-between gap-1 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1 min-w-max">
+                  {LANGUAGES.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => handleSelectLanguage(l.code)}
+                      className={`text-xs font-bold px-2.5 py-1 rounded-lg transition cursor-pointer whitespace-nowrap ${
+                        lang === l.code
+                          ? 'bg-teal-600 text-white shadow-xs'
+                          : 'text-teal-200/80 hover:text-white hover:bg-teal-900/80'
+                      }`}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                {/* Close Button */}
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="text-teal-200 hover:text-white hover:bg-teal-800/70 p-1.5 rounded-lg transition"
-                  title="Close Assistant (Esc)"
-                  aria-label="Close Assistant"
-                >
-                  <X size={18} />
-                </button>
+              {/* Safety Sub-strip */}
+              <div className="bg-teal-900/50 px-3.5 py-1 border-t border-teal-800/50 flex items-center justify-between text-[10px] text-teal-200/90 font-medium">
+                <span className="flex items-center gap-1.5 truncate">
+                  <Shield size={11} className="text-teal-300 shrink-0" />
+                  <span>Clinical Decision Support System</span>
+                </span>
+                <span className="text-[9px] bg-teal-800/70 border border-teal-500/30 px-1.5 py-0.2 rounded font-mono text-teal-100 shrink-0 ml-2">
+                  ADA 2024 §6
+                </span>
               </div>
             </div>
 
-            {/* Quick 6-Language Pill Bar for 1-Touch Switching */}
-            <div className="bg-teal-950/90 px-3 py-1 border-b border-teal-900/80 flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
-              <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-wider shrink-0 mr-1">
-                Lang:
-              </span>
-              {LANGUAGES.map((l) => (
-                <button
-                  key={l.code}
-                  onClick={() => handleSelectLanguage(l.code)}
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition whitespace-nowrap cursor-pointer ${
-                    lang === l.code
-                      ? 'bg-teal-600 text-white shadow-xs'
-                      : 'text-teal-300/80 hover:text-white hover:bg-teal-900'
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Safety Notice Bar */}
-            <div className="bg-teal-50/90 border-b border-teal-100 py-1.5 px-3.5 flex items-center gap-2 text-[11px] text-teal-900 leading-tight shrink-0">
-              <Shield size={13} className="text-teal-700 shrink-0" />
-              <span className="truncate font-medium">
-                Clinical guidance • Supports Tamil, English, Hindi, Malayalam, Telugu, Kannada
-              </span>
-            </div>
-
-            {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3.5 bg-slate-50/60 min-h-0">
+            {/* ── Messages Scroll Area ── */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/70 min-h-0">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-lg bg-teal-800 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                    <div className="w-7 h-7 rounded-xl bg-teal-800 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                       <Bot size={15} />
                     </div>
                   )}
 
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-xs ${
+                    className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed shadow-xs ${
                       msg.role === 'user'
-                        ? 'bg-teal-800 text-white rounded-br-xs font-medium'
-                        : 'bg-white text-slate-900 border border-slate-200/90 rounded-bl-xs'
+                        ? 'bg-teal-800 text-white rounded-tr-xs font-medium'
+                        : 'bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Evidence citations */}
                     {msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-2 pt-1.5 border-t border-slate-100 flex flex-wrap gap-1">
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1">
                         {msg.sources.map((src, idx) => (
                           <span
                             key={idx}
-                            className="inline-flex items-center gap-1 text-[10px] text-teal-800 bg-teal-50 px-1.5 py-0.5 rounded font-semibold border border-teal-200/60"
+                            className="inline-flex items-center gap-1 text-[10px] text-teal-850 bg-teal-50 px-2 py-0.5 rounded-md font-semibold border border-teal-200/60"
                           >
                             <Sparkles size={9} className="text-teal-600" />
                             {src}
@@ -374,16 +342,27 @@ export default function FloatingAIAssistant() {
                       </div>
                     )}
 
-                    <div className="mt-1.5 flex items-center justify-between text-[10px] opacity-70">
-                      <span>{msg.time}</span>
+                    {/* Bottom Metadata & Speech Audio */}
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                      <span className="font-semibold text-[10px]">{msg.time}</span>
                       {msg.role === 'assistant' && (
                         <button
                           onClick={() => speakText(msg.text)}
-                          className="ml-2 p-0.5 hover:text-teal-800 transition cursor-pointer"
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-900 border border-slate-200 hover:border-teal-300 transition cursor-pointer text-[10px] font-bold"
                           title="Read aloud"
                           aria-label="Read message aloud"
                         >
-                          {isSpeaking ? <VolumeX size={13} className="text-teal-700" /> : <Volume2 size={13} />}
+                          {isSpeaking ? (
+                            <>
+                              <VolumeX size={12} className="text-teal-700" />
+                              <span>Mute</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 size={12} className="text-teal-700" />
+                              <span>Listen</span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -393,63 +372,75 @@ export default function FloatingAIAssistant() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Suggestions Strip - Hidden horizontal scrollbar */}
-            <div className="px-3 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-              <span className="text-[10px] text-slate-500 font-bold shrink-0 uppercase tracking-wider flex items-center gap-1">
+            {/* ── Suggested Questions Strip ── */}
+            <div className="px-3.5 py-2 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+              <span className="text-[10px] text-teal-850 font-black shrink-0 uppercase tracking-wider flex items-center gap-1">
                 <Sparkles size={11} className="text-teal-600" />
                 Prompt:
               </span>
-              {suggestions.map((q, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSend(q)}
-                  className="shrink-0 text-[11px] bg-slate-100 hover:bg-teal-50 hover:text-teal-900 text-slate-700 font-semibold px-2.5 py-1 rounded-full border border-slate-200 hover:border-teal-300 transition whitespace-nowrap active:scale-95 cursor-pointer"
-                >
-                  {q}
-                </button>
-              ))}
+              <div className="flex items-center gap-1.5 min-w-max">
+                {suggestions.map((q, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSend(q)}
+                    className="shrink-0 text-[11px] bg-slate-50 hover:bg-teal-50 hover:text-teal-950 text-slate-700 font-bold px-3 py-1 rounded-full border border-slate-200/90 hover:border-teal-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Input Form */}
+            {/* ── Input Box Form ── */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSend();
               }}
-              className="p-2.5 sm:p-3 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0"
+              className="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0"
             >
+              {/* Mic Speech Input Button */}
               <button
                 type="button"
                 onClick={toggleListening}
-                className={`p-2.5 rounded-xl transition cursor-pointer ${
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer shrink-0 ${
                   isListening
                     ? 'bg-rose-500 text-white animate-pulse shadow-md'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-teal-50 hover:text-teal-800 border border-slate-200'
                 }`}
                 title={isListening ? 'Stop listening' : `Voice input (${currentLangObj.label})`}
                 aria-label="Voice input"
               >
-                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                {isListening ? <MicOff size={17} /> : <Mic size={17} />}
               </button>
 
+              {/* Text Input */}
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={INPUT_PLACEHOLDERS[lang] || INPUT_PLACEHOLDERS.en}
-                className="flex-1 bg-slate-50 border-2 border-slate-200 focus:border-teal-700 focus:bg-white text-xs sm:text-sm rounded-xl px-3.5 py-2 sm:py-2.5 outline-none transition text-slate-950 font-medium placeholder:text-slate-400"
+                className="flex-1 bg-slate-50 border-2 border-slate-200 focus:border-teal-700 focus:bg-white text-xs sm:text-sm rounded-xl px-3.5 py-2.5 outline-none transition text-slate-950 font-medium placeholder:text-slate-400"
               />
 
+              {/* Send Button */}
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="p-2.5 bg-teal-800 hover:bg-teal-900 disabled:opacity-40 text-white rounded-xl transition shadow-xs cursor-pointer disabled:cursor-not-allowed"
+                className="w-10 h-10 rounded-xl bg-teal-800 hover:bg-teal-900 disabled:opacity-40 text-white flex items-center justify-center transition shadow-xs cursor-pointer disabled:cursor-not-allowed shrink-0"
                 title="Send message"
                 aria-label="Send message"
               >
                 <Send size={16} />
               </button>
             </form>
+
+            {/* Clinical Disclaimer Footnote */}
+            <div className="bg-white pb-2 px-4 text-center">
+              <p className="text-[10px] text-slate-400 font-medium">
+                LATROCORE AI provides clinical decision support. Always confirm with your doctor.
+              </p>
+            </div>
           </div>
         </>
       )}
