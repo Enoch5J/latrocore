@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import AppLayout from './layouts/AppLayout';
 import { ToastContainer } from './components/ui';
 import GuidedDemo from './components/GuidedDemo';
+import FloatingAIAssistant from './components/FloatingAIAssistant';
 
 // Pages
 import Welcome from './pages/Welcome';
@@ -42,6 +43,7 @@ function AppRoutes() {
     <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <GuidedDemo />
+      <FloatingAIAssistant />
 
       <Routes>
         {/* Welcome / Role Login */}
