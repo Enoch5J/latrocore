@@ -1,18 +1,43 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Send, X, Sparkles, Volume2, VolumeX, Mic, MicOff, Shield, RefreshCw, ChevronDown, Minimize2 } from 'lucide-react';
-import { getAssistantResponse, getSuggestedQuestions } from '../services/assistantEngine';
+import {
+  Bot, Send, X, Sparkles, Volume2, VolumeX, Mic, MicOff,
+  Shield, RefreshCw, ChevronDown, Check, Globe
+} from 'lucide-react';
+import { getAssistantResponse, getSuggestedQuestions, SUPPORTED_LANGUAGES } from '../services/assistantEngine';
 import { useApp } from '../context/AppContext';
 
 const LANGUAGES = [
-  { code: 'en', label: 'EN', full: 'English' },
-  { code: 'ta', label: 'தமிழ்', full: 'Tamil' },
-  { code: 'hi', label: 'हिंदी', full: 'Hindi' },
+  { code: 'en', label: 'English', short: 'EN', sub: 'English' },
+  { code: 'ta', label: 'தமிழ்', short: 'தமிழ்', sub: 'Tamil' },
+  { code: 'hi', label: 'हिंदी', short: 'हिंदी', sub: 'Hindi' },
+  { code: 'ml', label: 'മലയാളം', short: 'മലയാളം', sub: 'Malayalam' },
+  { code: 'te', label: 'తెలుగు', short: 'తెలుగు', sub: 'Telugu' },
+  { code: 'kn', label: 'ಕನ್ನಡ', short: 'ಕನ್ನಡ', sub: 'Kannada' },
 ];
+
+const WELCOME_MESSAGES = {
+  en: "Hello! I'm LATROCORE Clinical AI. How can I help you with your blood glucose, medications, or lifestyle today?",
+  ta: "வணக்கம்! நான் LATROCORE கிளினிக்கல் AI உதவியாளர். உங்கள் இரத்த சர்க்கரை, மருந்துகள் அல்லது உணவு முறை பற்றி நான் எப்படி உதவலாம்?",
+  hi: "नमस्ते! मैं LATROCORE क्लिनिकल AI हूँ। आज मैं आपकी रक्त शर्करा, दवाओं या आहार योजना में कैसे मदद कर सकता हूँ?",
+  ml: "നമസ്കാരം! ഞാൻ LATROCORE ക്ലിനിക്കൽ AI അസിസ്റ്റന്റാണ്. നിങ്ങളുടെ രക്തത്തിലെ പഞ്ചസാര, മരുന്നുകൾ അല്ലെങ്കിൽ ഡയറ്റ് എന്നിവയിൽ എങ്ങനെ സഹായിക്കണം?",
+  te: "నమస్కారం! నేను LATROCORE క్లినికల్ AI అసిస్టెంట్‌ని. మీ బ్లడ్ షుగర్, మందులు లేదా డైట్ ప్లాన్ గురించి నేను ఎలా సహాయపడగలను?",
+  kn: "ನಮಸ್ಕಾರ! ನಾನು LATROCORE ಕ್ಲಿನಿಕಲ್ AI ಸಹಾಯಕ. ನಿಮ್ಮ ರಕ್ತದ ಸಕ್ಕರೆ, ಔಷಧಿಗಳು ಅಥವಾ ಆಹಾರ ಕ್ರಮದ ಬಗ್ಗೆ ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+};
+
+const INPUT_PLACEHOLDERS = {
+  en: 'Ask about glucose, medications, meals...',
+  ta: 'உங்கள் கேள்வியை கேட்கவும் (எ.கா. குளுக்கோஸ், மாத்திரை)...',
+  hi: 'अपना प्रश्न लिखें (जैसे ग्लूकोज, दवा, आहार)...',
+  ml: 'ചോദ്യങ്ങൾ ചോദിക്കുക (ഉദാ: ഗ്ലൂക്കോസ്, മരുന്നുകൾ)...',
+  te: 'మీ ప్రశ్నను ఇక్కడ అడగండి (ఉదా: గ్లూకోజ్, మందులు)...',
+  kn: 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಕೇಳಿ (ಉದಾ: ಗ್ಲೂಕೋಸ್, ಮಾತ್ರೆಗಳು)...',
+};
 
 export default function FloatingAIAssistant() {
   const { currentUser } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [lang, setLang] = useState('en');
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -20,7 +45,7 @@ export default function FloatingAIAssistant() {
     {
       id: 'welcome',
       role: 'assistant',
-      text: "Hello! I'm LATROCORE Clinical AI. How can I help you with your blood glucose, medications, or lifestyle today?",
+      text: WELCOME_MESSAGES.en,
       sources: ['ADA Standards of Care 2024 §6 (Glycemic Targets)'],
       time: 'Just now',
     },
@@ -28,6 +53,7 @@ export default function FloatingAIAssistant() {
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const langMenuRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,13 +68,27 @@ export default function FloatingAIAssistant() {
   // Handle ESC key to close
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
+      if (e.key === 'Escape') {
+        if (langMenuOpen) setLangMenuOpen(false);
+        else if (isOpen) setIsOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, langMenuOpen]);
+
+  // Close language dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(e.target)) {
+        setLangMenuOpen(false);
+      }
+    };
+    if (langMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [langMenuOpen]);
 
   // Speech Recognition
   const toggleListening = () => {
@@ -67,7 +107,7 @@ export default function FloatingAIAssistant() {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = lang === 'ta' ? 'ta-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
+    recognition.lang = lang === 'ta' ? 'ta-IN' : lang === 'hi' ? 'hi-IN' : lang === 'ml' ? 'ml-IN' : lang === 'te' ? 'te-IN' : lang === 'kn' ? 'kn-IN' : 'en-IN';
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
@@ -94,7 +134,7 @@ export default function FloatingAIAssistant() {
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang === 'ta' ? 'ta-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
+    utterance.lang = lang === 'ta' ? 'ta-IN' : lang === 'hi' ? 'hi-IN' : lang === 'ml' ? 'ml-IN' : lang === 'te' ? 'te-IN' : lang === 'kn' ? 'kn-IN' : 'en-IN';
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
@@ -115,7 +155,6 @@ export default function FloatingAIAssistant() {
     setMessages((prev) => [...prev, userMsg]);
     if (!textToSend) setInput('');
 
-    // Simulate AI thinking and retrieve deterministic clinical response
     setTimeout(() => {
       const response = getAssistantResponse(query, lang);
       const aiMsg = {
@@ -126,7 +165,22 @@ export default function FloatingAIAssistant() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, aiMsg]);
-    }, 450);
+    }, 400);
+  };
+
+  const handleSelectLanguage = (selectedCode) => {
+    setLang(selectedCode);
+    setLangMenuOpen(false);
+
+    // Add language switch indicator in chat
+    const switchMsg = {
+      id: `lang-${Date.now()}`,
+      role: 'assistant',
+      text: WELCOME_MESSAGES[selectedCode] || WELCOME_MESSAGES.en,
+      sources: ['ADA Standards of Care 2024'],
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, switchMsg]);
   };
 
   const resetChat = () => {
@@ -134,17 +188,14 @@ export default function FloatingAIAssistant() {
       {
         id: `welcome-${Date.now()}`,
         role: 'assistant',
-        text: lang === 'ta' 
-          ? 'வணக்கம்! நான் LATROCORE AI உதவியாளர். உங்கள் நீரிழிவு பராமரிப்பு பற்றி என்ன அறிய விரும்புகிறீர்கள்?' 
-          : lang === 'hi' 
-          ? 'नमस्ते! मैं LATROCORE क्लिनिकल AI हूँ। आज मैं आपकी रक्त शर्करा, दवाओं या जीवनशैली में कैसे मदद कर सकता हूँ?'
-          : "Hello! I'm LATROCORE Clinical AI. How can I help you with your blood glucose, medications, or lifestyle today?",
+        text: WELCOME_MESSAGES[lang] || WELCOME_MESSAGES.en,
         sources: ['ADA Standards of Care 2024 §6 (Glycemic Targets)'],
         time: 'Just now',
       },
     ]);
   };
 
+  const currentLangObj = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
   const suggestions = getSuggestedQuestions(lang).slice(0, 3);
 
   return (
@@ -192,26 +243,48 @@ export default function FloatingAIAssistant() {
                     </span>
                   </div>
                   <p className="text-[11px] text-teal-200/80 font-medium truncate">
-                    Clinical diabetes guidance
+                    6 Indian & Global Languages
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                {/* Language Selector */}
-                <div className="flex items-center bg-teal-950/80 rounded-lg p-0.5 border border-teal-700/60 text-[11px] font-bold">
-                  {LANGUAGES.map((l) => (
-                    <button
-                      key={l.code}
-                      onClick={() => setLang(l.code)}
-                      className={`px-1.5 py-0.5 rounded transition text-[10px] font-bold ${
-                        lang === l.code ? 'bg-teal-600 text-white shadow-xs' : 'text-teal-300 hover:text-white'
-                      }`}
-                      title={l.full}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
+                {/* 6-Language Dropdown Selector */}
+                <div className="relative" ref={langMenuRef}>
+                  <button
+                    onClick={() => setLangMenuOpen(!langMenuOpen)}
+                    className="flex items-center gap-1.5 bg-teal-950/80 hover:bg-teal-950 text-white rounded-lg px-2.5 py-1 border border-teal-700/60 text-xs font-bold transition cursor-pointer shadow-xs"
+                    title="Change language (Tamil, English, Hindi, Malayalam, Telugu, Kannada)"
+                    aria-label="Change language"
+                  >
+                    <Globe size={13} className="text-teal-300 shrink-0" />
+                    <span className="text-[11px] font-black">{currentLangObj.short}</span>
+                    <ChevronDown size={12} className={`text-teal-300 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {langMenuOpen && (
+                    <div className="absolute right-0 top-full mt-1.5 w-44 bg-slate-900/95 backdrop-blur-md border border-teal-600/60 rounded-xl shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-teal-300 border-b border-slate-800">
+                        Choose Language (6)
+                      </div>
+                      <div className="py-0.5 max-h-56 overflow-y-auto no-scrollbar">
+                        {LANGUAGES.map((l) => (
+                          <button
+                            key={l.code}
+                            onClick={() => handleSelectLanguage(l.code)}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-left cursor-pointer ${
+                              lang === l.code
+                                ? 'bg-teal-700 text-white shadow-xs'
+                                : 'text-slate-200 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <span className="truncate">{l.label} ({l.sub})</span>
+                            {lang === l.code && <Check size={13} className="text-emerald-300 shrink-0 ml-1" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Reset Chat */}
@@ -236,11 +309,31 @@ export default function FloatingAIAssistant() {
               </div>
             </div>
 
+            {/* Quick 6-Language Pill Bar for 1-Touch Switching */}
+            <div className="bg-teal-950/90 px-3 py-1 border-b border-teal-900/80 flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
+              <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-wider shrink-0 mr-1">
+                Lang:
+              </span>
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => handleSelectLanguage(l.code)}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition whitespace-nowrap cursor-pointer ${
+                    lang === l.code
+                      ? 'bg-teal-600 text-white shadow-xs'
+                      : 'text-teal-300/80 hover:text-white hover:bg-teal-900'
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+
             {/* Safety Notice Bar */}
             <div className="bg-teal-50/90 border-b border-teal-100 py-1.5 px-3.5 flex items-center gap-2 text-[11px] text-teal-900 leading-tight shrink-0">
               <Shield size={13} className="text-teal-700 shrink-0" />
               <span className="truncate font-medium">
-                Educational clinical guidance • Not a substitute for doctor prescription
+                Clinical guidance • Supports Tamil, English, Hindi, Malayalam, Telugu, Kannada
               </span>
             </div>
 
@@ -286,7 +379,7 @@ export default function FloatingAIAssistant() {
                       {msg.role === 'assistant' && (
                         <button
                           onClick={() => speakText(msg.text)}
-                          className="ml-2 p-0.5 hover:text-teal-800 transition"
+                          className="ml-2 p-0.5 hover:text-teal-800 transition cursor-pointer"
                           title="Read aloud"
                           aria-label="Read message aloud"
                         >
@@ -304,7 +397,7 @@ export default function FloatingAIAssistant() {
             <div className="px-3 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
               <span className="text-[10px] text-slate-500 font-bold shrink-0 uppercase tracking-wider flex items-center gap-1">
                 <Sparkles size={11} className="text-teal-600" />
-                Suggestions:
+                Prompt:
               </span>
               {suggestions.map((q, idx) => (
                 <button
@@ -333,7 +426,7 @@ export default function FloatingAIAssistant() {
                     ? 'bg-rose-500 text-white animate-pulse shadow-md'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
-                title={isListening ? 'Stop listening' : 'Voice input'}
+                title={isListening ? 'Stop listening' : `Voice input (${currentLangObj.label})`}
                 aria-label="Voice input"
               >
                 {isListening ? <MicOff size={16} /> : <Mic size={16} />}
@@ -343,13 +436,7 @@ export default function FloatingAIAssistant() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  lang === 'ta'
-                    ? 'உங்கள் கேள்வியை கேட்கவும்...'
-                    : lang === 'hi'
-                    ? 'अपना प्रश्न यहाँ लिखें...'
-                    : 'Ask about glucose, medications, meals...'
-                }
+                placeholder={INPUT_PLACEHOLDERS[lang] || INPUT_PLACEHOLDERS.en}
                 className="flex-1 bg-slate-50 border-2 border-slate-200 focus:border-teal-700 focus:bg-white text-xs sm:text-sm rounded-xl px-3.5 py-2 sm:py-2.5 outline-none transition text-slate-950 font-medium placeholder:text-slate-400"
               />
 
@@ -368,7 +455,6 @@ export default function FloatingAIAssistant() {
       )}
 
       {/* ── Floating Circular Trigger Button (Bottom-Right Corner) ── */}
-      {/* Hidden when drawer is open to avoid duplicate/overlapping close buttons */}
       {!isOpen && (
         <div className="fixed bottom-8 sm:bottom-9 right-4 sm:right-6 z-40 flex items-center gap-2.5 group">
           <button

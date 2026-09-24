@@ -10,6 +10,9 @@ const LANGUAGES = [
   { code: 'en', label: 'English', badge: 'EN' },
   { code: 'ta', label: 'தமிழ்', badge: 'TA' },
   { code: 'hi', label: 'हिन्दी', badge: 'HI' },
+  { code: 'ml', label: 'മലയാളം', badge: 'ML' },
+  { code: 'te', label: 'తెలుగు', badge: 'TE' },
+  { code: 'kn', label: 'ಕನ್ನಡ', badge: 'KN' },
 ];
 
 export default function Assistant() {
@@ -48,8 +51,7 @@ export default function Assistant() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = lang === 'ta' ? 'ta-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN';
+    recognition.lang = lang === 'ta' ? 'ta-IN' : lang === 'hi' ? 'hi-IN' : lang === 'ml' ? 'ml-IN' : lang === 'te' ? 'te-IN' : lang === 'kn' ? 'kn-IN' : 'en-IN';
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
@@ -79,9 +81,9 @@ export default function Assistant() {
     }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langCode === 'ta' ? 'ta-IN' : langCode === 'hi' ? 'hi-IN' : 'en-IN';
+    utterance.lang = langCode === 'ta' ? 'ta-IN' : langCode === 'hi' ? 'hi-IN' : langCode === 'ml' ? 'ml-IN' : langCode === 'te' ? 'te-IN' : langCode === 'kn' ? 'kn-IN' : 'en-IN';
     const voices = window.speechSynthesis.getVoices();
-    const match = voices.find(v => v.lang.startsWith(langCode === 'ta' ? 'ta' : langCode === 'hi' ? 'hi' : 'en'));
+    const match = voices.find(v => v.lang.startsWith(langCode));
     if (match) utterance.voice = match;
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -213,7 +215,21 @@ export default function Assistant() {
               {isListening ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
             <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
-              placeholder={isListening ? 'Listening... Speak clearly into your mic' : lang === 'ta' ? 'உங்கள் கேள்வியை தட்டச்சு செய்யவும்...' : lang === 'hi' ? 'अपना प्रश्न लिखें...' : 'Ask about glucose logs, dosages, diet, or tests...'}
+              placeholder={
+                isListening
+                  ? 'Listening... Speak clearly into your mic'
+                  : lang === 'ta'
+                  ? 'உங்கள் கேள்வியை தட்டச்சு செய்யவும்...'
+                  : lang === 'hi'
+                  ? 'अपना प्रश्न लिखें...'
+                  : lang === 'ml'
+                  ? 'ചോദ്യങ്ങൾ ചോദിക്കുക (ഉദാ: ഗ്ലൂക്കോസ്, മരുന്നുകൾ)...'
+                  : lang === 'te'
+                  ? 'మీ ప్రశ్నను ఇక్కడ అడగండి...'
+                  : lang === 'kn'
+                  ? 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಇಲ್ಲಿ ಬರೆಯಿರಿ...'
+                  : 'Ask about glucose logs, dosages, diet, or tests...'
+              }
               className="input flex-1" />
             <button type="submit" disabled={!input.trim()} className="btn-primary px-5"><Send size={16} /><span className="hidden sm:inline">Send</span></button>
           </form>
