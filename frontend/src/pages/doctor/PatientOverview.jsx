@@ -165,27 +165,130 @@ export default function PatientOverview({ initialTab }) {
       )}
 
       {activeTab === 'prescriptions' && (
-        <div className="space-y-4">
-          {prescriptions.map(rx => (
-            <div key={rx.id} className="card">
-              <div className="card-header flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant={rx.status === 'active' ? 'success' : rx.status === 'draft' ? 'warning' : 'gray'}>{rx.status}</Badge>
-                  <span className="text-sm text-text-secondary">Created {formatDate(rx.createdAt)}</span>
-                </div>
-                {rx.status === 'draft' && <button onClick={() => handleAuthorizePrescription(rx.id)} className="btn-primary btn-sm">Authorize</button>}
-              </div>
-              <div className="card-body">
-                {(rx.medicines || []).map(m => (
-                  <div key={m.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                    <Pill size={16} className="text-primary" />
-                    <div><p className="text-sm font-medium">{m.name} — {m.dose}</p><p className="text-xs text-text-secondary">{m.route} • {m.frequency} • {m.foodInstruction}</p></div>
-                  </div>
-                ))}
-              </div>
-              {rx.versions && <div className="card-footer text-xs text-text-secondary">{rx.versions.length} version(s) — Last: {rx.versions[rx.versions.length - 1]?.action} on {formatDate(rx.versions[rx.versions.length - 1]?.date)}</div>}
+        <div className="space-y-6">
+          {/* Active Prescriptions */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-base text-slate-950">Active Authorized Prescriptions</h3>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                {prescriptions.filter(p => p.status === 'active').length} Active
+              </span>
             </div>
-          ))}
+
+            {prescriptions.filter(p => p.status === 'active' || p.status === 'draft').map(rx => (
+              <div key={rx.id} className="card border-2 border-slate-200">
+                <div className="card-header flex items-center justify-between p-3.5 bg-slate-50/70">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={rx.status === 'active' ? 'success' : rx.status === 'draft' ? 'warning' : 'gray'}>
+                      {rx.status.toUpperCase()}
+                    </Badge>
+                    <span className="text-xs font-mono font-bold text-slate-700">{rx.id.toUpperCase()}</span>
+                    <span className="text-xs text-slate-500">• Authorized {formatDate(rx.authorizedAt || rx.createdAt)}</span>
+                  </div>
+                  {rx.status === 'draft' && (
+                    <button onClick={() => handleAuthorizePrescription(rx.id)} className="btn-primary btn-sm">Authorize Regimen</button>
+                  )}
+                </div>
+                <div className="card-body p-4 space-y-2">
+                  {(rx.medicines || []).map(m => (
+                    <div key={m.id} className="flex items-start justify-between gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <div className="flex items-start gap-2.5">
+                        <Pill size={16} className="text-teal-700 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-950">{m.name} <span className="text-xs text-teal-800">({m.dose})</span></p>
+                          <p className="text-xs text-slate-600">{m.route} • {m.frequency} • {m.foodInstruction}</p>
+                          {m.instructions && <p className="text-xs text-slate-700 italic mt-0.5">{m.instructions}</p>}
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 bg-white px-2 py-1 rounded-md border border-slate-200 shrink-0">
+                        {m.times?.join(', ') || 'Scheduled'}
+                      </span>
+                    </div>
+                  ))}
+                  {rx.notes && (
+                    <p className="text-xs font-medium text-slate-700 p-2 rounded-lg bg-teal-50/60 border border-teal-200">
+                      <strong>Clinician Note:</strong> {rx.notes}
+                    </p>
+                  )}
+                </div>
+                {rx.versions && (
+                  <div className="card-footer p-2.5 px-4 bg-slate-50 text-xs text-slate-600 flex items-center justify-between border-t border-slate-200">
+                    <span>{rx.versions.length} version(s) • Last: {rx.versions[rx.versions.length - 1]?.action} on {formatDate(rx.versions[rx.versions.length - 1]?.date)}</span>
+                    <span className="font-semibold text-slate-700">Digital Audit Verified</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Past Prescription Logs & History Data */}
+          <div className="space-y-3 pt-4 border-t-2 border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-base text-slate-950 flex items-center gap-2">
+                  <History size={18} className="text-amber-700" />
+                  <span>Prescription Logs (Past & Historical Regimens)</span>
+                </h3>
+                <p className="text-xs text-slate-600 mt-0.5">Discontinued medications, titration history, and prior clinical decisions</p>
+              </div>
+              <span className="text-xs font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                {prescriptions.filter(p => p.status === 'discontinued' || p.status === 'superseded').length} Historical
+              </span>
+            </div>
+
+            {prescriptions.filter(p => p.status === 'discontinued' || p.status === 'superseded').length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-600 bg-slate-50 rounded-xl border border-slate-200">
+                No past discontinued prescriptions on file for this patient.
+              </div>
+            ) : (
+              prescriptions.filter(p => p.status === 'discontinued' || p.status === 'superseded').map(rx => (
+                <div key={rx.id} className="card border-2 border-amber-200/90 bg-white">
+                  <div className="card-header flex items-center justify-between p-3.5 bg-amber-50/60">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={rx.status === 'discontinued' ? 'danger' : 'warning'}>
+                        {rx.status.toUpperCase()}
+                      </Badge>
+                      <span className="text-xs font-mono font-bold text-slate-700">{rx.id.toUpperCase()}</span>
+                      <span className="text-xs text-slate-500">• Created {formatDate(rx.createdAt)}</span>
+                    </div>
+                    <span className="text-xs font-bold text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded">
+                      Historical Record
+                    </span>
+                  </div>
+                  <div className="card-body p-4 space-y-2">
+                    {(rx.medicines || []).map(m => (
+                      <div key={m.id} className="flex items-start justify-between gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                        <div className="flex items-start gap-2.5">
+                          <Pill size={16} className="text-amber-700 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 line-through opacity-80">{m.name} ({m.dose})</p>
+                            <p className="text-xs text-slate-600">{m.route} • {m.frequency} • {m.foodInstruction}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {rx.notes && (
+                      <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-950 font-medium">
+                        <strong>Reason for Change / Discontinuation:</strong> {rx.notes}
+                      </div>
+                    )}
+                  </div>
+                  {rx.versions && (
+                    <div className="card-footer p-2.5 px-4 bg-slate-50 text-xs text-slate-600 border-t border-slate-200">
+                      <p className="font-semibold text-slate-800 mb-1">Version History:</p>
+                      <div className="space-y-1">
+                        {rx.versions.map((v, i) => (
+                          <p key={i} className="text-[11px] text-slate-600">
+                            • <strong>v{v.version} ({v.action})</strong>: {v.changes} — <span className="text-slate-500">{formatDateTime(v.date)}</span>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 

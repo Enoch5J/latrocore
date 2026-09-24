@@ -68,6 +68,40 @@ export function generatePrescriptions() {
       notes: 'Type 1 - basal-bolus regimen.',
       versions: [{ version: 1, date: makeDate(-15, 8, 30), action: 'Created & Authorized', authorId: 'doc-001', changes: 'Initial' }],
     },
+    { id: 'rx-hist-001', patientId: 'pat-001', doctorId: 'doc-001', status: 'discontinued', authorizedAt: makeDate(-180, 10, 0), createdAt: makeDate(-185, 9, 0),
+      medicines: [
+        { id: 'med-hist-001', name: 'Glibenclamide 2.5mg', dose: '2.5mg', route: 'Oral', frequency: 'Once daily', times: ['07:30'], foodInstruction: 'Before breakfast', startDate: makeDate(-185), reviewDate: makeDate(-60), instructions: 'Take 30 mins before breakfast.' },
+        { id: 'med-hist-002', name: 'Metformin 250mg (Initial Titration)', dose: '250mg', route: 'Oral', frequency: 'Once daily', times: ['08:00'], foodInstruction: 'After food', startDate: makeDate(-185), reviewDate: makeDate(-90), instructions: 'Initial tolerance test dose.' },
+      ],
+      notes: 'Discontinued Glibenclamide due to mild afternoon hypoglycemia episodes. Titrated Metformin upward to 500mg BID.',
+      versions: [
+        { version: 1, date: makeDate(-185, 9, 0), action: 'Created', authorId: 'doc-001', changes: 'Initiated early diabetes dual therapy' },
+        { version: 2, date: makeDate(-180, 10, 0), action: 'Authorized', authorId: 'doc-001', changes: 'Authorized for dispensing' },
+        { version: 3, date: makeDate(-60, 14, 0), action: 'Discontinued', authorId: 'doc-001', changes: 'Switched Glibenclamide to Glimepiride 1mg due to hypoglycemia risk' },
+      ],
+    },
+    { id: 'rx-hist-002', patientId: 'pat-002', doctorId: 'doc-001', status: 'superseded', authorizedAt: makeDate(-120, 11, 0), createdAt: makeDate(-125, 10, 0),
+      medicines: [
+        { id: 'med-hist-003', name: 'Metformin 500mg', dose: '500mg', route: 'Oral', frequency: 'Twice daily', times: ['08:00', '20:00'], foodInstruction: 'After food', startDate: makeDate(-125), reviewDate: makeDate(-20), instructions: 'Standard oral regimen.' },
+        { id: 'med-hist-004', name: 'Glipizide 5mg', dose: '5mg', route: 'Oral', frequency: 'Twice daily', times: ['07:30', '19:30'], foodInstruction: 'Before food', startDate: makeDate(-125), reviewDate: makeDate(-20), instructions: 'Take before major meals.' },
+      ],
+      notes: 'Superseded by Insulin Glargine + Metformin 1000mg BID due to secondary oral agent failure and elevated HbA1c (8.5%).',
+      versions: [
+        { version: 1, date: makeDate(-125, 10, 0), action: 'Created', authorId: 'doc-001', changes: 'Dual oral regimen' },
+        { version: 2, date: makeDate(-120, 11, 0), action: 'Authorized', authorId: 'doc-001', changes: 'Authorized by Dr. Arun' },
+        { version: 3, date: makeDate(-20, 10, 0), action: 'Superseded', authorId: 'doc-001', changes: 'Upgraded to basal insulin Glargine regimen (Rx-003)' },
+      ],
+    },
+    { id: 'rx-hist-003', patientId: 'pat-001', doctorId: 'doc-001', status: 'discontinued', authorizedAt: makeDate(-90, 11, 0), createdAt: makeDate(-92, 10, 0),
+      medicines: [
+        { id: 'med-hist-005', name: 'Voglibose 0.2mg', dose: '0.2mg', route: 'Oral', frequency: 'Three times daily', times: ['08:00', '13:00', '20:00'], foodInstruction: 'With first bite of meal', startDate: makeDate(-92), reviewDate: makeDate(-30), instructions: 'Alpha-glucosidase inhibitor for post-prandial spikes.' },
+      ],
+      notes: 'Discontinued due to persistent gastrointestinal discomfort and bloating reported by patient.',
+      versions: [
+        { version: 1, date: makeDate(-92, 10, 0), action: 'Created', authorId: 'doc-001', changes: 'Added for post-prandial glucose control' },
+        { version: 2, date: makeDate(-30, 9, 30), action: 'Discontinued', authorId: 'doc-001', changes: 'Patient intolerance / GI distress' },
+      ],
+    },
   ];
 }
 
