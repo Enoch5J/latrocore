@@ -401,5 +401,6 @@ export function createSeedData() {
     auditLog: generateAuditLog(),
     clinicalTargets: generateClinicalTargets(),
     availability: generateAvailability(),
+    progressions: {},
   };
 }

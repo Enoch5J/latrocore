@@ -20,6 +20,33 @@ function sanitizeData(data) {
       modified = true;
     }
   }
+
+  // Ensure progressions dictionary exists
+  if (!data.progressions) {
+    data.progressions = {};
+    modified = true;
+  }
+
+  // Ensure today's health entries exist so Today's Timeline is never blank
+  const todayStr = new Date().toDateString();
+  const hasTodayHealth = (data.healthEntries || []).some(e => new Date(e.date).toDateString() === todayStr);
+  if (!hasTodayHealth) {
+    const today = new Date();
+    const makeTodayTime = (h, m = 0) => {
+      const d = new Date(today);
+      d.setHours(h, m, 0, 0);
+      return d.toISOString();
+    };
+    if (!data.healthEntries) data.healthEntries = [];
+    data.healthEntries.unshift(
+      { id: `meal-bfast-today`, patientId: 'pat-001', type: 'meal', mealType: 'Breakfast', items: 'Oats with chia seeds & boiled eggs', calories: 340, date: makeTodayTime(8, 30), notes: 'Low glycemic index meal' },
+      { id: `meal-lunch-today`, patientId: 'pat-001', type: 'meal', mealType: 'Lunch', items: 'Brown rice, yellow dal, palak & fresh salad', calories: 480, date: makeTodayTime(13, 15), notes: 'High dietary fiber' },
+      { id: `act-walk-today`, patientId: 'pat-001', type: 'activity', activityType: 'Brisk Walk', duration: 15, date: makeTodayTime(17, 30), notes: 'Evening neighborhood walk' },
+      { id: `bp-today`, patientId: 'pat-001', type: 'blood_pressure', systolic: 122, diastolic: 78, date: makeTodayTime(8, 0), notes: 'Normotensive' }
+    );
+    modified = true;
+  }
+
   if (modified) saveData(data);
   return data;
 }
@@ -510,3 +537,213 @@ export async function setClinicalTargets(target) {
     else d.clinicalTargets.push({ ...target, id: genId('tgt') });
   });
 }
+
+// ── Daily Health Progression Engine ─────────────────────────────────────
+export function calculateProgression(prog) {
+  if (!prog) return { score: 0, level: 1, levelName: 'Incomplete', deductions: [], bonuses: [] };
+
+  let baseScore = 0;
+  const deductions = [];
+  const bonuses = [];
+
+  // 1. Food / Meals Progression (Max 30%)
+  const meals = prog.meals || [];
+  const takenMeals = meals.filter(m => m.taken === true);
+  const missedMeals = meals.filter(m => m.taken === false);
+  const pendingMeals = meals.filter(m => m.taken === null || m.taken === undefined);
+
+  // Points for taken meals (+10% per meal)
+  baseScore += takenMeals.length * 10;
+  if (takenMeals.length > 0) {
+    bonuses.push({
+      item: 'Food Intake',
+      detail: `${takenMeals.length} meal(s) logged & consumed (+${takenMeals.length * 10}%)`,
+      type: 'meal'
+    });
+  }
+
+  // REDUCE PROGRESSION: If food not taken / missed, deduct score with penalty
+  if (missedMeals.length > 0) {
+    const penalty = missedMeals.length * 12;
+    baseScore = Math.max(0, baseScore - penalty);
+    deductions.push({
+      item: 'Food / Meals Skipped',
+      penalty: `-${penalty}%`,
+      detail: `${missedMeals.map(m => m.type || m.label).join(', ')} marked NOT TAKEN`,
+      reason: 'Skipping meals causes dangerous hypoglycemic dips and irregular metabolic swings on diabetes medication',
+      severity: 'high',
+      type: 'meal'
+    });
+  }
+
+  // 2. Prescription Tablets Progression (Max 40%)
+  const tablets = prog.tablets || [];
+  const takenTablets = tablets.filter(t => t.taken === true);
+  const missedTablets = tablets.filter(t => t.taken === false);
+
+  const tabletBasePoints = Math.round((takenTablets.length / (tablets.length || 3)) * 40);
+  baseScore += tabletBasePoints;
+  if (takenTablets.length > 0) {
+    bonuses.push({
+      item: 'Medication Adherence',
+      detail: `${takenTablets.length}/${tablets.length} prescribed doses taken (+${tabletBasePoints}%)`,
+      type: 'tablet'
+    });
+  }
+
+  // REDUCE PROGRESSION: If tablet not taken / missed, deduct score with penalty
+  if (missedTablets.length > 0) {
+    const penalty = missedTablets.length * 15;
+    baseScore = Math.max(0, baseScore - penalty);
+    deductions.push({
+      item: 'Prescription Tablets Missed',
+      penalty: `-${penalty}%`,
+      detail: `${missedTablets.map(t => t.name || t.label).join(', ')} marked NOT TAKEN`,
+      reason: 'Skipping prescribed diabetes medication induces severe post-prandial glycemic spikes',
+      severity: 'critical',
+      type: 'tablet'
+    });
+  }
+
+  // 3. Physical Activity Progression (Max 20%)
+  const targetMin = prog.targetActivityMinutes || 30;
+  const currentMin = prog.activityMinutes || 0;
+  const activityRatio = Math.min(1, currentMin / targetMin);
+  const activityPoints = Math.round(activityRatio * 20);
+  baseScore += activityPoints;
+  if (currentMin > 0) {
+    bonuses.push({
+      item: 'Physical Activity',
+      detail: `${currentMin}/${targetMin} min active (+${activityPoints}%)`,
+      type: 'activity'
+    });
+  } else {
+    deductions.push({
+      item: 'Physical Inactivity',
+      penalty: '0 / 20%',
+      detail: '0 minutes logged today (Daily goal: 30m)',
+      reason: 'Regular daily movement enhances peripheral cellular glucose uptake',
+      severity: 'moderate',
+      type: 'activity'
+    });
+  }
+
+  // 4. Blood Glucose Monitoring (Max 10%)
+  if (prog.glucoseChecked) {
+    baseScore += 10;
+    bonuses.push({
+      item: 'Glucose Tracking',
+      detail: `Fasting reading documented (${prog.fastingGlucose || 118} mg/dL) (+10%)`,
+      type: 'glucose'
+    });
+  } else {
+    deductions.push({
+      item: 'Glucose Log Missing',
+      penalty: '0 / 10%',
+      detail: 'No glucose self-monitoring logged today',
+      reason: 'Self-monitoring is necessary for immediate clinical safety',
+      severity: 'moderate',
+      type: 'glucose'
+    });
+  }
+
+  const finalScore = Math.max(0, Math.min(100, Math.round(baseScore)));
+
+  let level = 1;
+  let levelName = 'Critical Incomplete';
+  let badgeVariant = 'danger';
+  let colorClass = 'rose';
+
+  if (finalScore >= 85) {
+    level = 4;
+    levelName = 'Master Diabetic Control';
+    badgeVariant = 'success';
+    colorClass = 'emerald';
+  } else if (finalScore >= 65) {
+    level = 3;
+    levelName = 'Target Control (On Track)';
+    badgeVariant = 'primary';
+    colorClass = 'teal';
+  } else if (finalScore >= 40) {
+    level = 2;
+    levelName = 'Moderate Progression';
+    badgeVariant = 'warning';
+    colorClass = 'amber';
+  } else {
+    level = 1;
+    levelName = 'At Risk (Progression Reduced)';
+    badgeVariant = 'danger';
+    colorClass = 'rose';
+  }
+
+  return {
+    score: finalScore,
+    level,
+    levelName,
+    badgeVariant,
+    colorClass,
+    deductions,
+    bonuses,
+    stats: {
+      mealsTaken: takenMeals.length,
+      mealsMissed: missedMeals.length,
+      mealsTotal: meals.length,
+      tabletsTaken: takenTablets.length,
+      tabletsMissed: missedTablets.length,
+      tabletsTotal: tablets.length,
+      activityMinutes: currentMin,
+      activityTarget: targetMin,
+      activityPct: Math.round(activityRatio * 100),
+      glucoseChecked: !!prog.glucoseChecked,
+    }
+  };
+}
+
+export function getProgressionData(patientId = 'pat-001') {
+  const data = getAll();
+  if (!data.progressions) data.progressions = {};
+  const todayKey = new Date().toISOString().split('T')[0];
+  const userKey = `${patientId}_${todayKey}`;
+
+  if (!data.progressions[userKey]) {
+    data.progressions[userKey] = {
+      patientId,
+      date: todayKey,
+      meals: [
+        { id: 'm-1', type: 'Breakfast', label: 'Diabetic Breakfast (Oats, Chia Seeds & Boiled Eggs)', taken: true, time: '08:30 AM', calories: 340, notes: 'Low GI carbohydrates' },
+        { id: 'm-2', type: 'Lunch', label: 'Balanced Glycemic Lunch (Dal, Palak Greens & Brown Rice)', taken: true, time: '01:15 PM', calories: 480, notes: 'High dietary fiber' },
+        { id: 'm-3', type: 'Dinner', label: 'High Fiber Dinner (Paneer Salad & Multigrain Roti)', taken: null, time: '08:30 PM', calories: 420, notes: 'Light protein & vegetables' },
+      ],
+      tablets: [
+        { id: 't-1', name: 'Metformin 500mg', dose: '500mg', slot: 'Morning', taken: true, time: '08:00 AM', reason: 'Increases peripheral insulin sensitivity' },
+        { id: 't-2', name: 'Telmisartan 40mg', dose: '40mg', slot: 'Noon', taken: true, time: '01:00 PM', reason: 'Renoprotective & arterial BP control' },
+        { id: 't-3', name: 'Glimepiride 1mg', dose: '1mg', slot: 'Night', taken: null, time: '08:00 PM', reason: 'Stimulates nocturnal beta-cell insulin secretion' },
+      ],
+      activityMinutes: 15,
+      targetActivityMinutes: 30,
+      glucoseChecked: true,
+      fastingGlucose: 118,
+      hydrationGlasses: 6,
+      targetHydrationGlasses: 8,
+    };
+    saveData(data);
+  }
+
+  const record = data.progressions[userKey];
+  const calculated = calculateProgression(record);
+  return { ...record, ...calculated };
+}
+
+export function saveProgressionData(patientId = 'pat-001', updates = {}) {
+  const todayKey = new Date().toISOString().split('T')[0];
+  const userKey = `${patientId}_${todayKey}`;
+  return update(d => {
+    if (!d.progressions) d.progressions = {};
+    if (!d.progressions[userKey]) {
+      d.progressions[userKey] = { patientId, date: todayKey, ...updates };
+    } else {
+      Object.assign(d.progressions[userKey], updates);
+    }
+  });
+}
+

@@ -233,13 +233,13 @@ export function Select({ value, onChange, options, placeholder, className = '' }
 }
 
 // ── Stat Card ───────────────────────────────────────────────────────────
-export function StatCard({ label, value, icon: Icon, color = 'primary', subtitle, onClick }) {
+export function StatCard({ label, value, icon: Icon, color = 'primary', subtitle, progress, badge, onClick }) {
   const colorStyles = {
-    primary: { iconBg: 'bg-teal-100 text-teal-800', border: 'border-l-4 border-l-teal-600' },
-    secondary: { iconBg: 'bg-blue-100 text-blue-800', border: 'border-l-4 border-l-blue-600' },
-    success: { iconBg: 'bg-emerald-100 text-emerald-800', border: 'border-l-4 border-l-emerald-600' },
-    warning: { iconBg: 'bg-amber-100 text-amber-800', border: 'border-l-4 border-l-amber-600' },
-    danger: { iconBg: 'bg-rose-100 text-rose-800', border: 'border-l-4 border-l-rose-600' },
+    primary: { iconBg: 'bg-teal-100 text-teal-800', border: 'border-l-4 border-l-teal-600', bar: 'bg-teal-700' },
+    secondary: { iconBg: 'bg-blue-100 text-blue-800', border: 'border-l-4 border-l-blue-600', bar: 'bg-blue-600' },
+    success: { iconBg: 'bg-emerald-100 text-emerald-800', border: 'border-l-4 border-l-emerald-600', bar: 'bg-emerald-600' },
+    warning: { iconBg: 'bg-amber-100 text-amber-800', border: 'border-l-4 border-l-amber-600', bar: 'bg-amber-600' },
+    danger: { iconBg: 'bg-rose-100 text-rose-800', border: 'border-l-4 border-l-rose-600', bar: 'bg-rose-600' },
   };
   const current = colorStyles[color] || colorStyles.primary;
 
@@ -250,9 +250,30 @@ export function StatCard({ label, value, icon: Icon, color = 'primary', subtitle
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-800 truncate">{label}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-800 truncate">{label}</p>
+            {badge && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+                {badge}
+              </span>
+            )}
+          </div>
           <p className="text-2xl sm:text-3xl font-black text-slate-950 mt-1.5 tracking-tight">{value}</p>
           {subtitle && <p className="text-xs font-semibold text-slate-700 mt-1 truncate">{subtitle}</p>}
+          {progress !== undefined && (
+            <div className="mt-2.5">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 mb-1">
+                <span>Progression</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 rounded-full ${current.bar}`}
+                  style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
         {Icon && (
           <div className={`p-2.5 rounded-xl ${current.iconBg} shrink-0`}>

@@ -10,7 +10,7 @@ import {
   ShieldCheck, Eye, Video, Stethoscope, PhoneCall, UserCheck, Shield
 } from 'lucide-react';
 import { formatDate, formatTime, isToday, formatDateTime } from '../../data/demoDate';
-import { recordDose } from '../../services/dataService';
+import { recordDose, getProgressionData } from '../../services/dataService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, ReferenceLine, Area, ComposedChart } from 'recharts';
 
 export default function PatientDashboard() {
@@ -98,6 +98,13 @@ export default function PatientDashboard() {
     const today = healthEntries.filter(e => e.type === 'activity' && isToday(e.date));
     return today.reduce((sum, e) => sum + (e.duration || 0), 0);
   }, [healthEntries]);
+
+  const progression = useMemo(() => {
+    return getProgressionData(patientId);
+  }, [patientId, data]);
+
+  const activeMin = progression?.activityMinutes ?? todayActivity;
+  const activityProgress = Math.min(100, Math.round(((activeMin || 0) / 30) * 100));
 
   const chartData = useMemo(() => {
     const days = chartRange === '7d' ? 7 : 30;
@@ -441,13 +448,87 @@ export default function PatientDashboard() {
           onClick={() => navigate('/patient/medications')}
         />
         <StatCard
-          label="Activity Today"
-          value={`${todayActivity} min`}
+          label="Activity Progression"
+          value={`${activeMin} min`}
           icon={Heart}
-          color={todayActivity >= 30 ? 'success' : 'secondary'}
-          subtitle={todayActivity >= 30 ? 'Daily goal reached (≥30m)' : 'Daily target: 30 min active'}
+          color={activeMin >= 30 ? 'success' : 'secondary'}
+          badge={activeMin >= 30 ? 'Goal Met (100%)' : `${activityProgress}%`}
+          progress={activityProgress}
+          subtitle={activeMin >= 30 ? 'Daily goal reached (≥30m active)' : `Target: 30 min • ${Math.max(0, 30 - activeMin)}m remaining`}
           onClick={() => navigate('/patient/lifestyle')}
         />
+      </div>
+
+      {/* ── Daily Health Progression Bar (Food, Tablets, Activity Status) ── */}
+      <div className="card p-4 sm:p-5 border-2 border-slate-200 bg-gradient-to-r from-slate-900 via-teal-950 to-slate-950 text-white shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center shrink-0">
+              <Sparkles size={24} className="text-teal-300" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  progression.score >= 85 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' :
+                  progression.score >= 65 ? 'bg-teal-500/20 text-teal-300 border border-teal-400/40' :
+                  progression.score >= 40 ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40' :
+                  'bg-rose-500/20 text-rose-300 border border-rose-400/40'
+                }`}>
+                  Level {progression.level}: {progression.levelName}
+                </span>
+                {progression.deductions?.length > 0 && (
+                  <span className="text-[10px] font-extrabold text-rose-300 bg-rose-900/60 border border-rose-500/40 px-2 py-0.5 rounded-full">
+                    ⚠️ Level Reduced Due to Missed Food/Tablet
+                  </span>
+                )}
+              </div>
+              <h2 className="text-base sm:text-lg font-extrabold text-white mt-1 truncate">
+                Today's Care Progression: <span className="text-teal-300 font-black">{progression.score}%</span>
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-200">
+              <Salad size={14} className="text-emerald-400" />
+              <span>Food: {progression.stats?.mealsTaken}/{progression.stats?.mealsTotal} Taken</span>
+              {progression.stats?.mealsMissed > 0 && (
+                <span className="text-rose-400 font-black text-[10px]">(-{progression.stats.mealsMissed * 12}%)</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-200">
+              <Pill size={14} className="text-teal-400" />
+              <span>Tablets: {progression.stats?.tabletsTaken}/{progression.stats?.tabletsTotal} Taken</span>
+              {progression.stats?.tabletsMissed > 0 && (
+                <span className="text-rose-400 font-black text-[10px]">(-{progression.stats.tabletsMissed * 15}%)</span>
+              )}
+            </div>
+
+            <button
+              onClick={() => navigate('/patient/lifestyle')}
+              className="btn-primary btn-sm text-xs font-black shadow-sm flex items-center gap-1.5 cursor-pointer ml-auto md:ml-0"
+            >
+              <span>Progression Hub</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Linear Progress Bar */}
+        <div className="mt-3.5">
+          <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+            <div
+              className={`h-full transition-all duration-700 rounded-full ${
+                progression.score >= 85 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' :
+                progression.score >= 65 ? 'bg-gradient-to-r from-teal-500 to-blue-400' :
+                progression.score >= 40 ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
+                'bg-gradient-to-r from-rose-600 to-rose-400'
+              }`}
+              style={{ width: `${Math.min(100, Math.max(0, progression.score))}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
