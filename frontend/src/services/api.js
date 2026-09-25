@@ -3,7 +3,7 @@
  * Interfaces with FastAPI backend (/api/v1) with JWT auth support.
  */
 
-const API_BASE = '/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
 
 function getToken() {
   return localStorage.getItem('latrocore_token') || '';
