@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { LoadingSpinner, Badge, Tabs, Modal, StatCard, Avatar } from '../../components/ui';
-import { Activity, Pill, FileText, AlertTriangle, CheckCircle, Clock, ArrowLeft, Settings, Plus, Calendar, Heart, Send, XCircle } from 'lucide-react';
+import { Activity, Pill, FileText, AlertTriangle, CheckCircle, Clock, ArrowLeft, Settings, Plus, Calendar, Heart, Send, XCircle, History } from 'lucide-react';
 import { formatDate, formatDateTime, formatTime } from '../../data/demoDate';
 import { addPrescription, authorizePrescription, updatePrescription, setClinicalTargets, addNotification, addAuditEntry, addCounsellingRequest } from '../../services/dataService';
 import { genId } from '../../data/seedData';

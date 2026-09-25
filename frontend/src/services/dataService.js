@@ -146,8 +146,9 @@ export async function addGlucoseReading(reading) {
 
   // Sync to backend observations API if available
   try {
-    api.addObservation({
-      patient_id: reading.patientId || 'pat-001',
+    const patientId = reading.patientId || 'pat-001';
+    api.addObservation(patientId, {
+      patient_id: patientId,
       type: 'blood_glucose',
       value: parseFloat(reading.value),
       unit: reading.unit || 'mg/dL',

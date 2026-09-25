@@ -3,7 +3,7 @@
  * Interfaces with FastAPI backend (/api/v1) with JWT auth support.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000/api/v1' : '');
 
 function getToken() {
   return localStorage.getItem('latrocore_token') || '';
@@ -18,6 +18,11 @@ export function setToken(token) {
 }
 
 async function request(endpoint, options = {}) {
+  // If no backend endpoint configured on static hosting, operate in offline demo mode safely
+  if (!API_BASE) {
+    return { ok: true, status: 'mock_demo_mode' };
+  }
+
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -93,6 +98,11 @@ export const api = {
     request(`/prescriptions/${encodeURIComponent(rxId)}/activate`, {
       method: 'POST',
       body: JSON.stringify({ version }),
+    }),
+  updatePrescriptionStatus: (rxId, status, notes = '') =>
+    request(`/prescriptions/${encodeURIComponent(rxId)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, notes }),
     }),
 
   // Doses

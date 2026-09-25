@@ -28,6 +28,7 @@ import PatientOverview from './pages/doctor/PatientOverview';
 
 // Pharmacist Pages
 import PharmacistDashboard from './pages/pharmacist/Dashboard';
+import StockVerification from './pages/pharmacist/StockVerification';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -79,6 +80,8 @@ function AppRoutes() {
 
           {/* Pharmacist Routes */}
           <Route path="/pharmacist/dashboard" element={<PharmacistDashboard />} />
+          <Route path="/pharmacist/stock-verification" element={<StockVerification />} />
+          <Route path="/pharmacist/dispensing" element={<StockVerification />} />
           <Route path="/pharmacist/reviews" element={<PharmacistDashboard initialTab="reviews" />} />
           <Route path="/pharmacist/counselling" element={<PharmacistDashboard initialTab="counselling" />} />
           <Route path="/pharmacist/refills" element={<PharmacistDashboard initialTab="refills" />} />

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
   Bot, Heart, Users, Settings, AlertTriangle, BookOpen, ChevronDown, ChevronRight,
-  Home, BarChart3, BellRing, Utensils, Video, ClipboardCheck
+  Home, BarChart3, BellRing, Utensils, Video, ClipboardCheck, Package
 } from 'lucide-react';
 
 const ROLE_NAV = {
@@ -38,6 +38,7 @@ const ROLE_NAV = {
   ],
   pharmacist: [
     { to: '/pharmacist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/pharmacist/stock-verification', icon: Package, label: 'Stock Verification' },
   ],
   admin: [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

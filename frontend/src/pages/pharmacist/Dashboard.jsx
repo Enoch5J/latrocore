@@ -326,359 +326,43 @@ export default function PharmacistDashboard({ initialTab }) {
         <span>Target clinical response target: within 2 to 4 hours. High-priority medication flags require urgent review.</span>
       </div>
 
-      {/* ── Prescription Code & Medicine Stock Verification Column ── */}
-      <div className="card p-5 sm:p-6 border-2 border-teal-700/30 bg-gradient-to-br from-white via-slate-50 to-teal-50/20 shadow-sm space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black tracking-wider uppercase bg-teal-100 text-teal-900 border border-teal-300/80 px-2.5 py-0.5 rounded-full">
-                Pharmacist Dispensing & Inventory System
-              </span>
-              <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
-                <ShieldCheck size={13} className="text-teal-600" />
-                Live Stock Sync
-              </span>
+      {/* ── Prescription Code & Medicine Stock Verification Station Banner ── */}
+      <div className="card p-5 sm:p-6 border-2 border-[#367588]/30 bg-gradient-to-r from-white via-[#F3F8F9] to-white shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#367588] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Package size={24} />
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight mt-1.5 flex items-center gap-2">
-              <Package size={22} className="text-teal-700" />
-              <span>Prescription Code & Medicine Stock Verification</span>
-            </h2>
-            <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
-              Enter any Prescription Code (e.g. <span className="font-mono text-teal-800 font-bold">RX-001</span>) or Medicine Code (<span className="font-mono text-teal-800 font-bold">MET-500</span>) to inspect authenticated prescriptions and real-time inventory counts.
-            </p>
-          </div>
-
-          {/* Code Search Input Form */}
-          <div className="w-full md:w-80 shrink-0">
-            <div className="relative">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={rxCodeInput}
-                onChange={(e) => setRxCodeInput(e.target.value)}
-                placeholder="Enter Rx Code (e.g. RX-001)..."
-                className="w-full pl-9 pr-8 py-2.5 bg-white border-2 border-slate-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-200 rounded-xl text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none transition uppercase"
-              />
-              {rxCodeInput && (
-                <button
-                  onClick={() => setRxCodeInput('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-xs font-bold"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Sample Code Chips */}
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          <span className="font-bold text-slate-500 text-xs shrink-0 flex items-center gap-1">
-            <Barcode size={13} /> Quick Lookups:
-          </span>
-          {[
-            { code: 'RX-001', label: 'RX-001 (Priya Sharma • Metformin + Glimepiride)' },
-            { code: 'RX-002', label: 'RX-002 (Priya Sharma • Telmisartan)' },
-            { code: 'RX-003', label: 'RX-003 (Rajesh Kumar • Metformin + Lantus)' },
-            { code: 'RX-004', label: 'RX-004 (Farooq • NovoRapid + Lantus)' },
-            { code: 'MET-500', label: 'MET-500 (Metformin Stock)' },
-            { code: 'INS-GLA', label: 'INS-GLA (Lantus Cold Storage)' },
-          ].map(chip => (
-            <button
-              key={chip.code}
-              onClick={() => setRxCodeInput(chip.code)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
-                rxCodeInput.toUpperCase().includes(chip.code)
-                  ? 'bg-teal-800 text-white border-teal-900 shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Matched Result View */}
-        {matchedData?.type === 'prescription' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-1">
-            {/* Left Column (5 cols): Prescription Clinical Details */}
-            <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-teal-100 text-teal-900 border border-teal-300">
-                      {matchedData.prescription.id.toUpperCase()}
-                    </span>
-                    <Badge variant={matchedData.prescription.status === 'active' ? 'success' : 'gray'}>
-                      {matchedData.prescription.status.toUpperCase()}
-                    </Badge>
-                  </div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Auth: {formatDate(matchedData.prescription.authorizedAt)}
-                  </span>
-                </div>
-
-                {/* Patient & Doctor Card */}
-                <div className="mt-3.5 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <Avatar user={matchedData.patient} size="md" />
-                    <div>
-                      <h4 className="font-extrabold text-sm sm:text-base text-slate-950">
-                        {matchedData.patient?.name || 'Verified Patient'}
-                      </h4>
-                      <p className="text-xs font-semibold text-slate-600">
-                        {matchedData.patient?.age} yrs • {matchedData.patient?.gender || 'Female'} • {matchedData.patient?.diabetesType || 'Type 2 Diabetes'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 text-xs space-y-1">
-                    <p className="text-slate-600 font-medium">
-                      <span className="font-bold text-slate-900">Authorizing Doctor:</span> {matchedData.doctor?.name || 'Dr. Arun Krishnamurthy (MD)'}
-                    </p>
-                    {matchedData.prescription.notes && (
-                      <p className="text-slate-600 font-medium">
-                        <span className="font-bold text-slate-900">Clinical Directive:</span> {matchedData.prescription.notes}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Prescribed Items Summary */}
-                <div className="mt-4">
-                  <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    Prescribed Medicines ({matchedData.medicines.length})
-                  </h5>
-                  <div className="space-y-2">
-                    {matchedData.medicines.map((m, idx) => (
-                      <div key={idx} className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 text-xs flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-bold text-slate-900 truncate">{m.name}</p>
-                          <p className="text-[11px] text-slate-600">
-                            {m.dose} • {m.frequency} • {m.foodInstruction}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-[10px] font-black bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 rounded-md">
-                          {m.isInsulin ? '1 Pen Prescribed' : '60 Tabs (30d supply)'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Dispense Action Bar */}
-              <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-3">
-                {dispensedMap[matchedData.prescription.id] ? (
-                  <div className="w-full bg-emerald-50 border border-emerald-300 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-emerald-900">
-                    <span className="flex items-center gap-1.5">
-                      <CheckCheck size={16} className="text-emerald-700" />
-                      <span>Dispensed today at {dispensedMap[matchedData.prescription.id].dispensedAt}</span>
-                    </span>
-                    <span className="text-[10px] bg-emerald-200/80 px-2 py-0.5 rounded text-emerald-950 font-black">
-                      VERIFIED & DEDUCTED
-                    </span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleDispensePrescription(matchedData.prescription.id, matchedData.medicines)}
-                    className="btn-primary w-full py-2.5 font-black text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <ShoppingBag size={16} />
-                    <span>Dispense Prescription & Deduct Live Stock</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column (7 cols): Medicine Stock Counts & Pharmacy Inventory */}
-            <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Layers size={18} className="text-teal-700" />
-                  <h3 className="font-extrabold text-sm sm:text-base text-slate-950">
-                    Respective Medicine Stock Counts in Dispensary
-                  </h3>
-                </div>
-                <span className="text-xs font-bold text-slate-500">
-                  {matchedData.medicines.length} Item(s) Linked
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black uppercase tracking-wider bg-[#367588]/10 text-[#367588] px-2 py-0.5 rounded-full border border-[#A0C7D1]">
+                  Dispensary Station
+                </span>
+                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                  <ShieldCheck size={12} className="text-emerald-700" />
+                  Live Stock Sync Active
                 </span>
               </div>
-
-              {/* Medicine Stock Cards List */}
-              <div className="space-y-3.5">
-                {matchedData.medicines.map((m, idx) => {
-                  const s = m.stock;
-                  const stockHealthPct = Math.min(100, Math.round((s.stockCount / 500) * 100));
-                  const isLow = s.stockCount <= s.reorderLevel;
-
-                  return (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-xl border border-slate-200 hover:border-teal-400 bg-gradient-to-r from-slate-50/80 to-white transition-all shadow-2xs space-y-2.5"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-extrabold text-slate-950 text-sm sm:text-base">
-                              {s.name}
-                            </h4>
-                            <span className="font-mono text-[10px] font-black bg-slate-200 text-slate-800 px-1.5 py-0.2 rounded border border-slate-300">
-                              {s.code}
-                            </span>
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                              isLow
-                                ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                            }`}>
-                              {isLow ? '⚠️ Low Stock' : '🟢 Healthy Stock'}
-                            </span>
-                          </div>
-                          <p className="text-xs font-medium text-slate-600 mt-0.5">
-                            {s.brand} • <span className="text-slate-500">{s.category}</span>
-                          </p>
-                        </div>
-
-                        {/* Big Stock Counter Badge */}
-                        <div className="text-left sm:text-right shrink-0 bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs">
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            Available Stock
-                          </p>
-                          <p className="text-lg sm:text-xl font-black text-teal-700 leading-tight">
-                            {s.stockCount} <span className="text-xs font-bold text-slate-600">{s.unitsPerPack.split(' ')[0]}</span>
-                          </p>
-                          <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
-                            ({s.totalUnits.toLocaleString()} Total Units)
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Stock Specs Strip */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-slate-100/70 p-2 rounded-lg border border-slate-200/60 font-medium text-slate-700">
-                        <div>
-                          <span className="text-slate-400 block text-[9px] uppercase font-bold">Batch / Lot</span>
-                          <span className="font-mono font-bold text-slate-900">{s.batchNo}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block text-[9px] uppercase font-bold">Expiry Date</span>
-                          <span className="font-bold text-slate-900">{s.expiryDate}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block text-[9px] uppercase font-bold">Location</span>
-                          <span className="font-bold text-slate-900 truncate block">{s.shelf}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block text-[9px] uppercase font-bold">Reorder Level</span>
-                          <span className="font-bold text-slate-900">{s.reorderLevel} units</span>
-                        </div>
-                      </div>
-
-                      {/* Progress bar */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                          <span>Inventory Fill Level</span>
-                          <span>{stockHealthPct}% Capacity</span>
-                        </div>
-                        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              isLow ? 'bg-amber-500' : 'bg-teal-600'
-                            }`}
-                            style={{ width: `${stockHealthPct}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <h2 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight mt-1">
+                Prescription Code & Medicine Stock Verification
+              </h2>
+              <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
+                Inspect authenticated prescription codes (e.g. RX-001) and verify live dispensary stock counts on the dedicated station.
+              </p>
             </div>
           </div>
-        )}
 
-        {/* Matched Single Medicine Result View */}
-        {matchedData?.type === 'medicine' && (
-          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-black bg-teal-100 text-teal-900 border border-teal-300 px-2 py-0.5 rounded-md">
-                    {matchedData.stock.code}
-                  </span>
-                  <Badge variant="success">INVENTORY VERIFIED</Badge>
-                </div>
-                <h3 className="text-lg sm:text-xl font-extrabold text-slate-950 mt-1">
-                  {matchedData.stock.name} ({matchedData.stock.brand})
-                </h3>
-                <p className="text-xs font-semibold text-slate-600">
-                  {matchedData.stock.category} • Location: {matchedData.stock.shelf}
-                </p>
-              </div>
-
-              <div className="bg-teal-50 border border-teal-200 p-3 rounded-xl text-right">
-                <span className="text-[10px] font-bold text-teal-800 uppercase block">Dispensary Stock</span>
-                <span className="text-2xl font-black text-teal-900">{matchedData.stock.stockCount}</span>
-                <span className="text-xs font-bold text-teal-700 block">{matchedData.stock.unitsPerPack}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold block">Batch / Lot No</span>
-                <span className="font-mono font-bold text-slate-900">{matchedData.stock.batchNo}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold block">Expiry Date</span>
-                <span className="font-bold text-slate-900">{matchedData.stock.expiryDate}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold block">Total Units</span>
-                <span className="font-bold text-slate-900">{matchedData.stock.totalUnits.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold block">Reorder Alert Level</span>
-                <span className="font-bold text-slate-900">{matchedData.stock.reorderLevel} units</span>
-              </div>
-            </div>
-
-            {matchedData.relatedPrescriptions?.length > 0 && (
-              <div className="mt-3">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Active Prescriptions Utilizing This Medicine ({matchedData.relatedPrescriptions.length})
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {matchedData.relatedPrescriptions.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => setRxCodeInput(p.id.toUpperCase())}
-                      className="text-left p-3 rounded-xl border border-slate-200 hover:border-teal-400 bg-slate-50 hover:bg-white transition cursor-pointer text-xs space-y-0.5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-teal-800">{p.id.toUpperCase()}</span>
-                        <span className="text-[10px] text-slate-500">{formatDate(p.authorizedAt)}</span>
-                      </div>
-                      <p className="font-bold text-slate-900 truncate">
-                        Patient: {data?.users?.[p.patientId]?.name || 'Patient'}
-                      </p>
-                      <p className="text-[11px] text-slate-600 truncate">{p.notes}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => navigate('/pharmacist/stock-verification')}
+              className="btn-primary py-2.5 px-4 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <Package size={16} />
+              <span>Open Stock Verification Station</span>
+              <ArrowRight size={14} />
+            </button>
           </div>
-        )}
-
-        {/* Not Found View */}
-        {matchedData?.type === 'not_found' && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center text-amber-900 text-xs sm:text-sm font-semibold">
-            <AlertCircle size={20} className="mx-auto mb-1.5 text-amber-700" />
-            <p>No prescription or inventory record found matching <span className="font-mono font-bold font-black">"{matchedData.query}"</span>.</p>
-            <p className="text-xs text-amber-800 mt-1">
-              Try entering <span className="font-mono font-bold cursor-pointer underline" onClick={() => setRxCodeInput('RX-001')}>RX-001</span>, <span className="font-mono font-bold cursor-pointer underline" onClick={() => setRxCodeInput('RX-003')}>RX-003</span>, or medicine code <span className="font-mono font-bold cursor-pointer underline" onClick={() => setRxCodeInput('MET-500')}>MET-500</span>.
-            </p>
-          </div>
-        )}
+        </div>
       </div>
 
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />

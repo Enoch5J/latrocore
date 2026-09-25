@@ -128,19 +128,26 @@ export default function Welcome() {
         };
         const email = emailMap[account.id] || `${account.role}@latrocore.com`;
         const pass = passMap[account.id] || 'admin123';
-        const res = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: pass }),
-        });
-        if (res.ok) {
-          const authData = await res.json();
-          if (authData.access_token) {
-            localStorage.setItem('latrocore_token', authData.access_token);
+        const backendUrl = import.meta.env.VITE_API_BASE || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000/api/v1' : '');
+        if (backendUrl) {
+          try {
+            const res = await fetch(`${backendUrl}/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password: pass }),
+            });
+            if (res.ok) {
+              const authData = await res.json();
+              if (authData.access_token) {
+                localStorage.setItem('latrocore_token', authData.access_token);
+              }
+            }
+          } catch (err) {
+            // Silently fallback to mock demo authentication
           }
         }
       } catch (err) {
-        console.warn('Backend login sync error:', err);
+        // Fallback safely to mock demo authentication
       }
       navigate(account.route);
     }
