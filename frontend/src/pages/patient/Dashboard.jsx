@@ -7,7 +7,8 @@ import {
   Heart, TrendingUp, TrendingDown, Clock, CheckCircle, AlertTriangle,
   ArrowRight, Plus, Salad, ClipboardList, AlertCircle, Bell, BellRing,
   Volume2, VolumeX, Sparkles, Check, Utensils, Flame, Coffee, Sun, Moon,
-  ShieldCheck, Eye, Video, Stethoscope, PhoneCall, UserCheck, Shield
+  ShieldCheck, Eye, Video, Stethoscope, PhoneCall, UserCheck, Shield,
+  Maximize2
 } from 'lucide-react';
 import { formatDate, formatTime, isToday, formatDateTime } from '../../data/demoDate';
 import { recordDose, getProgressionData } from '../../services/dataService';
@@ -47,6 +48,10 @@ export default function PatientDashboard() {
   const [consultModalOpen, setConsultModalOpen] = useState(false);
   const [consultType, setConsultType] = useState('doctor'); // 'doctor' or 'pharmacist'
   const [consultNote, setConsultNote] = useState('');
+
+  // ── Patient Test Reminder Schedule View State ──
+  const [testReminderTab, setTestReminderTab] = useState('schedule'); // 'schedule' or 'tests'
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   useEffect(() => { setTimeout(() => setLoading(false), 300); }, []);
 
@@ -326,6 +331,68 @@ export default function PatientDashboard() {
       variant: 'gray',
       frequency: 'Every 6 Months',
       icon: FileText,
+    },
+  ];
+
+  // ── Patient Welfare Diabetes Test Reminder Schedule (3 Core Tiers) ───
+  const SCHEDULE_INTERVAL_CARDS = [
+    {
+      id: 'every-3-months',
+      interval: 'EVERY 3 MONTHS',
+      title: 'HbA1c / glycemic review',
+      tagBadge: 'bg-sky-100 text-sky-900 border-sky-300',
+      headerBg: 'bg-sky-50/70',
+      accentBorder: 'hover:border-sky-500',
+      icon: Droplets,
+      iconColor: 'text-sky-700 bg-sky-100',
+      status: 'Due in 12 Days',
+      statusBadge: 'bg-amber-100 text-amber-900 border-amber-300',
+      nextDate: '07 Oct 2026',
+      items: [
+        'HbA1c when goals are not met, therapy has changed, or closer monitoring is needed',
+        'Fasting / post-meal glucose review as clinically appropriate',
+        'Medication adherence & side-effect review',
+      ],
+      clinicalAction: 'Book HbA1c Lab Test',
+    },
+    {
+      id: 'every-6-months',
+      interval: 'EVERY 6 MONTHS',
+      title: 'Health & laboratory checkpoint',
+      tagBadge: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+      headerBg: 'bg-indigo-50/70',
+      accentBorder: 'hover:border-indigo-500',
+      icon: Activity,
+      iconColor: 'text-indigo-700 bg-indigo-100',
+      status: 'Scheduled (Nov)',
+      statusBadge: 'bg-blue-100 text-blue-900 border-blue-300',
+      nextDate: '28 Nov 2026',
+      items: [
+        'Lipid profile — repeat earlier/more often when clinically indicated or after treatment changes',
+        'Liver-function monitoring when indicated by medicines or clinical status',
+        'Review BP, weight, lifestyle and treatment plan',
+      ],
+      clinicalAction: 'View Renal & Lipid History',
+    },
+    {
+      id: 'at-least-annually',
+      interval: 'AT LEAST ANNUALLY',
+      title: 'Complication & preventive health review',
+      tagBadge: 'bg-teal-100 text-teal-900 border-teal-300',
+      headerBg: 'bg-teal-50/70',
+      accentBorder: 'hover:border-teal-500',
+      icon: ShieldCheck,
+      iconColor: 'text-teal-700 bg-teal-100',
+      status: 'Annual Check',
+      statusBadge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+      nextDate: '15 Dec 2026',
+      items: [
+        'Dilated eye examination / retinal assessment',
+        'Kidney assessment: urine ACR + serum creatinine/eGFR',
+        'Comprehensive foot assessment',
+        'Dental/oral health and other age/condition-specific preventive checks',
+      ],
+      clinicalAction: 'Retinal & Foot Check',
     },
   ];
 
@@ -646,61 +713,159 @@ export default function PatientDashboard() {
 
         {/* ── COLUMN 2: Patient Test Reminder ── */}
         <div id="test-reminders" className="card flex flex-col scroll-mt-24 border-2 border-blue-600/30 hover:border-blue-600/50 shadow-sm transition-all">
-          <div className="card-header bg-gradient-to-r from-blue-900 to-indigo-900 text-white rounded-t-2xl flex items-center justify-between p-3.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-blue-700/80 border border-blue-500/40 flex items-center justify-center shadow-inner shrink-0">
-                <ClipboardList size={18} className="text-blue-200" />
+          <div className="card-header bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white rounded-t-2xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-blue-700/80 border border-blue-500/40 flex items-center justify-center shadow-inner shrink-0">
+                  <ClipboardList size={18} className="text-blue-200" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-extrabold text-sm text-white leading-tight truncate">2. Patient Test Reminder</h2>
+                  <p className="text-[10px] text-blue-200/90 font-medium truncate">Patient Welfare Care Schedule</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h2 className="font-extrabold text-sm text-white leading-tight truncate">2. Patient Test Reminder</h2>
-                <p className="text-[10px] text-blue-200/90 font-medium truncate">Clinical Lab Checks</p>
-              </div>
+              <button
+                onClick={() => setScheduleModalOpen(true)}
+                className="text-[10px] font-bold bg-blue-800/90 hover:bg-blue-700 text-blue-100 border border-blue-400/40 px-2 py-0.8 rounded-lg flex items-center gap-1 transition cursor-pointer shrink-0"
+                title="Expand Full Schedule Diagram"
+              >
+                <Maximize2 size={11} />
+                <span>Full Blueprint</span>
+              </button>
             </div>
-            <span className="text-[9px] font-black uppercase tracking-wider bg-blue-800 border border-blue-400/40 px-2 py-0.5 rounded-full text-blue-100 shrink-0">
-              5 Checks
-            </span>
+
+            {/* Segmented View Switcher: 3 Schedule Cards vs 5 Lab Checks */}
+            <div className="flex items-center bg-blue-950/80 p-0.5 rounded-lg border border-blue-800 text-[11px] font-bold">
+              <button
+                onClick={() => setTestReminderTab('schedule')}
+                className={`flex-1 py-1 rounded-md transition text-center cursor-pointer ${
+                  testReminderTab === 'schedule'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-blue-200 hover:text-white'
+                }`}
+              >
+                📅 3 Schedule Tiers
+              </button>
+              <button
+                onClick={() => setTestReminderTab('tests')}
+                className={`flex-1 py-1 rounded-md transition text-center cursor-pointer ${
+                  testReminderTab === 'tests'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-blue-200 hover:text-white'
+                }`}
+              >
+                🧪 5 Specific Tests
+              </button>
+            </div>
           </div>
 
-          <div className="card-body flex-1 space-y-2.5 p-3.5 bg-slate-50/50 overflow-y-auto max-h-[460px]">
-            {testReminders.map((test) => (
-              <div
-                key={test.id}
-                className="p-2.5 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-300 transition"
-              >
-                <div className="flex items-start justify-between gap-1.5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <test.icon size={13} className="text-blue-700 shrink-0" />
-                      <p className="font-extrabold text-xs text-slate-950 truncate">
-                        {test.name}
-                      </p>
-                    </div>
-                    <p className="text-[10px] font-semibold text-slate-600 mt-0.5 truncate">
-                      Target: {test.target} • {test.frequency}
-                    </p>
-                  </div>
-                  <Badge variant={test.variant}>
-                    {test.status}
-                  </Badge>
-                </div>
+          <div className="card-body flex-1 space-y-2.5 p-3.5 bg-slate-50/50 overflow-y-auto max-h-[480px]">
+            {testReminderTab === 'schedule' ? (
+              <div className="space-y-3">
+                {/* 3 Schedule Cards from User Blueprint */}
+                {SCHEDULE_INTERVAL_CARDS.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div
+                      key={card.id}
+                      className={`p-3 rounded-2xl border-2 border-slate-200 bg-white hover:border-blue-400 hover:shadow-xs transition space-y-2 ${card.accentBorder}`}
+                    >
+                      {/* Interval Pill Badge & Status */}
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${card.tagBadge}`}>
+                          {card.interval}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${card.statusBadge}`}>
+                          {card.status}
+                        </span>
+                      </div>
 
-                <div className="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                  <span className="text-slate-600 font-medium truncate">
-                    Last: <span className="font-bold text-slate-900">{test.lastResult}</span>
-                  </span>
-                  <span className="font-extrabold text-blue-900 shrink-0 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-                    {test.dueDate}
-                  </span>
+                      {/* Card Title */}
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${card.iconColor}`}>
+                          <Icon size={12} />
+                        </div>
+                        <h3 className="font-extrabold text-xs text-slate-950 leading-tight">
+                          {card.title}
+                        </h3>
+                      </div>
+
+                      {/* Bullet list */}
+                      <ul className="space-y-1 text-[11px] text-slate-700 leading-snug pl-0.5">
+                        {card.items.map((bullet, idx) => (
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span className="text-blue-600 font-bold shrink-0 mt-0.5">•</span>
+                            <span className="font-medium text-slate-700">{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* Clinical Action Footer */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                        <span className="text-slate-500 font-medium">Target: {card.nextDate}</span>
+                        <button
+                          onClick={() => navigate('/appointments?type=investigation')}
+                          className="font-extrabold text-blue-700 hover:text-blue-950 hover:underline flex items-center gap-0.5 cursor-pointer"
+                        >
+                          <span>{card.clinicalAction}</span>
+                          <ArrowRight size={10} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Patient Welfare Workflow Strip */}
+                <div className="p-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-blue-950 space-y-1">
+                  <div className="flex items-center gap-1 text-[10px] font-extrabold text-blue-900 tracking-tight uppercase">
+                    <ShieldCheck size={12} className="text-blue-700 shrink-0" />
+                    <span>Patient Welfare Protocol</span>
+                  </div>
+                  <p className="text-[10px] font-bold text-blue-800 leading-tight">
+                    Remind → Record → Complete → Escalate to the care team when due or abnormal
+                  </p>
+                  <p className="text-[9px] text-blue-600/90 font-medium">
+                    Clinical framing: ADA Standards of Care 2026
+                  </p>
                 </div>
               </div>
-            ))}
+            ) : (
+              // Individual 5 Lab Checks
+              <div className="space-y-2.5">
+                {testReminders.map((test) => (
+                  <div
+                    key={test.id}
+                    className="p-2.5 rounded-xl border-2 border-slate-200 bg-white hover:border-blue-300 transition"
+                  >
+                    <div className="flex items-start justify-between gap-1.5">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <test.icon size={13} className="text-blue-700 shrink-0" />
+                          <p className="font-extrabold text-xs text-slate-950 truncate">
+                            {test.name}
+                          </p>
+                        </div>
+                        <p className="text-[10px] font-semibold text-slate-600 mt-0.5 truncate">
+                          Target: {test.target} • {test.frequency}
+                        </p>
+                      </div>
+                      <Badge variant={test.variant}>
+                        {test.status}
+                      </Badge>
+                    </div>
 
-            <div className="p-2 rounded-xl bg-blue-50/90 border border-blue-200 text-xs text-blue-950 flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-blue-700 shrink-0" />
-              <p className="font-medium text-[10px] leading-tight">
-                ADA: Quarterly HbA1c and annual microvascular checks prevent complications.
-              </p>
-            </div>
+                    <div className="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                      <span className="text-slate-600 font-medium truncate">
+                        Last: <span className="font-bold text-slate-900">{test.lastResult}</span>
+                      </span>
+                      <span className="font-extrabold text-blue-900 shrink-0 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+                        {test.dueDate}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="card-footer bg-slate-50 p-2.5 rounded-b-2xl border-t border-slate-200 flex items-center justify-between">
@@ -710,6 +875,13 @@ export default function PatientDashboard() {
             >
               <span>Book Test</span>
               <CalendarDays size={12} />
+            </button>
+            <button
+              onClick={() => setScheduleModalOpen(true)}
+              className="text-[11px] font-extrabold text-indigo-700 hover:text-indigo-950 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>Full Schedule</span>
+              <Maximize2 size={11} />
             </button>
             <button
               onClick={() => navigate('/patient/investigations')}
@@ -1097,6 +1269,144 @@ export default function PatientDashboard() {
               className="btn-primary btn-sm bg-purple-800 hover:bg-purple-900 border-none"
             >
               Confirm Consultation
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Full Patient Welfare Diabetes Test Reminder Schedule Modal ── */}
+      <Modal
+        open={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        title="Patient Welfare — Diabetes Test Reminder Schedule"
+        size="xl"
+      >
+        <div className="space-y-6 -mt-1">
+          {/* Slide Top Accent Bar & Subtitle */}
+          <div className="border-t-4 border-blue-800 pt-3 pb-2 -mx-2 px-2 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-700"></span>
+                <h3 className="text-base sm:text-lg font-black text-slate-950 tracking-tight">
+                  Patient Welfare — Diabetes Test Reminder Schedule
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 font-semibold mt-0.5 pl-4">
+                Automatic reminders for routine monitoring — personalized to the patient's clinician-defined care plan.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold bg-blue-50 text-blue-900 border border-blue-200 px-2.5 py-1 rounded-full">
+                Protocol: ADA 2026 Guidelines
+              </span>
+            </div>
+          </div>
+
+          {/* 3 Horizontal Cards Layout Matching User's Image */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {SCHEDULE_INTERVAL_CARDS.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.id}
+                  className="rounded-3xl border-2 border-slate-200/90 bg-white p-5 flex flex-col justify-between shadow-xs hover:border-blue-400 hover:shadow-md transition-all duration-200"
+                >
+                  <div className="space-y-4">
+                    {/* Top Tier Interval Pill */}
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${card.tagBadge}`}>
+                        {card.interval}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${card.statusBadge}`}>
+                        {card.status}
+                      </span>
+                    </div>
+
+                    {/* Card Title */}
+                    <div className="flex items-start gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${card.iconColor}`}>
+                        <Icon size={18} />
+                      </div>
+                      <h4 className="font-extrabold text-sm sm:text-base text-slate-950 leading-snug">
+                        {card.title}
+                      </h4>
+                    </div>
+
+                    {/* Bullets List */}
+                    <ul className="space-y-2.5 pt-1 text-xs text-slate-700 leading-relaxed">
+                      {card.items.map((bullet, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-blue-600 font-bold shrink-0 mt-0.5">•</span>
+                          <span className="font-medium text-slate-800">{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Card Bottom Target & Action */}
+                  <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-semibold text-[11px]">Due: {card.nextDate}</span>
+                    <button
+                      onClick={() => {
+                        setScheduleModalOpen(false);
+                        navigate('/appointments?type=investigation');
+                      }}
+                      className="font-extrabold text-blue-700 hover:text-blue-950 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>{card.clinicalAction}</span>
+                      <ArrowRight size={12} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Banner: PATIENT WELFARE • Remind → Record → Complete → Escalate */}
+          <div className="rounded-2xl bg-blue-50/90 border border-blue-200/90 py-3.5 px-4 sm:px-6 text-center shadow-xs">
+            <p className="text-xs sm:text-sm font-extrabold text-blue-950 tracking-wide">
+              PATIENT WELFARE &bull; Remind &rarr; Record &rarr; Complete &rarr; Escalate to the care team when due or abnormal
+            </p>
+          </div>
+
+          {/* Bottom Footnote & Clinical Disclaimer */}
+          <div className="space-y-1.5 pt-1 border-t border-slate-200 text-slate-500 text-[10px] leading-tight flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span className="font-bold text-slate-600">LATROCORE • Diabetes Care Module</span>
+            <span className="text-center sm:text-left text-slate-500 max-w-xl">
+              Reminder intervals are not a diagnosis protocol; frequency should be individualized for diabetes type, control, complications, medicines and clinician advice.
+            </span>
+            <span className="font-bold text-slate-600 text-right sm:text-left shrink-0">
+              Clinical framing: ADA Standards of Care 2026
+            </span>
+          </div>
+
+          {/* Modal Footer Controls */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => {
+                setScheduleModalOpen(false);
+                navigate('/appointments?type=investigation');
+              }}
+              className="btn-outline btn-sm text-xs flex items-center gap-1.5"
+            >
+              <CalendarDays size={14} />
+              <span>Schedule Next Investigation</span>
+            </button>
+            <button
+              onClick={() => {
+                setScheduleModalOpen(false);
+                navigate('/patient/investigations');
+              }}
+              className="btn-primary btn-sm bg-blue-700 hover:bg-blue-800 text-xs flex items-center gap-1.5"
+            >
+              <ClipboardList size={14} />
+              <span>Open Lab Record</span>
+            </button>
+            <button
+              onClick={() => setScheduleModalOpen(false)}
+              className="btn-ghost btn-sm text-xs"
+            >
+              Close
             </button>
           </div>
         </div>
