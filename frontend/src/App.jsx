@@ -20,6 +20,7 @@ import PatientScreening from './pages/patient/Screening';
 import SafetyAlerts from './pages/patient/SafetyAlerts';
 import PatientAssistant from './pages/patient/Assistant';
 import CareChecklist from './pages/patient/CareChecklist';
+import TestReminders from './pages/patient/TestReminders';
 
 // Doctor Pages
 import DoctorDashboard from './pages/doctor/Dashboard';
@@ -65,6 +66,8 @@ function AppRoutes() {
           <Route path="/patient/assistant" element={<PatientAssistant />} />
           <Route path="/patient/checklist" element={<CareChecklist />} />
           <Route path="/patient/care-checklist" element={<CareChecklist />} />
+          <Route path="/patient/test-reminders" element={<TestReminders />} />
+          <Route path="/patient/reminders" element={<TestReminders />} />
 
           {/* Doctor Routes */}
           <Route path="/doctor/dashboard" element={<DoctorDashboard />} />

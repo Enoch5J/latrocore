@@ -725,12 +725,12 @@ export default function PatientDashboard() {
                 </div>
               </div>
               <button
-                onClick={() => setScheduleModalOpen(true)}
+                onClick={() => navigate('/patient/test-reminders')}
                 className="text-[10px] font-bold bg-blue-800/90 hover:bg-blue-700 text-blue-100 border border-blue-400/40 px-2 py-0.8 rounded-lg flex items-center gap-1 transition cursor-pointer shrink-0"
-                title="Expand Full Schedule Diagram"
+                title="Open Dedicated Full Page Schedule"
               >
-                <Maximize2 size={11} />
-                <span>Full Blueprint</span>
+                <span>Separate Page View</span>
+                <ArrowRight size={11} />
               </button>
             </div>
 
@@ -762,6 +762,18 @@ export default function PatientDashboard() {
           <div className="card-body flex-1 space-y-2.5 p-3.5 bg-slate-50/50 overflow-y-auto max-h-[480px]">
             {testReminderTab === 'schedule' ? (
               <div className="space-y-3">
+                {/* Dedicated Separate Page Callout Banner */}
+                <div
+                  onClick={() => navigate('/patient/test-reminders')}
+                  className="p-2.5 rounded-xl bg-blue-100/70 hover:bg-blue-100 border border-blue-300 flex items-center justify-between text-[11px] font-bold text-blue-950 cursor-pointer transition shadow-xs"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-blue-700 shrink-0" />
+                    <span>Open in Full Dedicated Page</span>
+                  </span>
+                  <ArrowRight size={13} className="text-blue-700 shrink-0" />
+                </div>
+
                 {/* 3 Schedule Cards from User Blueprint */}
                 {SCHEDULE_INTERVAL_CARDS.map((card) => {
                   const Icon = card.icon;
@@ -877,11 +889,11 @@ export default function PatientDashboard() {
               <CalendarDays size={12} />
             </button>
             <button
-              onClick={() => setScheduleModalOpen(true)}
-              className="text-[11px] font-extrabold text-indigo-700 hover:text-indigo-950 hover:underline flex items-center gap-1 cursor-pointer"
+              onClick={() => navigate('/patient/test-reminders')}
+              className="text-[11px] font-extrabold text-blue-700 hover:text-blue-950 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>Full Schedule</span>
-              <Maximize2 size={11} />
+              <span>Separate Page</span>
+              <ArrowRight size={11} />
             </button>
             <button
               onClick={() => navigate('/patient/investigations')}

@@ -16,7 +16,7 @@ const ROLE_NAV = {
     { to: '/patient/lifestyle', icon: Salad, label: 'Lifestyle' },
     { to: '/patient/glucose', icon: Activity, label: 'Glucose Monitor' },
     { to: '/patient/dashboard#scheduler', icon: BellRing, label: 'Tablet Scheduler' },
-    { to: '/patient/dashboard#test-reminders', icon: ClipboardList, label: 'Patient Test Reminder' },
+    { to: '/patient/test-reminders', icon: ClipboardList, label: 'Patient Test Reminder' },
     { to: '/patient/checklist', icon: ClipboardCheck, label: 'Care Checklist' },
     { to: '/patient/dashboard#diet-plan', icon: Utensils, label: 'Diabetic Diet Plan' },
     { to: '/patient/dashboard#consulting', icon: Video, label: 'Doctor Consulting' },
@@ -120,8 +120,8 @@ export default function AppLayout() {
               className={
                 `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                   isItemActive
-                    ? 'bg-teal-800 text-white shadow-xs'
-                    : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
+                    ? 'bg-[#367588] text-white shadow-xs'
+                    : 'text-slate-800 hover:bg-[#F3F8F9] hover:text-[#367588]'
                 }`
               }
             >
@@ -138,8 +138,8 @@ export default function AppLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-teal-800 text-white shadow-xs'
-                    : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
+                    ? 'bg-[#367588] text-white shadow-xs'
+                    : 'text-slate-800 hover:bg-[#F3F8F9] hover:text-[#367588]'
                 }`
               }
             >
@@ -152,8 +152,8 @@ export default function AppLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-teal-800 text-white shadow-xs'
-                    : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950'
+                    ? 'bg-[#367588] text-white shadow-xs'
+                    : 'text-slate-800 hover:bg-[#F3F8F9] hover:text-[#367588]'
                 }`
               }
             >
@@ -167,22 +167,22 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-900 w-full">
+    <div className="min-h-screen bg-white flex text-slate-900 w-full">
       {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col bg-white border-r-2 border-slate-200 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} shrink-0 sticky top-0 h-screen no-print z-30 shadow-xs`}>
-        <div className={`flex items-center ${sidebarOpen ? 'px-5' : 'px-3'} h-16 border-b-2 border-slate-200`}>
+      <aside className={`hidden lg:flex flex-col bg-white border-r-2 border-[#D2E2E6] transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} shrink-0 sticky top-0 h-screen no-print z-30 shadow-xs`}>
+        <div className={`flex items-center ${sidebarOpen ? 'px-5' : 'px-3'} h-16 border-b-2 border-[#D2E2E6]`}>
           {sidebarOpen ? (
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-teal-800 rounded-xl flex items-center justify-center shadow-xs">
+              <div className="w-9 h-9 bg-[#367588] rounded-xl flex items-center justify-center shadow-xs">
                 <Stethoscope size={20} className="text-white" />
               </div>
               <div>
                 <span className="font-extrabold text-slate-950 tracking-tight text-base block leading-tight">LATROCORE</span>
-                <span className="text-[10px] font-bold text-teal-800 tracking-wider uppercase block">Clinical System</span>
+                <span className="text-[10px] font-bold text-[#367588] tracking-wider uppercase block">Clinical System</span>
               </div>
             </div>
           ) : (
-            <div className="w-9 h-9 bg-teal-800 rounded-xl flex items-center justify-center mx-auto shadow-xs">
+            <div className="w-9 h-9 bg-[#367588] rounded-xl flex items-center justify-center mx-auto shadow-xs">
               <Stethoscope size={20} className="text-white" />
             </div>
           )}
@@ -204,12 +204,12 @@ export default function AppLayout() {
           <div className="relative w-80 max-w-[85vw] bg-white flex flex-col shadow-2xl animate-slide-in h-full z-10 border-r-2 border-slate-300">
             <div className="flex items-center justify-between px-5 h-16 border-b-2 border-slate-200">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-teal-800 rounded-xl flex items-center justify-center shadow-xs">
+                <div className="w-9 h-9 bg-[#367588] rounded-xl flex items-center justify-center shadow-xs">
                   <Stethoscope size={20} className="text-white" />
                 </div>
                 <div>
                   <span className="font-extrabold text-slate-950 tracking-tight text-base block leading-tight">LATROCORE</span>
-                  <span className="text-[10px] font-bold text-teal-800 uppercase tracking-wider block">Clinical System</span>
+                  <span className="text-[10px] font-bold text-[#367588] uppercase tracking-wider block">Clinical System</span>
                 </div>
               </div>
               <button
@@ -226,7 +226,7 @@ export default function AppLayout() {
               <Avatar user={activeUser} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-slate-950 text-sm truncate">{activeUser.name}</p>
-                <p className="text-xs font-bold text-teal-900">{roleName}</p>
+                <p className="text-xs font-bold text-[#254F5D]">{roleName}</p>
               </div>
             </div>
 
@@ -242,7 +242,7 @@ export default function AppLayout() {
                     key={u.id}
                     onClick={() => handleRoleSwitch(u.id)}
                     className={`flex items-center gap-2 p-2 rounded-lg text-xs font-bold border text-left cursor-pointer transition-all ${
-                      u.id === activeUser.id ? 'bg-teal-800 text-white border-teal-900' : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-100'
+                      u.id === activeUser.id ? 'bg-[#367588] text-white border-[#254F5D]' : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <Avatar user={u} size="xs" />
@@ -277,11 +277,11 @@ export default function AppLayout() {
 
           {/* Breadcrumbs */}
           <div className="hidden sm:flex items-center gap-2 text-sm text-slate-700 font-bold overflow-x-auto min-w-0">
-            <NavLink to="/" className="hover:text-teal-800 text-slate-900 p-1 rounded hover:bg-slate-100 shrink-0"><Home size={16} /></NavLink>
+            <NavLink to="/" className="hover:text-[#367588] text-slate-900 p-1 rounded hover:bg-slate-100 shrink-0"><Home size={16} /></NavLink>
             {breadcrumbs.map((bc, i) => (
               <span key={i} className="flex items-center gap-2 shrink-0">
                 <ChevronRight size={14} className="text-slate-400" />
-                <span className={i === breadcrumbs.length - 1 ? 'text-slate-950 font-black' : 'hover:text-teal-800 text-slate-800'}>
+                <span className={i === breadcrumbs.length - 1 ? 'text-slate-950 font-black' : 'hover:text-[#367588] text-slate-800'}>
                   {bc.label}
                 </span>
               </span>
@@ -308,7 +308,7 @@ export default function AppLayout() {
               <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border-2 border-slate-200 z-50 animate-fade-in max-h-96 overflow-y-auto">
                 <div className="px-5 py-3.5 border-b border-slate-200 font-bold text-sm text-slate-950 flex items-center justify-between">
                   <span>Notifications</span>
-                  <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full">{notifications.length} total</span>
+                  <span className="text-xs font-bold text-[#367588] bg-[#E3EFF2] px-2 py-0.5 rounded-full">{notifications.length} total</span>
                 </div>
                 {notifications.length === 0 ? (
                   <div className="p-6 text-sm font-semibold text-slate-700 text-center">No notifications</div>
@@ -326,7 +326,7 @@ export default function AppLayout() {
                 )}
                 <div className="p-2.5 border-t border-slate-200 bg-slate-50/80 rounded-b-2xl">
                   <button
-                    className="w-full text-sm font-bold text-teal-800 hover:text-teal-950 hover:underline py-1 cursor-pointer text-center"
+                    className="w-full text-sm font-bold text-[#367588] hover:text-[#1D3F4A] hover:underline py-1 cursor-pointer text-center"
                     onClick={() => { navigate('/notifications'); setNotifOpen(false); }}
                   >
                     View all notifications
@@ -345,7 +345,7 @@ export default function AppLayout() {
               <Avatar user={activeUser} size="sm" />
               <div className="hidden sm:block text-left">
                 <p className="text-sm font-bold text-slate-950 leading-tight truncate max-w-[130px]">{activeUser.name}</p>
-                <p className="text-[11px] font-bold text-teal-850 uppercase tracking-wide">{roleName}</p>
+                <p className="text-[11px] font-bold text-[#367588] uppercase tracking-wide">{roleName}</p>
               </div>
               <ChevronDown size={14} className="text-slate-700 hidden sm:block" />
             </button>
