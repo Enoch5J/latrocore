@@ -37,11 +37,6 @@ const ROLE_NAV = {
   ],
   pharmacist: [
     { to: '/pharmacist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/pharmacist/reviews', icon: ClipboardList, label: 'Medication Reviews' },
-    { to: '/pharmacist/counselling', icon: Heart, label: 'Counselling' },
-    { to: '/pharmacist/refills', icon: Pill, label: 'Refill Requests' },
-    { to: '/appointments', icon: CalendarDays, label: 'Appointments' },
-    { to: '/messages', icon: MessageSquare, label: 'Messages' },
   ],
   admin: [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -134,7 +129,7 @@ export default function AppLayout() {
             </NavLink>
           );
         })}
-        {activeUser?.role !== 'patient' && (
+        {!['patient', 'pharmacist'].includes(activeUser?.role) && (
           <div className="pt-4 mt-4 border-t-2 border-slate-200 space-y-1.5">
             <NavLink
               to="/overview"
