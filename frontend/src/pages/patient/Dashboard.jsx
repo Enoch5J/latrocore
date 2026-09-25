@@ -8,7 +8,7 @@ import {
   ArrowRight, Plus, Salad, ClipboardList, AlertCircle, Bell, BellRing,
   Volume2, VolumeX, Sparkles, Check, Utensils, Flame, Coffee, Sun, Moon,
   ShieldCheck, Eye, Video, Stethoscope, PhoneCall, UserCheck, Shield,
-  Maximize2
+  Maximize2, ClipboardCheck
 } from 'lucide-react';
 import { formatDate, formatTime, isToday, formatDateTime } from '../../data/demoDate';
 import { recordDose, getProgressionData } from '../../services/dataService';
@@ -1412,35 +1412,83 @@ export default function PatientDashboard() {
         </div>
       </Modal>
 
-      {/* Care Checklist */}
-      <div className="card">
-        <div className="card-header flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 className="font-extrabold text-base text-slate-950">Clinical Care Checklist</h2>
-            <p className="text-xs font-semibold text-slate-700 mt-0.5">Essential regular checkpoints for optimal glycemic control</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-32 h-2.5 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
-              <div className="h-full bg-teal-800 rounded-full transition-all duration-300" style={{ width: `${checklistProgress}%` }} />
+      {/* ── Compact Clinical Care Checklist Summary Card ── */}
+      <div
+        onClick={() => navigate('/patient/checklist')}
+        className="card p-5 sm:p-6 border-2 border-teal-600/30 hover:border-teal-600 hover:shadow-lg transition-all duration-300 cursor-pointer bg-gradient-to-br from-white via-white to-teal-50/50 group rounded-2xl relative overflow-hidden"
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          {/* Left: Icon, Title & Badges */}
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-13 h-13 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 group-hover:bg-teal-700 group-hover:text-white transition-all duration-300">
+              <ClipboardCheck size={26} />
             </div>
-            <span className="text-sm font-black text-teal-900">{checklistProgress}%</span>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="font-extrabold text-base sm:text-lg text-slate-950 group-hover:text-teal-900 transition-colors">
+                  Clinical Care Checklist
+                </h2>
+                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 uppercase tracking-wider">
+                  ADA 2026 Protocol
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-600 leading-snug">
+                Essential regular checkpoints for optimal glycemic control &amp; microvascular complication prevention
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Progress & Interactive Button */}
+          <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+            {/* Progress indicators */}
+            <div className="text-left sm:text-right min-w-[140px]">
+              <div className="flex items-center gap-2 sm:justify-end">
+                <span className="text-xs font-bold text-slate-600">
+                  {checklistItems.filter(i => i.done).length} of {checklistItems.length} Met
+                </span>
+                <span className="text-xs font-black text-teal-900 bg-teal-100 px-2 py-0.5 rounded-md border border-teal-200">
+                  {checklistProgress}%
+                </span>
+              </div>
+              <div className="w-full sm:w-36 h-2.5 bg-slate-200 rounded-full overflow-hidden mt-1.5 border border-slate-300">
+                <div
+                  className="h-full bg-teal-700 rounded-full transition-all duration-500"
+                  style={{ width: `${checklistProgress}%` }}
+                />
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/patient/checklist');
+              }}
+              className="btn-primary btn-sm bg-teal-800 hover:bg-teal-900 text-white flex items-center gap-1.5 shadow-sm group-hover:shadow-md group-hover:translate-x-0.5 transition-all text-xs font-extrabold shrink-0"
+            >
+              <span>View All 8 Cards</span>
+              <ArrowRight size={14} />
+            </button>
           </div>
         </div>
-        <div className="card-body">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {checklistItems.map((item, i) => (
-              <div key={i} className={`flex items-start gap-3 p-3.5 rounded-xl border-2 ${item.done ? 'border-emerald-300 bg-emerald-50/80' : 'border-slate-200 bg-white'}`}>
-                {item.done ? (
-                  <CheckCircle size={18} className="text-emerald-700 shrink-0 mt-0.5" />
-                ) : (
-                  <div className="w-4 h-4 rounded-full border-2 border-slate-400 shrink-0 mt-0.5" />
-                )}
-                <div className="min-w-0">
-                  <p className={`text-xs font-bold leading-tight ${item.done ? 'text-emerald-950' : 'text-slate-950'}`}>{item.label}</p>
-                  <p className={`text-[11px] font-semibold mt-1 ${item.done ? 'text-emerald-900' : 'text-slate-700'}`}>{item.detail}</p>
-                </div>
-              </div>
-            ))}
+
+        {/* Mini Status Breakdown Pills */}
+        <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-500">Active Status:</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+              <CheckCircle size={12} className="text-emerald-700" />
+              <span>{checklistItems.filter(i => i.done).length} Completed</span>
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+              <AlertCircle size={12} className="text-amber-700" />
+              <span>{checklistItems.filter(i => !i.done).length} Action Needed</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 text-[11px] font-extrabold text-teal-850 group-hover:text-teal-950">
+            <span>Inspect 8 detailed cards &amp; clinical actions</span>
+            <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
       </div>

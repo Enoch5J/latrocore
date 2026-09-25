@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
   Bot, Heart, Users, Settings, AlertTriangle, BookOpen, ChevronDown, ChevronRight,
-  Home, BarChart3, BellRing, Utensils, Video
+  Home, BarChart3, BellRing, Utensils, Video, ClipboardCheck
 } from 'lucide-react';
 
 const ROLE_NAV = {
@@ -17,6 +17,7 @@ const ROLE_NAV = {
     { to: '/patient/glucose', icon: Activity, label: 'Glucose Monitor' },
     { to: '/patient/dashboard#scheduler', icon: BellRing, label: 'Tablet Scheduler' },
     { to: '/patient/dashboard#test-reminders', icon: ClipboardList, label: 'Patient Test Reminder' },
+    { to: '/patient/checklist', icon: ClipboardCheck, label: 'Care Checklist' },
     { to: '/patient/dashboard#diet-plan', icon: Utensils, label: 'Diabetic Diet Plan' },
     { to: '/patient/dashboard#consulting', icon: Video, label: 'Doctor Consulting' },
     { to: '/patient/investigations', icon: FileText, label: 'Investigations' },
