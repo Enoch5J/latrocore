@@ -540,8 +540,38 @@ export default function PatientDashboard() {
         />
       </div>
 
+      {/* ── Quick Links & Actions ── */}
+      <div className="card border border-[#D2E2E6] bg-white">
+        <div className="card-header bg-[#F3F8F9] rounded-t-2xl border-b border-[#D2E2E6] flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="font-extrabold text-base text-slate-950">Quick Links & Actions</h2>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#367588] border border-[#A0C7D1]">
+              Shortcuts
+            </span>
+          </div>
+          <span className="text-xs font-semibold text-slate-500">Fast tracking & clinic actions</span>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {quickActions.map((a, i) => (
+              <button
+                key={i}
+                onClick={a.onClick}
+                className="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-slate-200 hover:border-[#367588] bg-white hover:bg-[#F3F8F9] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-xs ${a.color} group-hover:scale-105 transition-transform`}>
+                  <a.icon size={22} />
+                </div>
+                <span className="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-[#367588] leading-tight">
+                  {a.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-      {/* ── 4 CORE CARE MANAGEMENT COLUMNS (Placed Before Quick Actions) ── */}
+      {/* ── 4 CORE CARE MANAGEMENT COLUMNS (Placed After Quick Links) ── */}
       {/* 1. Scheduler Column (Ring Alarm to take tablet) */}
       {/* 2. Patient Test Reminder */}
       {/* 3. Diabetic Diet Plan */}
@@ -1142,31 +1172,6 @@ export default function PatientDashboard() {
           </div>
         </div>
 
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card">
-        <div className="card-header bg-slate-50/70 rounded-t-2xl border-b border-slate-200">
-          <h2 className="font-extrabold text-base text-slate-950">Quick Actions</h2>
-        </div>
-        <div className="card-body">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-            {quickActions.map((a, i) => (
-              <button
-                key={i}
-                onClick={a.onClick}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-slate-200 hover:border-teal-700 bg-white hover:bg-teal-50/40 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-xs ${a.color} group-hover:scale-105 transition-transform`}>
-                  <a.icon size={22} />
-                </div>
-                <span className="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-teal-900 leading-tight">
-                  {a.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* ── Section: Glucose Monitor (Chart & Profile) ── */}
