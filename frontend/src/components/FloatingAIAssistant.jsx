@@ -544,10 +544,24 @@ export default function FloatingAIAssistant() {
 
       {/* ── Floating AI Assistant Avatar Trigger (Bottom-Right Corner) ── */}
       {!isOpen && (
-        <div className="fixed bottom-6 sm:bottom-8 right-5 sm:right-7 z-40 flex items-center group">
+        <div className="fixed bottom-6 sm:bottom-8 right-6 sm:right-8 z-40 flex flex-col items-center group">
+          {/* Perfectly Centered Floating Tooltip Badge directly over the bot */}
+          <div className="mb-2 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-200 animate-fade-in select-none">
+            <div className="bg-slate-950/95 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-2xl border border-teal-500/50 flex items-center gap-1.5 whitespace-nowrap backdrop-blur-md">
+              <Sparkles size={13} className="text-teal-400 animate-spin" style={{ animationDuration: '3s' }} />
+              <span className="bg-gradient-to-r from-teal-200 via-cyan-100 to-white bg-clip-text text-transparent">
+                LATROCORE AI
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5 shadow-[0_0_6px_#34d399]" />
+            </div>
+            {/* Pointer arrow pointing straight down into the antenna */}
+            <div className="w-2.5 h-2.5 bg-slate-950 border-r border-b border-teal-500/50 transform rotate-45 -mt-1.5" />
+          </div>
+
+          {/* Trigger Button with AI Face Avatar */}
           <button
             onClick={() => setIsOpen(true)}
-            className="relative flex items-center justify-center cursor-pointer transition-all duration-300 transform group-hover:scale-110 active:scale-95 focus:outline-none"
+            className="relative flex items-center justify-center cursor-pointer transition-all duration-300 transform group-hover:scale-108 active:scale-95 focus:outline-none"
             aria-label="Open Clinical AI Assistant"
           >
             {/* Outer Radiant Pulsing Aura Rings */}
@@ -566,16 +580,6 @@ export default function FloatingAIAssistant() {
                 {/* Live Online Glowing Beacon */}
                 <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-950 shadow-[0_0_10px_#34d399] animate-pulse z-20" />
               </div>
-            </div>
-
-            {/* Smooth Floating Label on Hover */}
-            <div className="absolute bottom-full mb-3 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-200">
-              <div className="bg-slate-950/95 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-2xl border border-teal-500/50 flex items-center gap-1.5 whitespace-nowrap">
-                <Sparkles size={13} className="text-teal-400 animate-spin" style={{ animationDuration: '3s' }} />
-                <span className="bg-gradient-to-r from-teal-200 via-cyan-100 to-white bg-clip-text text-transparent">LATROCORE AI</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5" />
-              </div>
-              <div className="w-2 h-2 bg-slate-950 border-r border-b border-teal-500/50 transform rotate-45 -mt-1" />
             </div>
           </button>
         </div>
