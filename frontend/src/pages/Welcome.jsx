@@ -81,23 +81,23 @@ export default function Welcome() {
 
       {/* ── MAIN HEALTHCARE HEADER (WARM IVORY BRAND PALETTE) ────────── */}
       <header className="sticky top-0 z-40 bg-[#FAF6EF]/95 backdrop-blur-md border-b border-[#E8DCC8] shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-24 sm:h-28 flex items-center justify-between gap-4 sm:gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-22 flex items-center justify-between gap-4 sm:gap-6">
           
           {/* Brand Logo & Name */}
           <div
-            className="flex items-center gap-3.5 sm:gap-5 cursor-pointer group shrink-0"
+            className="flex items-center gap-3 sm:gap-3.5 cursor-pointer group shrink-0"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <img
               src="/logo.png"
               alt="LATROCORE Logo"
-              className="h-16 w-16 sm:h-20 sm:w-20 lg:h-22 lg:w-22 object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
             />
             <div className="flex flex-col justify-center">
-              <span className="font-serif font-black text-[#046A38] tracking-tight text-3xl sm:text-4xl lg:text-[42px] leading-none">
+              <span className="font-serif font-black text-[#046A38] tracking-tight text-2xl sm:text-[28px] leading-none">
                 LATROCORE
               </span>
-              <span className="hidden sm:block text-[11px] sm:text-xs lg:text-[13px] font-black uppercase tracking-[0.22em] text-[#093322]/75 mt-1 sm:mt-1.5">
+              <span className="hidden sm:block text-[9.5px] sm:text-[10px] font-black uppercase tracking-[0.19em] text-[#093322]/70 mt-1">
                 Precision Diabetes &amp; Diagnostics
               </span>
             </div>
@@ -357,19 +357,14 @@ export default function Welcome() {
                 </div>
 
                 {/* Title */}
-                <h3 className="font-serif font-bold text-xl text-[#093322] mb-1.5 group-hover:text-[#046A38] transition-colors">
+                <h3 className="font-serif font-bold text-xl text-[#093322] mb-5 group-hover:text-[#046A38] transition-colors">
                   {station.title}
                 </h3>
-
-                {/* Simple 1-sentence description */}
-                <p className="text-xs text-slate-600 leading-relaxed font-normal mb-5 flex-1 min-h-[38px] flex items-center justify-center">
-                  {station.desc}
-                </p>
 
                 {/* Clean Launch Button */}
                 <button
                   type="button"
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#046A38] hover:bg-[#03542C] text-white flex items-center justify-center gap-1.5 transition-all shadow-xs group-hover:shadow-md cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#046A38] hover:bg-[#03542C] text-white flex items-center justify-center gap-1.5 transition-all shadow-xs group-hover:shadow-md cursor-pointer mt-auto"
                 >
                   <span>Launch Station</span>
                   <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
@@ -487,19 +482,19 @@ export default function Welcome() {
             
             {/* Col 1: Brand & Certified Accreditations (Span 4) */}
             <div className="lg:col-span-4 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 rounded-2xl bg-white border border-[#155238] shadow-sm shrink-0">
+              <div className="flex items-center gap-3.5">
+                <div className="p-2 rounded-2xl bg-white border border-[#155238] shadow-sm shrink-0">
                   <img
                     src="/logo.png"
                     alt="LATROCORE Logo"
-                    className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+                    className="h-11 w-11 sm:h-12 sm:w-12 object-contain"
                   />
                 </div>
                 <div>
-                  <span className="font-serif font-black text-white text-3xl tracking-tight block leading-none">
+                  <span className="font-serif font-black text-white text-2xl tracking-tight block leading-none">
                     LATROCORE
                   </span>
-                  <span className="text-xs font-bold text-[#A8D7BD] tracking-[0.2em] uppercase mt-1.5 block">
+                  <span className="text-[10px] font-bold text-[#A8D7BD] tracking-[0.18em] uppercase mt-1 block">
                     Precision Diabetes &amp; Diagnostics
                   </span>
                 </div>
