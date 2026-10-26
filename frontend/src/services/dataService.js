@@ -7,16 +7,9 @@ const delay = (ms = 200) => new Promise(r => setTimeout(r, ms));
 function sanitizeData(data) {
   if (!data || !data.users) return data;
   let modified = false;
-  const initialMap = {
-    'pat-001': 'PS', 'pat-002': 'RK', 'pat-003': 'LD',
-    'pat-004': 'MF', 'pat-005': 'AP', 'pat-006': 'SM',
-    'doc-001': 'AK', 'doc-002': 'MS',
-    'pharm-001': 'KR', 'pharm-002': 'VD',
-    'admin-001': 'DA',
-  };
-  for (const [id, user] of Object.entries(data.users)) {
+  for (const user of Object.values(data.users)) {
     if (!user.avatar || /[\p{Extended_Pictographic}]/u.test(user.avatar) || user.avatar.length > 3) {
-      user.avatar = initialMap[id] || user.name.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase();
+      user.avatar = (user.name || 'User').split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase();
       modified = true;
     }
   }
@@ -26,7 +19,6 @@ function sanitizeData(data) {
     data.progressions = {};
     modified = true;
   }
-
 
   if (modified) saveData(data);
   return data;
@@ -41,7 +33,8 @@ function loadData() {
       const hasFakeData =
         parsed?.users?.['pat-001'] ||
         parsed?.prescriptions?.some(p => p.id === 'rx-001') ||
-        parsed?.appointments?.some(a => a.doctorId === 'doc-001' && a.patientId === 'pat-001');
+        parsed?.appointments?.some(a => a.doctorId === 'doc-001' && a.patientId === 'pat-001') ||
+        (parsed?.progressions && Object.values(parsed.progressions).some(pr => pr.tablets?.some(t => t.name === 'Metformin 500mg' && t.slot === 'Morning')));
 
       if (hasFakeData) {
         try {
@@ -698,31 +691,61 @@ export function calculateProgression(prog) {
   };
 }
 
-export function getProgressionData(patientId = 'pat-001') {
+export function getProgressionData(patientId) {
+  if (!patientId) {
+    return {
+      patientId: null,
+      date: new Date().toISOString().split('T')[0],
+      meals: [],
+      tablets: [],
+      activityMinutes: 0,
+      targetActivityMinutes: 30,
+      glucoseChecked: false,
+      fastingGlucose: null,
+      hydrationGlasses: 0,
+      targetHydrationGlasses: 8,
+      overallScore: 0,
+      scoreColor: '#94a3b8',
+      scoreText: 'No Data',
+      completedCount: 0,
+      totalCount: 0,
+      percentages: { mealsPct: 0, tabletsPct: 0, activityPct: 0, glucoseChecked: false }
+    };
+  }
   const data = getAll();
   if (!data.progressions) data.progressions = {};
   const todayKey = new Date().toISOString().split('T')[0];
   const userKey = `${patientId}_${todayKey}`;
 
   if (!data.progressions[userKey]) {
+    const activePrescriptions = (data.prescriptions || []).filter(
+      rx => rx.patientId === patientId && rx.status === 'active'
+    );
+    const activeTablets = [];
+    activePrescriptions.forEach(rx => {
+      (rx.medicines || []).forEach(med => {
+        activeTablets.push({
+          id: med.id || genId('tab'),
+          name: med.name,
+          dose: med.dose,
+          slot: med.frequency || 'Daily',
+          taken: false,
+          time: med.times?.[0] || '08:00 AM',
+          reason: med.instructions || '',
+        });
+      });
+    });
+
     data.progressions[userKey] = {
       patientId,
       date: todayKey,
-      meals: [
-        { id: 'm-1', type: 'Breakfast', label: 'Diabetic Breakfast (Oats, Chia Seeds & Boiled Eggs)', taken: true, time: '08:30 AM', calories: 340, notes: 'Low GI carbohydrates' },
-        { id: 'm-2', type: 'Lunch', label: 'Balanced Glycemic Lunch (Dal, Palak Greens & Brown Rice)', taken: true, time: '01:15 PM', calories: 480, notes: 'High dietary fiber' },
-        { id: 'm-3', type: 'Dinner', label: 'High Fiber Dinner (Paneer Salad & Multigrain Roti)', taken: null, time: '08:30 PM', calories: 420, notes: 'Light protein & vegetables' },
-      ],
-      tablets: [
-        { id: 't-1', name: 'Metformin 500mg', dose: '500mg', slot: 'Morning', taken: true, time: '08:00 AM', reason: 'Increases peripheral insulin sensitivity' },
-        { id: 't-2', name: 'Telmisartan 40mg', dose: '40mg', slot: 'Noon', taken: true, time: '01:00 PM', reason: 'Renoprotective & arterial BP control' },
-        { id: 't-3', name: 'Glimepiride 1mg', dose: '1mg', slot: 'Night', taken: null, time: '08:00 PM', reason: 'Stimulates nocturnal beta-cell insulin secretion' },
-      ],
-      activityMinutes: 15,
+      meals: [],
+      tablets: activeTablets,
+      activityMinutes: 0,
       targetActivityMinutes: 30,
-      glucoseChecked: true,
-      fastingGlucose: 118,
-      hydrationGlasses: 6,
+      glucoseChecked: false,
+      fastingGlucose: null,
+      hydrationGlasses: 0,
       targetHydrationGlasses: 8,
     };
     saveData(data);
@@ -733,7 +756,8 @@ export function getProgressionData(patientId = 'pat-001') {
   return { ...record, ...calculated };
 }
 
-export function saveProgressionData(patientId = 'pat-001', updates = {}) {
+export function saveProgressionData(patientId, updates = {}) {
+  if (!patientId) return null;
   const todayKey = new Date().toISOString().split('T')[0];
   const userKey = `${patientId}_${todayKey}`;
   return update(d => {

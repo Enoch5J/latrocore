@@ -72,15 +72,16 @@ export default function AppLayout() {
   }, []);
 
   useEffect(() => {
-    if (!currentUser && authUser && data?.users) {
-      const matched = Object.values(data.users).find(
-        (u) => u.email?.toLowerCase() === authUser.email?.toLowerCase() || u.role === authUser.role
-      );
-      if (matched) {
-        setUser(matched);
-      }
+    if (authUser && (!currentUser || currentUser.id !== authUser.id)) {
+      setUser({
+        id: authUser.id,
+        name: authUser.name || authUser.email,
+        email: authUser.email,
+        role: authUser.role === 'care_team' ? 'pharmacist' : authUser.role,
+        ...authUser,
+      });
     }
-  }, [currentUser, authUser, data, setUser]);
+  }, [currentUser, authUser, setUser]);
 
   const activeUser = currentUser || (authUser ? {
     id: authUser.id,

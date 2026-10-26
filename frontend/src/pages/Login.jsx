@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useApp } from '../context/AppContext';
 import {
   Mail,
   Lock,
@@ -16,6 +17,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, sessionExpired, clearSessionExpired } = useAuth();
+  const { setUser } = useApp();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,13 +37,14 @@ export default function Login() {
     }
 
     if (!email.trim() || !password) {
-      setErrorMessage('Please enter both your work email and password.');
+      setErrorMessage('Please enter both your email and password.');
       return;
     }
 
     setSubmitting(true);
     try {
       const userData = await login(email.trim(), password);
+      if (setUser && userData) setUser(userData);
       if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard') {
         navigate(fromPath, { replace: true });
       } else if (userData?.role === 'patient') {
@@ -169,7 +172,7 @@ export default function Login() {
               htmlFor="email-input"
               className="block text-xs font-extrabold text-black uppercase tracking-wider mb-2"
             >
-              Work or Personal Email
+              Email
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
@@ -192,20 +195,12 @@ export default function Login() {
 
           {/* Password Field */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label
-                htmlFor="password-input"
-                className="block text-xs font-extrabold text-black uppercase tracking-wider"
-              >
-                Password
-              </label>
-              <Link
-                to="/forgot-password"
-                className="text-xs font-bold text-black hover:text-[#046A38] underline decoration-stone-300 underline-offset-2 transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <label
+              htmlFor="password-input"
+              className="block text-xs font-extrabold text-black uppercase tracking-wider mb-2"
+            >
+              Password
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
                 <Lock className="w-5 h-5" />
@@ -238,24 +233,33 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full mt-2 py-3.5 px-6 rounded-xl bg-[#046A38] hover:bg-[#03542C] active:scale-[0.99] text-white font-bold text-base shadow-md shadow-[#046A38]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#046A38] transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {submitting ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Signing In...</span>
-              </>
-            ) : (
-              <>
-                <span>Sign In to Dashboard</span>
-                <ArrowRight className="w-5 h-5" />
-              </>
-            )}
-          </button>
+          {/* Action Row: Forgot Password (Left) & Sign In Button (Right Corner) */}
+          <div className="flex items-center justify-between pt-1">
+            <Link
+              to="/forgot-password"
+              className="text-xs sm:text-sm font-bold text-black hover:text-[#046A38] underline decoration-stone-300 underline-offset-2 transition-colors"
+            >
+              Forgot password?
+            </Link>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-[#046A38]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#046A38] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Signing In...</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </div>
         </form>
 
         {/* Sign Up Link */}
@@ -266,7 +270,7 @@ export default function Login() {
               to="/signup"
               className="font-extrabold text-[#046A38] hover:text-[#03542C] hover:underline ml-1"
             >
-              Create Patient or Doctor Account
+              Create Account
             </Link>
           </p>
         </div>

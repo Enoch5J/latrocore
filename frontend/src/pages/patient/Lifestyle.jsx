@@ -384,33 +384,6 @@ export default function Lifestyle() {
                 <span>Mark All Taken (100% Master)</span>
               </button>
 
-              <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
-                <RefreshCw size={12} className="text-teal-400" />
-                <span>Test Progression Drop Scenarios:</span>
-              </div>
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => handleSimulateScenario('food-missed')}
-                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-amber-300 rounded border border-amber-600/30 cursor-pointer"
-                  title="Simulate dinner not taken (-12% deduction)"
-                >
-                  Skip Food (-12%)
-                </button>
-                <button
-                  onClick={() => handleSimulateScenario('tablet-missed')}
-                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-rose-300 rounded border border-rose-600/30 cursor-pointer"
-                  title="Simulate evening tablet not taken (-15% deduction)"
-                >
-                  Miss Tablet (-15%)
-                </button>
-                <button
-                  onClick={() => handleSimulateScenario('both-missed')}
-                  className="px-2 py-1 bg-slate-800 hover:bg-rose-950 text-[10px] font-bold text-rose-400 rounded border border-rose-600/50 cursor-pointer"
-                  title="Simulate severe non-adherence (<40% level)"
-                >
-                  Both Missed (&lt;40%)
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -471,7 +444,13 @@ export default function Lifestyle() {
 
               {/* Meal item toggles */}
               <div className="space-y-2 mt-2">
-                {(progression.meals || []).map(m => (
+                {(progression.meals || []).length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center">
+                    <p className="text-xs font-semibold text-slate-500">No meals logged for today</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Track your nutrition with "+ Log Custom Meal"</p>
+                  </div>
+                ) : (
+                  (progression.meals || []).map(m => (
                   <div
                     key={m.id}
                     className={`p-2.5 rounded-xl border transition-all ${
@@ -528,7 +507,8 @@ export default function Lifestyle() {
                       </p>
                     )}
                   </div>
-                ))}
+                ))
+              )}
               </div>
             </div>
 
@@ -563,64 +543,71 @@ export default function Lifestyle() {
 
               {/* Tablet item toggles */}
               <div className="space-y-2 mt-2">
-                {(progression.tablets || []).map(t => (
-                  <div
-                    key={t.id}
-                    className={`p-2.5 rounded-xl border transition-all ${
-                      t.taken === true
-                        ? 'bg-teal-50/60 border-teal-200'
-                        : t.taken === false
-                        ? 'bg-rose-50 border-rose-300 shadow-xs'
-                        : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-xs font-extrabold text-slate-950 truncate">
-                          {t.slot}: <span className="font-bold text-teal-900">{t.name}</span>
-                        </p>
-                        <p className="text-[10px] font-medium text-slate-500">
-                          {t.time} • Dose: {t.dose}
-                        </p>
-                      </div>
-
-                      {/* Interactive Taken / Not Taken buttons */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => handleToggleTablet(t.id, true)}
-                          className={`p-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
-                            t.taken === true
-                              ? 'bg-teal-800 text-white shadow-xs'
-                              : 'bg-white hover:bg-teal-100 text-teal-850 border border-teal-300'
-                          }`}
-                          title="Mark Tablet Taken (+15% progression)"
-                        >
-                          <Check size={13} />
-                          <span className="hidden sm:inline">Taken</span>
-                        </button>
-                        <button
-                          onClick={() => handleToggleTablet(t.id, false)}
-                          className={`p-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
-                            t.taken === false
-                              ? 'bg-rose-600 text-white shadow-xs'
-                              : 'bg-white hover:bg-rose-100 text-rose-800 border border-rose-300'
-                          }`}
-                          title="Mark Tablet NOT Taken (Reduces progression level!)"
-                        >
-                          <X size={13} />
-                          <span className="hidden sm:inline">Not Taken</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {t.taken === false && (
-                      <p className="text-[10px] font-bold text-rose-700 mt-1.5 flex items-center gap-1">
-                        <AlertTriangle size={11} />
-                        Progression reduced by -15% (Missing tablets triggers glucose spikes)
-                      </p>
-                    )}
+                {(progression.tablets || []).length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center">
+                    <p className="text-xs font-semibold text-slate-500">No active medication doses</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Tablets appear here once prescribed by your doctor</p>
                   </div>
-                ))}
+                ) : (
+                  (progression.tablets || []).map(t => (
+                    <div
+                      key={t.id}
+                      className={`p-2.5 rounded-xl border transition-all ${
+                        t.taken === true
+                          ? 'bg-teal-50/60 border-teal-200'
+                          : t.taken === false
+                          ? 'bg-rose-50 border-rose-300 shadow-xs'
+                          : 'bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-extrabold text-slate-950 truncate">
+                            {t.slot}: <span className="font-bold text-teal-900">{t.name}</span>
+                          </p>
+                          <p className="text-[10px] font-medium text-slate-500">
+                            {t.time} • Dose: {t.dose}
+                          </p>
+                        </div>
+
+                        {/* Interactive Taken / Not Taken buttons */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleToggleTablet(t.id, true)}
+                            className={`p-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                              t.taken === true
+                                ? 'bg-teal-800 text-white shadow-xs'
+                                : 'bg-white hover:bg-teal-100 text-teal-850 border border-teal-300'
+                            }`}
+                            title="Mark Tablet Taken (+15% progression)"
+                          >
+                            <Check size={13} />
+                            <span className="hidden sm:inline">Taken</span>
+                          </button>
+                          <button
+                            onClick={() => handleToggleTablet(t.id, false)}
+                            className={`p-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                              t.taken === false
+                                ? 'bg-rose-600 text-white shadow-xs'
+                                : 'bg-white hover:bg-rose-100 text-rose-800 border border-rose-300'
+                            }`}
+                            title="Mark Tablet NOT Taken (Reduces progression level!)"
+                          >
+                            <X size={13} />
+                            <span className="hidden sm:inline">Not Taken</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {t.taken === false && (
+                        <p className="text-[10px] font-bold text-rose-700 mt-1.5 flex items-center gap-1">
+                          <AlertTriangle size={11} />
+                          Progression reduced by -15% (Missing tablets triggers glucose spikes)
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { StatCard, LoadingSpinner, Badge, Modal } from '../../components/ui';
 import {
-  Activity, Pill, FileText, Droplets, CalendarDays, MessageSquare, Bot,
+  Activity, Pill, FileText, Droplets, CalendarDays, Calendar, MessageSquare, Bot,
   Heart, TrendingUp, TrendingDown, Clock, CheckCircle, AlertTriangle,
   ArrowRight, Plus, Salad, ClipboardList, AlertCircle, Bell, BellRing,
   Volume2, VolumeX, Sparkles, Check, Utensils, Flame, Coffee, Sun, Moon,
@@ -497,12 +497,12 @@ export default function PatientDashboard() {
         />
         <StatCard
           label="Activity Progression"
-          value={`${activeMin || 0} min`}
+          value={activeMin > 0 ? `${activeMin} min` : '—'}
           icon={Heart}
           color={activeMin >= 30 ? 'success' : 'secondary'}
-          badge={activeMin >= 30 ? 'Goal Met (100%)' : `${activityProgress}%`}
+          badge={activeMin >= 30 ? 'Goal Met (100%)' : activeMin > 0 ? `${activityProgress}%` : null}
           progress={activityProgress}
-          subtitle={activeMin >= 30 ? 'Daily goal reached (≥30m active)' : activeMin > 0 ? `Target: 30 min • ${Math.max(0, 30 - activeMin)}m remaining` : 'Target: 30 min • Log activity'}
+          subtitle={activeMin >= 30 ? 'Daily goal reached (≥30m active)' : activeMin > 0 ? `Target: 30 min • ${Math.max(0, 30 - activeMin)}m remaining` : 'No activity logged today'}
           onClick={() => navigate('/patient/lifestyle')}
         />
       </div>
@@ -1039,40 +1039,62 @@ export default function PatientDashboard() {
 
           <div className="card-body flex-1 space-y-3 p-3.5 bg-slate-50/50">
             {/* Upcoming Consultation Status Card */}
-            <div className="p-3 bg-white rounded-xl border-2 border-purple-200 shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-                  Next Appointment
-                </span>
-                <Badge variant="success">CONFIRMED</Badge>
-              </div>
-
-              <div className="flex items-start gap-2.5 pt-0.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-800 shrink-0 font-bold">
-                  <UserCheck size={18} />
+            {appointments.length > 0 ? (
+              <div className="p-3 bg-white rounded-xl border-2 border-purple-200 shadow-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                    Next Appointment
+                  </span>
+                  <Badge variant="success">{appointments[0].status?.toUpperCase() || 'SCHEDULED'}</Badge>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-black text-slate-950 truncate">Dr. Sarah Jenkins, MD</p>
-                  <p className="text-[10px] font-bold text-purple-900">Chief Endocrinologist</p>
-                  <p className="text-[11px] font-extrabold text-slate-800 mt-1 flex items-center gap-1">
-                    <Clock size={12} className="text-purple-700" />
-                    Tomorrow • 10:30 AM (Tele-Consult)
-                  </p>
-                </div>
-              </div>
 
-              {/* Instant Tele-Consult Join Button */}
-              <button
-                onClick={() => {
-                  addToast({ type: 'info', message: 'Connecting to Dr. Sarah Jenkins Tele-Consult Room...' });
-                  navigate('/appointments');
-                }}
-                className="w-full py-1.5 bg-purple-800 hover:bg-purple-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
-              >
-                <Video size={14} />
-                <span>Join Tele-Consult Room</span>
-              </button>
-            </div>
+                <div className="flex items-start gap-2.5 pt-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-purple-800 shrink-0 font-bold">
+                    <UserCheck size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-slate-950 truncate">
+                      {data?.users?.[appointments[0].doctorId]?.name || appointments[0].doctorName || 'Assigned Clinician'}
+                    </p>
+                    <p className="text-[10px] font-bold text-purple-900">
+                      {data?.users?.[appointments[0].doctorId]?.specialty || 'Diabetologist'}
+                    </p>
+                    <p className="text-[11px] font-extrabold text-slate-800 mt-1 flex items-center gap-1">
+                      <Clock size={12} className="text-purple-700" />
+                      {new Date(appointments[0].date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} • {new Date(appointments[0].date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    addToast({ type: 'info', message: 'Opening consultation room...' });
+                    navigate('/appointments');
+                  }}
+                  className="w-full py-1.5 bg-purple-800 hover:bg-purple-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                >
+                  <Video size={14} />
+                  <span>Join Tele-Consult Room</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-3 bg-white rounded-xl border-2 border-dashed border-purple-200 shadow-xs text-center space-y-2">
+                <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-700 flex items-center justify-center mx-auto mt-1">
+                  <Calendar size={16} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-900">No Consultations Scheduled</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Book a tele-consult with your diabetologist</p>
+                </div>
+                <button
+                  onClick={() => navigate('/appointments')}
+                  className="w-full py-1.5 bg-purple-800 hover:bg-purple-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                >
+                  <Calendar size={13} />
+                  <span>Schedule Consultation</span>
+                </button>
+              </div>
+            )}
 
             {/* Quick Consultation Services */}
             <div className="space-y-1.5">
