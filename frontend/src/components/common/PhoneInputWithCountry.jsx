@@ -15,20 +15,20 @@ export default function PhoneInputWithCountry({
   className = '',
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedIso, setSelectedIso] = useState('in');
   const containerRef = useRef(null);
   const listRef = useRef(null);
   const phoneInputRef = useRef(null);
   const itemRefs = useRef({});
 
-  // Find currently selected country
+  // Sync selected country by ISO or countryCode
   const selectedCountry = useMemo(() => {
     return (
-      ALL_COUNTRIES.find((c) => c.code === countryCode && !c.preferred) ||
+      ALL_COUNTRIES.find((c) => c.iso === selectedIso) ||
       ALL_COUNTRIES.find((c) => c.code === countryCode) ||
-      ALL_COUNTRIES.find((c) => c.iso === 'in') ||
       ALL_COUNTRIES[0]
     );
-  }, [countryCode]);
+  }, [selectedIso, countryCode]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -47,6 +47,7 @@ export default function PhoneInputWithCountry({
 
   // Handle selecting a country
   const handleSelectCountry = (country) => {
+    setSelectedIso(country.iso);
     if (onCountryCodeChange) {
       onCountryCodeChange(country.code, country);
     }
