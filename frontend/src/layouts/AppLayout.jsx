@@ -174,17 +174,17 @@ export default function AppLayout() {
           {sidebarOpen ? (
             <div className="flex items-center gap-3">
               <img
-                src="/logo.png"
-                alt="LATROCORE Logo"
-                className="h-11 w-11 object-contain rounded-xl border border-[#A8D7BD] bg-[#FAF6EF] p-1 shadow-xs"
+                src="/logo-emblem.png"
+                alt="LATROCORE"
+                className="h-10 w-10 object-contain rounded-xl border border-[#A8D7BD] bg-[#FAF6EF] p-1 shadow-xs"
               />
               <span className="font-black text-slate-950 tracking-tight text-lg leading-tight">LATROCORE</span>
             </div>
           ) : (
             <img
-              src="/logo.png"
-              alt="LATROCORE Logo"
-              className="h-11 w-11 object-contain rounded-xl border border-[#A8D7BD] bg-[#FAF6EF] p-1 mx-auto shadow-xs"
+              src="/logo-emblem.png"
+              alt="LATROCORE"
+              className="h-10 w-10 object-contain rounded-xl border border-[#A8D7BD] bg-[#FAF6EF] p-1 mx-auto shadow-xs"
             />
           )}
           <button
@@ -206,9 +206,9 @@ export default function AppLayout() {
             <div className="flex items-center justify-between px-5 h-18 border-b-2 border-[#E8DCC8]">
               <div className="flex items-center gap-3">
                 <img
-                  src="/logo.png"
-                  alt="LATROCORE Logo"
-                  className="h-11 w-11 object-contain rounded-xl border border-[#A8D7BD] bg-[#FAF6EF] p-1 shadow-xs"
+                  src="/logo-emblem.png"
+                  alt="LATROCORE"
+                  className="h-10 w-10 object-contain rounded-xl border border-[#A8D7BD] bg-[#FAF6EF] p-1 shadow-xs"
                 />
                 <span className="font-black text-slate-950 tracking-tight text-lg leading-tight">LATROCORE</span>
               </div>

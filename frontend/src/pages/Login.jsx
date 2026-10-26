@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useApp } from '../context/AppContext';
+import latrocoreLogo from '../assets/Latrocore Medical Monogram Logo.png';
 import {
   Mail,
   Lock,
@@ -81,7 +82,7 @@ export default function Login() {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Home</span>
@@ -99,36 +100,28 @@ export default function Login() {
       </div>
 
       {/* ── Centered LATROCORE Brand Header ── */}
-      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center text-center my-4">
+      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center text-center my-3">
         <Link
           to="/"
-          className="inline-flex items-center justify-center gap-3 group focus:outline-none"
+          className="inline-flex flex-col items-center justify-center group focus:outline-none"
         >
           <img
-            src="/logo-emblem.png"
-            alt="LATROCORE Emblem"
-            className="h-12 w-12 sm:h-14 sm:w-14 object-contain drop-shadow-xs mix-blend-multiply group-hover:scale-105 transition-transform"
+            src={latrocoreLogo}
+            alt="LATROCORE Medical Monogram Logo"
+            className="h-22 sm:h-26 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
           />
-          <div className="flex flex-col text-left">
-            <span className="font-serif font-black tracking-tight text-3xl sm:text-4xl text-black leading-none">
-              LATRO<span className="text-[#046A38]">CORE</span>
-            </span>
-            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#046A38] mt-1">
-              Precision Diabetes &amp; Telemetry
-            </span>
-          </div>
         </Link>
       </div>
 
       {/* Main Authentication Card */}
-      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
+      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-xl shadow-lg shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
         {/* Card Title */}
-        <div className="text-center mb-7">
+        <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-[26px] font-extrabold tracking-tight text-black">
             Welcome back
           </h1>
-          <p className="text-black/80 text-xs sm:text-sm font-medium mt-1.5 max-w-sm mx-auto">
-            Enter your authorized clinical credentials to access your portal.
+          <p className="text-stone-700 text-sm sm:text-[15px] font-medium mt-1.5">
+            Enter your credentials to access your portal.
           </p>
         </div>
 
@@ -188,7 +181,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={submitting}
                 placeholder="doctor@latrocore.com"
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl border border-stone-300 bg-white text-black font-semibold text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs"
+                className="w-full pl-11 pr-4 py-3 rounded-lg border border-stone-300 bg-white text-black font-semibold text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs"
               />
             </div>
           </div>
@@ -215,7 +208,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={submitting}
                 placeholder="••••••••••••"
-                className="w-full pl-11 pr-12 py-3.5 rounded-xl border border-stone-300 bg-white text-black font-semibold text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs"
+                className="w-full pl-11 pr-12 py-3 rounded-lg border border-stone-300 bg-white text-black font-semibold text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs"
               />
               <button
                 type="button"
@@ -245,7 +238,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-[#046A38]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#046A38] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#046A38] hover:bg-[#03542C] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-[#046A38]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#046A38] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>

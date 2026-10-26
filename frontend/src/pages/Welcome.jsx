@@ -134,8 +134,8 @@ export default function Welcome() {
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <img
-              src="/logo.png"
-              alt="LATROCORE Logo"
+              src="/logo-emblem.png"
+              alt="LATROCORE"
               className="h-12 w-12 sm:h-14 sm:w-14 object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
             />
             <div className="flex flex-col justify-center">
@@ -535,8 +535,8 @@ export default function Welcome() {
               <div className="flex items-center gap-3.5">
                 <div className="p-2 rounded-2xl bg-white border border-[#155238] shadow-sm shrink-0">
                   <img
-                    src="/logo.png"
-                    alt="LATROCORE Logo"
+                    src="/logo-emblem.png"
+                    alt="LATROCORE"
                     className="h-11 w-11 sm:h-12 sm:w-12 object-contain"
                   />
                 </div>
