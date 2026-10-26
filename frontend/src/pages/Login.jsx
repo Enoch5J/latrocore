@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import {
-  ShieldCheck,
   Mail,
   Lock,
   Eye,
@@ -10,47 +9,8 @@ import {
   ArrowRight,
   ArrowLeft,
   AlertCircle,
-  Clock,
-  Stethoscope,
-  Pill,
-  User,
-  Check
+  Clock
 } from 'lucide-react';
-
-const DEMO_ACCOUNTS = [
-  {
-    role: 'doctor',
-    label: 'Doctor',
-    icon: Stethoscope,
-    email: 'doctor@latrocore.com',
-    password: 'doctor123',
-    desc: 'Endocrinology'
-  },
-  {
-    role: 'patient',
-    label: 'Patient',
-    icon: User,
-    email: 'patient@latrocore.com',
-    password: 'patient123',
-    desc: 'Anand K.'
-  },
-  {
-    role: 'pharmacist',
-    label: 'Pharmacist',
-    icon: Pill,
-    email: 'pharmacist@latrocore.com',
-    password: 'care123',
-    desc: 'PharmD'
-  },
-  {
-    role: 'admin',
-    label: 'Admin',
-    icon: ShieldCheck,
-    email: 'admin@latrocore.com',
-    password: 'admin123',
-    desc: 'System'
-  }
-];
 
 export default function Login() {
   const navigate = useNavigate();
@@ -62,17 +22,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [activeDemoFilled, setActiveDemoFilled] = useState('');
 
   const fromPath = location.state?.from?.pathname;
-
-  const handleFillDemo = (account) => {
-    setEmail(account.email);
-    setPassword(account.password);
-    setActiveDemoFilled(account.role);
-    setErrorMessage('');
-    setTimeout(() => setActiveDemoFilled(''), 2500);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -306,48 +257,6 @@ export default function Login() {
             )}
           </button>
         </form>
-
-        {/* ── Refined & Professional Demo Quick-Fill Bar ── */}
-        <div className="mt-7 pt-6 border-t border-stone-200">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-extrabold text-black uppercase tracking-wider">
-              Quick Access • Demo Roles
-            </span>
-            {activeDemoFilled && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-[#046A38] animate-fade-in">
-                <Check className="w-3.5 h-3.5" /> Credentials Filled
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            {DEMO_ACCOUNTS.map((acc) => {
-              const Icon = acc.icon;
-              const isSelected = activeDemoFilled === acc.role;
-              return (
-                <button
-                  key={acc.role}
-                  type="button"
-                  onClick={() => handleFillDemo(acc)}
-                  title={`${acc.desc} (${acc.email})`}
-                  className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border text-center transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#E8F5EE] border-[#046A38] text-black shadow-xs ring-1 ring-[#046A38]'
-                      : 'bg-[#FAF6EF]/70 hover:bg-[#FAF6EF] border-[#E8DCC8] text-black hover:border-stone-400'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 mb-1 shrink-0 ${isSelected ? 'text-[#046A38]' : 'text-stone-700'}`} />
-                  <span className="text-xs font-extrabold text-black tracking-tight truncate w-full">
-                    {acc.label}
-                  </span>
-                  <span className="text-[10px] text-stone-600 font-medium truncate w-full">
-                    {acc.desc}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Sign Up Link */}
         <div className="mt-6 pt-5 border-t border-stone-100 text-center">
