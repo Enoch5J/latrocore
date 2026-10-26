@@ -6,16 +6,15 @@ import { api } from '../services/api';
 import patientImg from '../assets/images/patient.png';
 import doctorImg from '../assets/images/doctor.png';
 import pharmacistImg from '../assets/images/pharmacist.png';
+import PhoneInputWithCountry from '../components/common/PhoneInputWithCountry';
 import {
   ShieldCheck,
   User,
   Stethoscope,
   Pill,
   Mail,
-  Lock,
   Eye,
   EyeOff,
-  Phone,
   FileText,
   UploadCloud,
   CheckCircle2,
@@ -25,11 +24,9 @@ import {
   ArrowLeft,
   X,
   Check,
-  Activity,
   Copy,
   Ruler,
   Weight as WeightIcon,
-  Sparkles,
   ChevronRight
 } from 'lucide-react';
 
@@ -109,16 +106,6 @@ const PHARMACIST_SPECIALIZATIONS = [
   'Diabetic Care Specialist (CDCES)',
   'Ambulatory Care Pharmacist',
   'Other'
-];
-
-const COUNTRY_CODES = [
-  { code: '+91', country: 'India', flag: '🇮🇳', placeholder: '98765 43210', hint: '10 digits (starts with 6-9)' },
-  { code: '+1', country: 'USA / Canada', flag: '🇺🇸', placeholder: '202 555 0123', hint: '10 digits' },
-  { code: '+44', country: 'United Kingdom', flag: '🇬🇧', placeholder: '7911 123456', hint: '10-11 digits' },
-  { code: '+971', country: 'UAE', flag: '🇦🇪', placeholder: '50 123 4567', hint: '9 digits' },
-  { code: '+65', country: 'Singapore', flag: '🇸🇬', placeholder: '8123 4567', hint: '8 digits' },
-  { code: '+61', country: 'Australia', flag: '🇦🇺', placeholder: '412 345 678', hint: '9 digits' },
-  { code: '+49', country: 'Germany', flag: '🇩🇪', placeholder: '151 23456789', hint: '10-11 digits' }
 ];
 
 const ALLOWED_MIME_TYPES = [
@@ -779,8 +766,6 @@ export default function Signup() {
     );
   }
 
-  const currentCountryMeta = COUNTRY_CODES.find((c) => c.code === countryCode) || COUNTRY_CODES[0];
-
   return (
     <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col justify-between p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#046A38] selection:text-white">
       {/* Top Navigation Bar */}
@@ -1047,59 +1032,22 @@ export default function Signup() {
                     />
                   </div>
 
-                  {/* Mobile Number with Country Code */}
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center justify-between">
-                      <span>
-                        Mobile Number <span className="text-red-500">*</span>
-                      </span>
-                      <span className="text-[10px] text-stone-400 font-normal">
-                        Country code: {countryCode}
-                      </span>
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => {
-                          setCountryCode(e.target.value);
-                          if (phone) {
-                            setPhoneError(validatePhone(e.target.value, phone));
-                          }
-                        }}
-                        className="w-36 sm:w-40 px-2.5 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer shrink-0"
-                        title="Select Country Dialing Code"
-                      >
-                        {COUNTRY_CODES.map((c) => (
-                          <option key={c.code} value={c.code}>
-                            {c.flag} {c.country} ({c.code})
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={handlePhoneChange}
-                        onBlur={() => setPhoneError(validatePhone(countryCode, phone))}
-                        placeholder={currentCountryMeta.placeholder}
-                        className={`flex-1 min-w-0 px-3.5 py-3.5 rounded-xl border text-sm transition-all focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 ${
-                          phoneError
-                            ? 'border-red-300 bg-red-50/30 focus:border-red-500'
-                            : 'border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#046A38]'
-                        }`}
-                      />
-                    </div>
-                    {phoneError ? (
-                      <p className="text-[11px] text-[#E34222] font-semibold mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{phoneError}</span>
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-stone-400 mt-1">
-                        Format: {currentCountryMeta.hint}.
-                      </p>
-                    )}
-                  </div>
+                  {/* Mobile Number with Comprehensive Country Code Picker matching requested UI */}
+                  <PhoneInputWithCountry
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    countryCode={countryCode}
+                    onCountryCodeChange={(newCode) => {
+                      setCountryCode(newCode);
+                      if (phone) {
+                        setPhoneError(validatePhone(newCode, phone));
+                      }
+                    }}
+                    error={phoneError}
+                    onBlur={() => setPhoneError(validatePhone(countryCode, phone))}
+                    required
+                    label="Mobile Number"
+                  />
                 </div>
 
                 {/* Patient-Only Biometrics (Age, Height, Weight) */}
