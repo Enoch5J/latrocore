@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../auth/AuthContext';
 import { Avatar } from '../components/ui';
 import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
@@ -50,6 +51,7 @@ const ROLE_NAV = {
 
 export default function AppLayout() {
   const { currentUser, data, setUser, addToast, guidedDemo } = useApp();
+  const { user: authUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -69,7 +71,26 @@ export default function AppLayout() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const activeUser = currentUser;
+  useEffect(() => {
+    if (!currentUser && authUser && data?.users) {
+      const matched = Object.values(data.users).find(
+        (u) => u.email?.toLowerCase() === authUser.email?.toLowerCase() || u.role === authUser.role
+      );
+      if (matched) {
+        setUser(matched);
+      }
+    }
+  }, [currentUser, authUser, data, setUser]);
+
+  const activeUser = currentUser || (authUser ? {
+    id: authUser.id,
+    name: authUser.name || authUser.email,
+    email: authUser.email,
+    role: authUser.role === 'care_team' ? 'pharmacist' : authUser.role,
+    avatar: authUser.role === 'doctor'
+      ? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150'
+      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+  } : null);
 
   if (!activeUser) {
     return <Navigate to="/login" replace />;

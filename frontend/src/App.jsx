@@ -1,11 +1,11 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './auth/AuthContext';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
-import Dashboard from './pages/Dashboard';
 import ProjectOverview from './pages/ProjectOverview';
 import NotFound from './pages/NotFound';
 import { AppProvider, useApp } from './context/AppContext';
@@ -43,6 +43,38 @@ import Messages from './pages/shared/Messages';
 import Notifications from './pages/shared/Notifications';
 import CareSummary from './pages/shared/CareSummary';
 
+function RoleDashboardRedirect() {
+  const { user, loading } = useAuth();
+  const { currentUser, data, setUser } = useApp();
+
+  useEffect(() => {
+    if (user && !currentUser && data?.users) {
+      const matched = Object.values(data.users).find(
+        (u) => u.email?.toLowerCase() === user.email?.toLowerCase() || u.role === user.role
+      );
+      if (matched) {
+        setUser(matched);
+      }
+    }
+  }, [user, currentUser, data, setUser]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAF6EF] flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-[#046A38] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const role = user?.role;
+  if (role === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
+  if (role === 'pharmacist' || role === 'care_team') return <Navigate to="/pharmacist/dashboard" replace />;
+  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (role === 'patient') return <Navigate to="/patient/dashboard" replace />;
+
+  return <Navigate to="/" replace />;
+}
+
 function AppRoutes() {
   const { toasts, removeToast } = useApp();
 
@@ -62,12 +94,12 @@ function AppRoutes() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Protected Dashboard Route */}
+        {/* Automatic Role-Based Dashboard Redirection */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <RoleDashboardRedirect />
             </ProtectedRoute>
           }
         />

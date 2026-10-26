@@ -93,7 +93,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       const userData = await login(email.trim(), password);
-      if (fromPath && fromPath !== '/login') {
+      if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard') {
         navigate(fromPath, { replace: true });
       } else if (userData?.role === 'patient') {
         navigate('/patient/dashboard', { replace: true });
@@ -101,10 +101,10 @@ export default function Login() {
         navigate('/doctor/dashboard', { replace: true });
       } else if (userData?.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
-      } else if (userData?.role === 'pharmacist') {
+      } else if (userData?.role === 'pharmacist' || userData?.role === 'care_team') {
         navigate('/pharmacist/dashboard', { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate('/patient/dashboard', { replace: true });
       }
     } catch (err) {
       const detail = err?.response?.data?.detail;

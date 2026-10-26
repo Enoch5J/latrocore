@@ -10,7 +10,7 @@ import adminImg from '../assets/images/admin.png';
 import {
   Search, Upload, ShieldCheck, Stethoscope, Pill, Activity,
   ArrowRight, Lock, FileText, Sparkles, Menu, X, BarChart3,
-  Award, ThermometerSnowflake, Shield, PhoneCall
+  Award, ThermometerSnowflake, Shield
 } from 'lucide-react';
 
 // ── WORKSTATIONS (ROLE-BASED CLINICAL LAUNCHPAD) ────────────────────────
@@ -51,8 +51,61 @@ const WORKSTATIONS = [
 
 export default function Welcome() {
   const { data, setUser, addToast } = useApp();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: authUser } = useAuth();
   const navigate = useNavigate();
+
+  const getRoleDashboardRoute = (role) => {
+    switch (role) {
+      case 'doctor':
+        return '/doctor/dashboard';
+      case 'pharmacist':
+      case 'care_team':
+        return '/pharmacist/dashboard';
+      case 'admin':
+        return '/admin/dashboard';
+      case 'patient':
+      default:
+        return '/patient/dashboard';
+    }
+  };
+
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case 'doctor':
+        return 'Doctor';
+      case 'pharmacist':
+      case 'care_team':
+        return 'Pharmacist';
+      case 'admin':
+        return 'Admin';
+      case 'patient':
+      default:
+        return 'Patient';
+    }
+  };
+
+  const handleDashboardClick = () => {
+    if (!authUser) {
+      navigate('/login');
+      return;
+    }
+    if (data?.users) {
+      const matched = Object.values(data.users).find(
+        (u) => u.email?.toLowerCase() === authUser.email?.toLowerCase() || u.role === authUser.role
+      );
+      if (matched) {
+        setUser(matched);
+      } else {
+        setUser({
+          id: authUser.id,
+          name: authUser.name || authUser.email,
+          email: authUser.email,
+          role: authUser.role,
+        });
+      }
+    }
+    navigate(getRoleDashboardRoute(authUser.role));
+  };
 
   // Navigation & UI state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -114,7 +167,7 @@ export default function Welcome() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search specialists, investigations, medicines, or clinical guidelines..."
-                className="w-full pl-11 pr-10 py-3 rounded-full bg-white hover:bg-white focus:bg-white text-xs sm:text-[13px] font-semibold text-slate-900 border border-[#E8DCC8] focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 focus:outline-none transition-all placeholder:text-slate-400 shadow-2xs"
+                className="w-full pl-11 pr-10 py-3 rounded-xl bg-white hover:bg-white focus:bg-white text-xs sm:text-[13px] font-semibold text-slate-900 border border-[#E8DCC8] focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 focus:outline-none transition-all placeholder:text-slate-400 shadow-2xs"
               />
               {searchQuery && (
                 <button
@@ -129,20 +182,31 @@ export default function Welcome() {
 
           {/* Header Action Button (Clean Single CTA) */}
           <div className="flex items-center gap-3 shrink-0">
-            {isAuthenticated ? (
+            {isAuthenticated && authUser ? (
               <button
-                onClick={() => navigate('/dashboard')}
-                className="inline-flex items-center gap-2 px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-[13px] font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                onClick={handleDashboardClick}
+                id="header-user-dashboard-btn"
+                className="inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-[13px] font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                title={`Logged in as ${authUser.name || authUser.email} (${getRoleLabel(authUser.role)}). Click to open ${getRoleLabel(authUser.role)} Dashboard`}
               >
-                <Shield size={15} className="text-[#F9EBD7]" />
-                <span>Dashboard</span>
-                <ArrowRight size={14} />
+                <div className="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-white text-xs font-black shrink-0 uppercase">
+                  {authUser.name ? authUser.name.charAt(0) : 'U'}
+                </div>
+                <div className="flex flex-col text-left leading-tight">
+                  <span className="font-extrabold text-white text-xs sm:text-[13px] max-w-[130px] sm:max-w-[170px] truncate">
+                    {authUser.name || authUser.email}
+                  </span>
+                  <span className="text-[10px] text-[#A8D7BD] font-bold tracking-wider uppercase">
+                    {getRoleLabel(authUser.role)} Portal
+                  </span>
+                </div>
+                <ArrowRight size={14} className="text-[#F9EBD7] ml-1 shrink-0" />
               </button>
             ) : (
               <button
                 onClick={() => navigate('/login')}
                 id="header-login-btn"
-                className="inline-flex items-center gap-2.5 px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-[13px] font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                className="inline-flex items-center gap-2.5 px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-[13px] font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 <Lock size={15} className="text-[#F9EBD7]" />
                 <span>Sign In</span>
@@ -193,11 +257,22 @@ export default function Welcome() {
 
             <div className="pt-2 border-t border-slate-200">
               <button
-                onClick={() => { setMobileMenuOpen(false); navigate(isAuthenticated ? '/dashboard' : '/login'); }}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (isAuthenticated && authUser) {
+                    handleDashboardClick();
+                  } else {
+                    navigate('/login');
+                  }
+                }}
                 className="w-full py-3 rounded-xl text-xs font-black text-white bg-[#046A38] flex items-center justify-center gap-2 shadow-md cursor-pointer"
               >
                 <Lock size={14} className="text-[#F9EBD7]" />
-                <span>{isAuthenticated ? 'Open Dashboard' : 'Sign In to Portal'}</span>
+                <span>
+                  {isAuthenticated && authUser
+                    ? `Open ${getRoleLabel(authUser.role)} Portal (${authUser.name || authUser.email})`
+                    : 'Sign In to Portal'}
+                </span>
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -444,38 +519,7 @@ export default function Welcome() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* Top Assistance & Emergency Bar (Neat, Elegant, Non-Messy) */}
-          <div className="bg-[#046A38]/40 border border-[#155238] rounded-2xl p-5 sm:p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-5 shadow-lg backdrop-blur-xs">
-            <div className="flex items-center gap-4 text-center sm:text-left">
-              <div className="w-12 h-12 rounded-xl bg-[#E8F5EE] text-[#046A38] flex items-center justify-center shrink-0 shadow-sm">
-                <Stethoscope size={24} />
-              </div>
-              <div>
-                <h3 className="font-serif font-bold text-base sm:text-lg text-white">
-                  Continuous Clinical Telemetry &amp; Emergency Diabetology
-                </h3>
-                <p className="text-xs text-[#A8D7BD] font-medium mt-0.5">
-                  Supervised 24/7 hypoglycemia surveillance and rapid Pharm D medication reconciliation.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <a
-                href="tel:18005287622"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#FAF6EF] text-[#093322] text-xs font-black shadow-sm transition-all cursor-pointer"
-              >
-                <PhoneCall size={14} className="text-[#E34222]" />
-                <span>1800-LATRO-CARE</span>
-              </a>
-              <button
-                onClick={() => setUploadModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white border border-[#A8D7BD]/40 text-xs font-bold transition-all cursor-pointer"
-              >
-                <Upload size={14} className="text-[#F9EBD7]" />
-                <span>Upload Rx</span>
-              </button>
-            </div>
-          </div>
+
 
           {/* 4 Clean Columns Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-12 border-b border-[#155238]">
