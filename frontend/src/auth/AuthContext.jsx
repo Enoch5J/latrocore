@@ -85,18 +85,16 @@ export function AuthProvider({ children }) {
       // Attempt server-side session revocation
       await authClient.post('/auth/logout');
     } catch (err) {
-      setLoggingOutFlag(false);
-      const errorMsg = err?.response?.data?.detail || 'Failed to revoke server session. Please retry.';
+      const errorMsg = err?.response?.data?.detail || 'Failed to revoke server session.';
       setLogoutError(errorMsg);
-      // Re-throw so caller can display a retryable error message
-      throw new Error(errorMsg);
+      console.warn('Server session revocation warning:', err);
+    } finally {
+      // Always clear local memory, tokens, and session state
+      setAccessToken(null);
+      localStorage.removeItem('hasSession');
+      setUser(null);
+      setLoggingOutFlag(false);
     }
-
-    // On successful revocation: clear memory and session flag
-    setAccessToken(null);
-    localStorage.removeItem('hasSession');
-    setUser(null);
-    setLoggingOutFlag(false);
   };
 
   const setAuthUser = (userData, accessToken) => {

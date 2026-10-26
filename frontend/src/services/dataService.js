@@ -37,6 +37,23 @@ function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      // Automatically purge legacy fake demo records (Priya Sharma, pat-001, demo.lc)
+      const hasFakeData =
+        parsed?.users?.['pat-001'] ||
+        parsed?.prescriptions?.some(p => p.id === 'rx-001') ||
+        parsed?.appointments?.some(a => a.doctorId === 'doc-001' && a.patientId === 'pat-001');
+
+      if (hasFakeData) {
+        try {
+          const userStr = localStorage.getItem('latrocore_user');
+          if (userStr && (userStr.includes('pat-001') || userStr.includes('Priya Sharma') || userStr.includes('demo.lc'))) {
+            localStorage.removeItem('latrocore_user');
+          }
+        } catch (ue) { /* ignore */ }
+        const fresh = createSeedData();
+        saveData(fresh);
+        return fresh;
+      }
       return sanitizeData(parsed);
     }
   } catch (e) { console.error('Failed to load data:', e); }

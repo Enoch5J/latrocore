@@ -13,19 +13,7 @@ function makeDate(daysOffset, hours = 9, minutes = 0) {
 }
 
 // ── Users ───────────────────────────────────────────────────────────────
-export const USERS = {
-  'pat-001': { id: 'pat-001', name: 'Priya Sharma', role: 'patient', email: 'priya.sharma@demo.lc', phone: '+91 98765 43210', age: 42, gender: 'Female', bloodGroup: 'B+', diabetesType: 'Type 2', diagnosedYear: 2019, avatar: 'PS', assignedDoctor: 'doc-001', assignedPharmacist: 'pharm-001' },
-  'pat-002': { id: 'pat-002', name: 'Rajesh Kumar', role: 'patient', email: 'rajesh.kumar@demo.lc', phone: '+91 98765 43211', age: 55, gender: 'Male', bloodGroup: 'O+', diabetesType: 'Type 2', diagnosedYear: 2015, avatar: 'RK', assignedDoctor: 'doc-001', assignedPharmacist: 'pharm-001' },
-  'pat-003': { id: 'pat-003', name: 'Lakshmi Devi', role: 'patient', email: 'lakshmi.devi@demo.lc', phone: '+91 98765 43212', age: 38, gender: 'Female', bloodGroup: 'A+', diabetesType: 'Type 1', diagnosedYear: 2012, avatar: 'LD', assignedDoctor: 'doc-001', assignedPharmacist: 'pharm-002' },
-  'pat-004': { id: 'pat-004', name: 'Mohammed Farooq', role: 'patient', email: 'mohammed.farooq@demo.lc', phone: '+91 98765 43213', age: 60, gender: 'Male', bloodGroup: 'AB+', diabetesType: 'Type 2', diagnosedYear: 2010, avatar: 'MF', assignedDoctor: 'doc-002', assignedPharmacist: 'pharm-002' },
-  'pat-005': { id: 'pat-005', name: 'Ananya Patel', role: 'patient', email: 'ananya.patel@demo.lc', phone: '+91 98765 43214', age: 34, gender: 'Female', bloodGroup: 'B-', diabetesType: 'Type 2', diagnosedYear: 2021, avatar: 'AP', assignedDoctor: 'doc-002', assignedPharmacist: 'pharm-001' },
-  'pat-006': { id: 'pat-006', name: 'Suresh Menon', role: 'patient', email: 'suresh.menon@demo.lc', phone: '+91 98765 43215', age: 48, gender: 'Male', bloodGroup: 'O-', diabetesType: 'Type 2', diagnosedYear: 2017, avatar: 'SM', assignedDoctor: 'doc-002', assignedPharmacist: 'pharm-002' },
-  'doc-001': { id: 'doc-001', name: 'Dr. Arun Krishnamurthy', role: 'doctor', email: 'dr.arun@demo.lc', phone: '+91 98765 43220', specialization: 'Diabetology & Endocrinology', qualification: 'MD, DM (Endocrinology)', avatar: 'AK', assignedPatients: ['pat-001', 'pat-002', 'pat-003'] },
-  'doc-002': { id: 'doc-002', name: 'Dr. Meena Sundaram', role: 'doctor', email: 'dr.meena@demo.lc', phone: '+91 98765 43221', specialization: 'Internal Medicine & Diabetes', qualification: 'MD (Internal Medicine)', avatar: 'MS', assignedPatients: ['pat-004', 'pat-005', 'pat-006'] },
-  'pharm-001': { id: 'pharm-001', name: 'Kavitha Rajan (Pharm D)', role: 'pharmacist', email: 'kavitha.rajan@demo.lc', phone: '+91 98765 43230', qualification: 'Pharm D, Clinical Pharmacy', avatar: 'KR', assignedPatients: ['pat-001', 'pat-002', 'pat-005'] },
-  'pharm-002': { id: 'pharm-002', name: 'Vikram Desai (Pharm D)', role: 'pharmacist', email: 'vikram.desai@demo.lc', phone: '+91 98765 43231', qualification: 'Pharm D, Drug Information', avatar: 'VD', assignedPatients: ['pat-003', 'pat-004', 'pat-006'] },
-  'admin-001': { id: 'admin-001', name: 'Demo Administrator', role: 'admin', email: 'admin@demo.lc', avatar: 'DA' },
-};
+export const USERS = {};
 
 // ── Prescriptions ───────────────────────────────────────────────────────
 export function generatePrescriptions() {
@@ -382,25 +370,25 @@ export function generateAvailability() {
   return slots;
 }
 
-// ── Assemble all seed data ──────────────────────────────────────────────
+// ── Assemble all initial data (clean without fake demo records) ─────────
 export function createSeedData() {
   return {
-    users: { ...USERS },
-    prescriptions: generatePrescriptions(),
-    glucoseReadings: generateGlucoseReadings(),
-    doseEvents: generateDoseEvents(),
-    investigations: generateInvestigations(),
-    healthEntries: generateHealthEntries(),
-    screenings: generateScreenings(),
-    appointments: generateAppointments(),
-    messages: generateMessages(),
-    counsellingRequests: generateCounsellingRequests(),
-    medicationReviews: generateMedicationReviews(),
-    safetyEvents: generateSafetyEvents(),
-    notifications: generateNotifications(),
-    auditLog: generateAuditLog(),
-    clinicalTargets: generateClinicalTargets(),
-    availability: generateAvailability(),
+    users: {},
+    prescriptions: [],
+    glucoseReadings: [],
+    doseEvents: [],
+    investigations: [],
+    healthEntries: [],
+    screenings: [],
+    appointments: [],
+    messages: [],
+    counsellingRequests: [],
+    medicationReviews: [],
+    safetyEvents: [],
+    notifications: [],
+    auditLog: [],
+    clinicalTargets: [],
+    availability: [],
     progressions: {},
   };
 }

@@ -6,7 +6,7 @@ import { Avatar } from '../components/ui';
 import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
-  Bot, Heart, Users, Settings, AlertTriangle, BookOpen, ChevronDown, ChevronRight,
+  Bot, Heart, Users, Settings, AlertTriangle, ChevronDown, ChevronRight,
   Home, BarChart3, BellRing, Utensils, Video, ClipboardCheck, Package
 } from 'lucide-react';
 
@@ -50,8 +50,8 @@ const ROLE_NAV = {
 };
 
 export default function AppLayout() {
-  const { currentUser, data, setUser, addToast, guidedDemo } = useApp();
-  const { user: authUser } = useAuth();
+  const { currentUser, data, setUser, addToast } = useApp();
+  const { user: authUser, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -110,6 +110,21 @@ export default function AppLayout() {
       setProfileMenuOpen(false);
       setMobileMenuOpen(false);
       addToast({ type: 'info', message: `Switched to ${user.name} (${user.role})` });
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      setUser(null);
+      if (logout) {
+        await logout();
+      }
+    } catch (err) {
+      console.warn('Sign out completed with notice:', err);
+    } finally {
+      setProfileMenuOpen(false);
+      setMobileMenuOpen(false);
+      navigate('/', { replace: true });
     }
   };
 
@@ -235,7 +250,7 @@ export default function AppLayout() {
                 ))}
               </div>
               <button
-                onClick={() => { setUser(null); navigate('/'); setMobileMenuOpen(false); }}
+                onClick={handleSignOut}
                 className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 cursor-pointer"
               >
                 <LogOut size={14} />
@@ -363,7 +378,7 @@ export default function AppLayout() {
                 </div>
                 <div className="p-2 border-t border-slate-200">
                   <button
-                    onClick={() => { setUser(null); navigate('/'); setProfileMenuOpen(false); }}
+                    onClick={handleSignOut}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-50 rounded-xl cursor-pointer transition-colors"
                   >
                     <LogOut size={16} />
@@ -375,24 +390,10 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* Guided Demo Banner */}
-        {guidedDemo.active && (
-          <div className="bg-teal-900 text-white px-4 lg:px-6 py-2.5 text-sm font-bold flex items-center gap-2 no-print border-b border-teal-950 shadow-xs">
-            <BookOpen size={18} className="text-teal-300" />
-            <span className="text-white font-extrabold">Guided Demo Mode</span>
-            <span className="text-teal-200 font-semibold">— Step {guidedDemo.step + 1} of 12</span>
-          </div>
-        )}
-
         {/* Page Content */}
         <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 overflow-x-hidden">
           <Outlet />
         </main>
-      </div>
-
-      {/* Demo Banner */}
-      <div className="demo-banner no-print">
-        DEMO ENVIRONMENT • FICTIONAL PATIENT DATA
       </div>
     </div>
   );

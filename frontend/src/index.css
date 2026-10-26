@@ -267,10 +267,6 @@
   .sidebar-link-active {
     @apply flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-teal-800 text-white shadow-xs transition-all;
   }
-
-  .demo-banner {
-    @apply fixed bottom-0 left-0 right-0 z-40 bg-slate-900 text-white font-semibold text-xs text-center py-1.5 tracking-wide shadow-lg border-t border-slate-800;
-  }
 }
 
 @media print {

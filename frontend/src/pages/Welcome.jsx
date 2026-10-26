@@ -10,13 +10,12 @@ import adminImg from '../assets/images/admin.png';
 import {
   Search, Upload, ShieldCheck, Stethoscope, Pill, Activity,
   ArrowRight, Lock, FileText, Sparkles, Menu, X, BarChart3,
-  Award, ThermometerSnowflake, Shield
+  Award, ThermometerSnowflake, Shield, LogOut
 } from 'lucide-react';
 
 // ── WORKSTATIONS (ROLE-BASED CLINICAL LAUNCHPAD) ────────────────────────
 const WORKSTATIONS = [
   {
-    id: 'pat-001',
     role: 'patient',
     title: 'Patient Portal',
     desc: 'Monitor continuous glucose levels, track daily medicines, and get personalized diet care.',
@@ -24,7 +23,6 @@ const WORKSTATIONS = [
     route: '/patient/dashboard',
   },
   {
-    id: 'doc-001',
     role: 'doctor',
     title: 'Doctor Station',
     desc: 'Surveil cohort glycemic trajectories, review patient histories, and issue digital prescriptions.',
@@ -32,7 +30,6 @@ const WORKSTATIONS = [
     route: '/doctor/dashboard',
   },
   {
-    id: 'pharm-001',
     role: 'pharmacist',
     title: 'Pharmacist Station',
     desc: 'Reconcile medications, scan drug interactions, and adjust therapeutic dosages.',
@@ -40,7 +37,6 @@ const WORKSTATIONS = [
     route: '/pharmacist/dashboard',
   },
   {
-    id: 'admin-001',
     role: 'admin',
     title: 'Admin Console',
     desc: 'Oversee platform security, compliance audit logs, and system user permissions.',
@@ -51,7 +47,7 @@ const WORKSTATIONS = [
 
 export default function Welcome() {
   const { data, setUser, addToast } = useApp();
-  const { isAuthenticated, user: authUser } = useAuth();
+  const { isAuthenticated, user: authUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const getRoleDashboardRoute = (role) => {
@@ -112,20 +108,16 @@ export default function Welcome() {
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
-  // Launch Workstation Demo
+  // Launch Workstation (navigates authenticated users directly or to login)
   const handleWorkstationLaunch = (station) => {
-    const user = data?.users?.[station.id];
-    if (user) {
-      setUser(user);
-    }
-    navigate(station.route);
-  };
-
-  const handleGuidedDemo = () => {
-    const user = data?.users?.['pat-001'];
-    if (user) {
-      setUser(user);
-      navigate('/patient/dashboard?demo=1');
+    if (isAuthenticated && authUser) {
+      if (authUser.role === station.role || (station.role === 'pharmacist' && authUser.role === 'care_team')) {
+        navigate(station.route);
+      } else {
+        navigate(getRoleDashboardRoute(authUser.role));
+      }
+    } else {
+      navigate(`/login?role=${station.role}`);
     }
   };
 
@@ -183,25 +175,40 @@ export default function Welcome() {
           {/* Header Action Button (Clean Single CTA) */}
           <div className="flex items-center gap-3 shrink-0">
             {isAuthenticated && authUser ? (
-              <button
-                onClick={handleDashboardClick}
-                id="header-user-dashboard-btn"
-                className="inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-[13px] font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
-                title={`Logged in as ${authUser.name || authUser.email} (${getRoleLabel(authUser.role)}). Click to open ${getRoleLabel(authUser.role)} Dashboard`}
-              >
-                <div className="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-white text-xs font-black shrink-0 uppercase">
-                  {authUser.name ? authUser.name.charAt(0) : 'U'}
-                </div>
-                <div className="flex flex-col text-left leading-tight">
-                  <span className="font-extrabold text-white text-xs sm:text-[13px] max-w-[130px] sm:max-w-[170px] truncate">
-                    {authUser.name || authUser.email}
-                  </span>
-                  <span className="text-[10px] text-[#A8D7BD] font-bold tracking-wider uppercase">
-                    {getRoleLabel(authUser.role)} Portal
-                  </span>
-                </div>
-                <ArrowRight size={14} className="text-[#F9EBD7] ml-1 shrink-0" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDashboardClick}
+                  id="header-user-dashboard-btn"
+                  className="inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-[13px] font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                  title={`Logged in as ${authUser.name || authUser.email} (${getRoleLabel(authUser.role)}). Click to open ${getRoleLabel(authUser.role)} Dashboard`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-white text-xs font-black shrink-0 uppercase">
+                    {authUser.name ? authUser.name.charAt(0) : 'U'}
+                  </div>
+                  <div className="flex flex-col text-left leading-tight">
+                    <span className="font-extrabold text-white text-xs sm:text-[13px] max-w-[130px] sm:max-w-[170px] truncate">
+                      {authUser.name || authUser.email}
+                    </span>
+                    <span className="text-[10px] text-[#A8D7BD] font-bold tracking-wider uppercase">
+                      {getRoleLabel(authUser.role)} Portal
+                    </span>
+                  </div>
+                  <ArrowRight size={14} className="text-[#F9EBD7] ml-1 shrink-0" />
+                </button>
+                <button
+                  onClick={async () => {
+                    setUser(null);
+                    if (logout) await logout();
+                    addToast?.({ type: 'info', message: 'Signed out successfully' });
+                  }}
+                  id="header-signout-btn"
+                  title="Sign Out"
+                  className="p-2.5 rounded-xl border border-[#E8DCC8] bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                  aria-label="Sign Out"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => navigate('/login')}
@@ -283,7 +290,6 @@ export default function Welcome() {
       {/* ── 3D SCROLL-DRIVEN HERO SECTION ────────────────────────────── */}
       <ScrollHero3D
         isAuthenticated={isAuthenticated}
-        onGuidedDemo={handleGuidedDemo}
       />
 
       {/* ── 6-PILLAR HEALTHCARE SERVICES GRID (APOLLO / 1MG ICONS) ─────── */}

@@ -220,12 +220,12 @@ export default function ScrollHero3D({ isAuthenticated, onGuidedDemo }) {
                 <>
                   <button
                     onClick={() => {
-                      if (onGuidedDemo) onGuidedDemo();
-                      else navigate('/patient/dashboard');
+                      if (isAuthenticated) navigate('/patient/dashboard');
+                      else navigate('/signup?role=patient');
                     }}
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#046A38] hover:bg-[#03542C] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
                   >
-                    <span>Launch Guided Demo</span>
+                    <span>Get Started</span>
                     <ArrowRight size={14} />
                   </button>
                   <a
