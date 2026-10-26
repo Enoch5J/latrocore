@@ -144,24 +144,36 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Main Authentication Card */}
-      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
-        {/* Brand Header */}
-        <div className="flex flex-col items-center text-center mb-7">
-          <Link to="/" className="inline-flex items-center gap-2.5 mb-3 group focus:outline-none">
-            <img
-              src="/logo.png"
-              alt="LATROCORE Emblem"
-              className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl object-contain shrink-0 drop-shadow-xs"
-            />
-            <span className="font-serif font-black tracking-tight text-2xl sm:text-[26px] text-black">
+      {/* ── Centered LATROCORE Brand Header ── */}
+      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center text-center my-4">
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center gap-3 group focus:outline-none"
+        >
+          <img
+            src="/logo-emblem.png"
+            alt="LATROCORE Emblem"
+            className="h-12 w-12 sm:h-14 sm:w-14 object-contain drop-shadow-xs mix-blend-multiply group-hover:scale-105 transition-transform"
+          />
+          <div className="flex flex-col text-left">
+            <span className="font-serif font-black tracking-tight text-3xl sm:text-4xl text-black leading-none">
               LATRO<span className="text-[#046A38]">CORE</span>
             </span>
-          </Link>
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-[#046A38] mt-1">
+              Precision Diabetes &amp; Telemetry
+            </span>
+          </div>
+        </Link>
+      </div>
+
+      {/* Main Authentication Card */}
+      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
+        {/* Card Title */}
+        <div className="text-center mb-7">
           <h1 className="text-2xl sm:text-[26px] font-extrabold tracking-tight text-black">
             Welcome back
           </h1>
-          <p className="text-black/80 text-xs sm:text-sm font-medium mt-1 max-w-sm">
+          <p className="text-black/80 text-xs sm:text-sm font-medium mt-1.5 max-w-sm mx-auto">
             Enter your authorized clinical credentials to access your portal.
           </p>
         </div>
