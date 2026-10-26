@@ -821,18 +821,11 @@ export default function Signup() {
               <div
                 key={station.role}
                 onClick={() => handleSelectRole(station.role)}
-                className="group bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DCC8] hover:border-[#046A38] shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between text-center relative overflow-hidden"
+                className="group bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DCC8] hover:border-[#046A38] shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between items-center text-center relative overflow-hidden"
               >
-                <div>
-                  {/* Badge */}
-                  <div className="flex justify-center mb-4">
-                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#FAF6EF] text-[#046A38] border border-[#E8DCC8] group-hover:bg-[#E8F5EE] group-hover:border-[#A8D7BD] transition-colors">
-                      {station.badge}
-                    </span>
-                  </div>
-
+                <div className="w-full flex flex-col items-center">
                   {/* 3D Illustration */}
-                  <div className="w-full aspect-square max-w-[170px] mx-auto mb-5 flex items-center justify-center p-3 rounded-2xl bg-[#FAF6EF]/60 group-hover:bg-[#E8F5EE]/80 transition-colors">
+                  <div className="w-full aspect-square max-w-[190px] mx-auto mb-5 flex items-center justify-center p-3 rounded-2xl bg-[#FAF6EF]/60 group-hover:bg-[#E8F5EE]/80 transition-colors">
                     <img
                       src={station.image}
                       alt={station.title}
@@ -842,31 +835,16 @@ export default function Signup() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-extrabold text-[#112228] mb-1.5 group-hover:text-[#046A38] transition-colors">
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#112228] mb-6 group-hover:text-[#046A38] transition-colors">
                     {station.title}
                   </h3>
-
-                  {/* Simple 1-sentence description matching screenshot */}
-                  <p className="text-xs text-stone-600 leading-relaxed font-normal mb-5 min-h-[42px] flex items-center justify-center">
-                    {station.desc}
-                  </p>
-
-                  {/* Feature bullet points */}
-                  <div className="space-y-2 text-left mb-6 pt-4 border-t border-stone-100">
-                    {station.features.map((feat, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-[11px] text-stone-600">
-                        <Check className="w-3.5 h-3.5 text-[#046A38] shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 {/* CTA Button */}
                 <button
                   type="button"
                   onClick={() => handleSelectRole(station.role)}
-                  className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] group-hover:bg-[#03542C] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] group-hover:bg-[#03542C] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>{station.cta}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
