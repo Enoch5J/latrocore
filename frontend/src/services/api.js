@@ -3,28 +3,48 @@
  * Interfaces with FastAPI backend (/api/v1) with JWT auth support.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000/api/v1' : '');
+function resolveApiBase() {
+  let base = import.meta.env.VITE_API_BASE || '';
+  if (!base && typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      base = 'http://127.0.0.1:8000/api/v1';
+    } else {
+      base = '/api/v1';
+    }
+  }
+  if (base && !base.startsWith('http://') && !base.startsWith('https://') && !base.startsWith('/')) {
+    base = `https://${base}`;
+  }
+  if (base && !base.endsWith('/api/v1') && !base.endsWith('/api')) {
+    base = base.replace(/\/+$/, '') + '/api/v1';
+  }
+  return base;
+}
+
+const API_BASE = resolveApiBase();
 
 function getToken() {
-  return localStorage.getItem('latrocore_token') || '';
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return localStorage.getItem('latrocore_token') || '';
+  }
+  return '';
 }
 
 export function setToken(token) {
-  if (token) {
-    localStorage.setItem('latrocore_token', token);
-  } else {
-    localStorage.removeItem('latrocore_token');
+  if (typeof window !== 'undefined' && window.localStorage) {
+    if (token) {
+      localStorage.setItem('latrocore_token', token);
+    } else {
+      localStorage.removeItem('latrocore_token');
+    }
   }
 }
 
 async function request(endpoint, options = {}) {
-  // If no backend endpoint configured on static hosting, operate in offline demo mode safely
-  if (!API_BASE) {
-    return { ok: true, status: 'mock_demo_mode' };
-  }
-
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {}),
   };
 
@@ -35,6 +55,7 @@ async function request(endpoint, options = {}) {
 
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, {
+      credentials: 'include',
       ...options,
       headers,
     });
@@ -42,6 +63,10 @@ async function request(endpoint, options = {}) {
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       throw new Error(errorData.detail || `Request failed: ${res.status}`);
+    }
+
+    if (res.status === 204) {
+      return null;
     }
 
     return await res.json();
@@ -58,12 +83,66 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
-  register: (data) =>
-    request('/auth/register', {
+  logout: () =>
+    request('/auth/logout', {
+      method: 'POST',
+    }),
+  sendOtp: (email, purpose) =>
+    request('/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, purpose }),
+    }),
+  verifyOtp: (email, otp, purpose) =>
+    request('/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, purpose }),
+    }),
+  uploadPrescription: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request('/auth/upload-prescription', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+  registerPatient: (data) =>
+    request('/auth/register/patient', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  registerDoctor: (data) =>
+    request('/auth/register/doctor', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  registerPharmacist: (data) =>
+    request('/auth/register/pharmacist', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  forgotPassword: (email) =>
+    request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (data) =>
+    request('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   getMe: () => request('/auth/me'),
+
+  // Admin Doctor Management
+  getPendingDoctors: () => request('/admin/doctors/pending'),
+  approveDoctor: (profileId) =>
+    request(`/admin/doctors/${encodeURIComponent(profileId)}/approve`, {
+      method: 'POST',
+    }),
+  rejectDoctor: (profileId, reason) =>
+    request(`/admin/doctors/${encodeURIComponent(profileId)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
 
   // Patients
   getPatients: (params = '') => request(`/patients${params ? `?${params}` : ''}`),

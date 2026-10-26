@@ -206,7 +206,7 @@ const TOPICS = [
   { id: 'eye', label: { en: 'Eye & Retinopathy', ta: 'கண் & விழித்திரை நலம்', hi: 'आंख व रेटिनोपैथी', ml: 'കണ്ണ് & റെറ്റിനോപ്പതി', te: 'కన్ను & రెటినోపతి', kn: 'ಕಣ್ಣು ಮತ್ತು ರೆಟಿನೋಪತಿ' }, desc: 'Diabetic retinopathy prevention' },
 ];
 
-const FALLBACK = {
+const UNMATCHED_QUERY_GUIDANCE = {
   en: "I'm not sure I can fully answer that question. As a clinical AI copilot, my responses are grounded in ADA 2024 Standards. I recommend consulting your doctor or requesting a counselling session.",
   ta: "அந்த கேள்விக்கு மருத்துவ வழிகாட்டுதல் தேவை. உங்கள் மருத்துவரிடம் ஆலோசிக்கவும் அல்லது மருந்தாளரிடம் ஆலோசனை அமர்வு கோரவும்.",
   hi: "मैं उस प्रश्न का पूरी तरह से उत्तर देने में असमर्थ हूँ। व्यक्तिगत मार्गदर्शन के लिए अपनी केयर टीम या डॉक्टर से संपर्क करें।",
@@ -234,7 +234,7 @@ export function getAssistantResponse(message, lang = 'en') {
     }
   }
 
-  return { text: FALLBACK[lang] || FALLBACK.en, topic: 'general', matched: false, sources: ['ADA Clinical Guidelines 2024'] };
+  return { text: UNMATCHED_QUERY_GUIDANCE[lang] || UNMATCHED_QUERY_GUIDANCE.en, topic: 'general', matched: false, sources: ['ADA Clinical Guidelines 2024'] };
 }
 
 export function getSuggestedQuestions(lang = 'en') {

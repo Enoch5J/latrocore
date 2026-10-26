@@ -21,9 +21,9 @@ export function Avatar({ user, name, role, size = 'md', className = '' }) {
   }
 
   const roleStyles = {
-    patient: 'bg-teal-700 text-white border-teal-800',
-    doctor: 'bg-blue-700 text-white border-blue-800',
-    pharmacist: 'bg-purple-700 text-white border-purple-800',
+    patient: 'bg-[#046A38] text-white border-[#03542C]',
+    doctor: 'bg-[#03542C] text-white border-[#023D1F]',
+    pharmacist: 'bg-[#E34222] text-white border-[#CA3517]',
     admin: 'bg-slate-800 text-white border-slate-900',
   };
 
@@ -245,11 +245,11 @@ export function Select({ value, onChange, options, placeholder, className = '' }
 // ── Stat Card ───────────────────────────────────────────────────────────
 export function StatCard({ label, value, icon: Icon, color = 'primary', subtitle, progress, badge, onClick }) {
   const colorStyles = {
-    primary: { iconBg: 'bg-teal-100 text-teal-800', border: 'border-l-4 border-l-teal-600', bar: 'bg-teal-700' },
-    secondary: { iconBg: 'bg-blue-100 text-blue-800', border: 'border-l-4 border-l-blue-600', bar: 'bg-blue-600' },
-    success: { iconBg: 'bg-emerald-100 text-emerald-800', border: 'border-l-4 border-l-emerald-600', bar: 'bg-emerald-600' },
+    primary: { iconBg: 'bg-[#E8F5EE] text-[#046A38]', border: 'border-l-4 border-l-[#046A38]', bar: 'bg-[#046A38]' },
+    secondary: { iconBg: 'bg-[#FDECE8] text-[#E34222]', border: 'border-l-4 border-l-[#E34222]', bar: 'bg-[#E34222]' },
+    success: { iconBg: 'bg-[#E8F5EE] text-[#046A38]', border: 'border-l-4 border-l-[#046A38]', bar: 'bg-[#046A38]' },
     warning: { iconBg: 'bg-amber-100 text-amber-800', border: 'border-l-4 border-l-amber-600', bar: 'bg-amber-600' },
-    danger: { iconBg: 'bg-rose-100 text-rose-800', border: 'border-l-4 border-l-rose-600', bar: 'bg-rose-600' },
+    danger: { iconBg: 'bg-[#FDECE8] text-[#E34222]', border: 'border-l-4 border-l-[#E34222]', bar: 'bg-[#E34222]' },
   };
   const current = colorStyles[color] || colorStyles.primary;
 

@@ -240,18 +240,18 @@ export default function StockVerification() {
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D2E2E6] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8DCC8] pb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/pharmacist/dashboard')}
-            className="p-2 rounded-xl border border-[#D2E2E6] bg-white hover:bg-[#F3F8F9] text-[#367588] transition cursor-pointer shrink-0"
+            className="p-2 rounded-xl border border-[#E8DCC8] bg-white hover:bg-[#FAF6EF] text-[#046A38] transition cursor-pointer shrink-0"
             title="Back to Pharmacist Dashboard"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider bg-[#367588]/10 text-[#367588] px-2.5 py-0.5 rounded-full border border-[#A0C7D1]">
+              <span className="text-[11px] font-black uppercase tracking-wider bg-[#046A38]/10 text-[#046A38] px-2.5 py-0.5 rounded-full border border-[#A8D7BD]">
                 Dispensary Operations
               </span>
               <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
@@ -260,7 +260,7 @@ export default function StockVerification() {
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight mt-1 flex items-center gap-2">
-              <Package size={28} className="text-[#367588]" />
+              <Package size={28} className="text-[#046A38]" />
               <span>Stock Verification & Dispensing</span>
             </h1>
             <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
@@ -284,10 +284,10 @@ export default function StockVerification() {
 
       {/* ── Top Metric Highlights Strip ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white border border-[#D2E2E6] rounded-2xl p-4 shadow-2xs">
+        <div className="bg-white border border-[#E8DCC8] rounded-2xl p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-600 uppercase">Formulations</span>
-            <div className="w-8 h-8 rounded-lg bg-[#367588]/10 text-[#367588] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#046A38]/10 text-[#046A38] flex items-center justify-center">
               <Package size={16} />
             </div>
           </div>
@@ -295,18 +295,18 @@ export default function StockVerification() {
           <p className="text-[11px] font-semibold text-slate-500">Active Formulary Items</p>
         </div>
 
-        <div className="bg-white border border-[#D2E2E6] rounded-2xl p-4 shadow-2xs">
+        <div className="bg-white border border-[#E8DCC8] rounded-2xl p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-600 uppercase">Total Units</span>
-            <div className="w-8 h-8 rounded-lg bg-[#367588]/10 text-[#367588] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#046A38]/10 text-[#046A38] flex items-center justify-center">
               <Layers size={16} />
             </div>
           </div>
-          <p className="text-2xl font-black text-[#367588] mt-1">{totalUnits.toLocaleString()}</p>
+          <p className="text-2xl font-black text-[#046A38] mt-1">{totalUnits.toLocaleString()}</p>
           <p className="text-[11px] font-semibold text-slate-500">Dispensary Stock Count</p>
         </div>
 
-        <div className="bg-white border border-[#D2E2E6] rounded-2xl p-4 shadow-2xs">
+        <div className="bg-white border border-[#E8DCC8] rounded-2xl p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-600 uppercase">Cold Chain</span>
             <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
@@ -319,7 +319,7 @@ export default function StockVerification() {
           <p className="text-[11px] font-semibold text-slate-500">Insulin Pens (2-8°C Vault)</p>
         </div>
 
-        <div className="bg-white border border-[#D2E2E6] rounded-2xl p-4 shadow-2xs">
+        <div className="bg-white border border-[#E8DCC8] rounded-2xl p-4 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-600 uppercase">Alert Thresholds</span>
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${lowStockCount > 0 ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900'}`}>
@@ -332,11 +332,11 @@ export default function StockVerification() {
       </div>
 
       {/* ── Main Verification Card (Matching User Blueprint & Screenshot) ── */}
-      <div className="card p-5 sm:p-6 border-2 border-[#367588]/40 bg-white shadow-sm space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#D2E2E6]">
+      <div className="card p-5 sm:p-6 border-2 border-[#046A38]/40 bg-white shadow-sm space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#E8DCC8]">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black tracking-wider uppercase bg-[#367588]/10 text-[#367588] border border-[#A0C7D1] px-2.5 py-0.5 rounded-full">
+              <span className="text-[11px] font-black tracking-wider uppercase bg-[#046A38]/10 text-[#046A38] border border-[#A8D7BD] px-2.5 py-0.5 rounded-full">
                 Pharmacist Dispensing & Inventory System
               </span>
               <span className="text-[11px] font-bold text-emerald-800 flex items-center gap-1">
@@ -345,11 +345,11 @@ export default function StockVerification() {
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight mt-1.5 flex items-center gap-2">
-              <Package size={22} className="text-[#367588]" />
+              <Package size={22} className="text-[#046A38]" />
               <span>Prescription Code & Medicine Stock Verification</span>
             </h2>
             <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
-              Enter any Prescription Code (e.g. <span className="font-mono text-[#367588] font-bold">RX-001</span>) or Medicine Code (<span className="font-mono text-[#367588] font-bold">MET-500</span>) to inspect authenticated prescriptions and real-time inventory counts.
+              Enter any Prescription Code (e.g. <span className="font-mono text-[#046A38] font-bold">RX-001</span>) or Medicine Code (<span className="font-mono text-[#046A38] font-bold">MET-500</span>) to inspect authenticated prescriptions and real-time inventory counts.
             </p>
           </div>
 
@@ -362,7 +362,7 @@ export default function StockVerification() {
                 value={rxCodeInput}
                 onChange={(e) => setRxCodeInput(e.target.value)}
                 placeholder="Enter Rx Code (e.g. RX-001)..."
-                className="w-full pl-9 pr-8 py-2.5 bg-white border-2 border-[#D2E2E6] focus:border-[#367588] focus:ring-2 focus:ring-[#367588]/20 rounded-xl text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none transition uppercase"
+                className="w-full pl-9 pr-8 py-2.5 bg-white border-2 border-[#E8DCC8] focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 rounded-xl text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none transition uppercase"
               />
               {rxCodeInput && (
                 <button
@@ -394,8 +394,8 @@ export default function StockVerification() {
               onClick={() => setRxCodeInput(chip.code)}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
                 rxCodeInput.toUpperCase().includes(chip.code)
-                  ? 'bg-[#367588] text-white border-[#2A5C6B] shadow-xs'
-                  : 'bg-white hover:bg-[#F3F8F9] text-slate-700 border-[#D2E2E6]'
+                  ? 'bg-[#046A38] text-white border-[#03542C] shadow-xs'
+                  : 'bg-white hover:bg-[#FAF6EF] text-slate-700 border-[#E8DCC8]'
               }`}
             >
               {chip.label}
@@ -407,11 +407,11 @@ export default function StockVerification() {
         {matchedData?.type === 'prescription' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-1">
             {/* Left Column (5 cols): Prescription Clinical Details */}
-            <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-[#D2E2E6] shadow-2xs flex flex-col justify-between">
+            <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-[#E8DCC8] shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between gap-2 border-b border-[#D2E2E6] pb-3">
+                <div className="flex items-center justify-between gap-2 border-b border-[#E8DCC8] pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-[#367588]/10 text-[#367588] border border-[#A0C7D1]">
+                    <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-[#046A38]/10 text-[#046A38] border border-[#A8D7BD]">
                       {matchedData.prescription.id.toUpperCase()}
                     </span>
                     <Badge variant={matchedData.prescription.status === 'active' ? 'success' : 'gray'}>
@@ -437,7 +437,7 @@ export default function StockVerification() {
                     </div>
                   </div>
 
-                  <div className="bg-[#F3F8F9] rounded-xl p-3 border border-[#D2E2E6] text-xs space-y-1">
+                  <div className="bg-[#FAF6EF] rounded-xl p-3 border border-[#E8DCC8] text-xs space-y-1">
                     <p className="text-slate-600 font-medium">
                       <span className="font-bold text-slate-900">Authorizing Doctor:</span> {matchedData.doctor?.name || 'Dr. Arun Krishnamurthy (MD)'}
                     </p>
@@ -456,14 +456,14 @@ export default function StockVerification() {
                   </h5>
                   <div className="space-y-2">
                     {matchedData.medicines.map((m, idx) => (
-                      <div key={idx} className="p-2.5 rounded-xl border border-[#D2E2E6] bg-white text-xs flex items-center justify-between gap-2">
+                      <div key={idx} className="p-2.5 rounded-xl border border-[#E8DCC8] bg-white text-xs flex items-center justify-between gap-2">
                         <div className="min-w-0">
                           <p className="font-bold text-slate-900 truncate">{m.name}</p>
                           <p className="text-[11px] text-slate-600">
                             {m.dose} • {m.frequency} • {m.foodInstruction}
                           </p>
                         </div>
-                        <span className="shrink-0 text-[10px] font-black bg-[#367588]/10 text-[#367588] border border-[#A0C7D1] px-2 py-0.5 rounded-md">
+                        <span className="shrink-0 text-[10px] font-black bg-[#046A38]/10 text-[#046A38] border border-[#A8D7BD] px-2 py-0.5 rounded-md">
                           {m.isInsulin ? '1 Pen Prescribed' : '60 Tabs (30d supply)'}
                         </span>
                       </div>
@@ -473,7 +473,7 @@ export default function StockVerification() {
               </div>
 
               {/* Dispense Action Bar */}
-              <div className="mt-5 pt-3.5 border-t border-[#D2E2E6] flex items-center justify-between gap-3">
+              <div className="mt-5 pt-3.5 border-t border-[#E8DCC8] flex items-center justify-between gap-3">
                 {dispensedMap[matchedData.prescription.id] ? (
                   <div className="w-full bg-emerald-50 border border-emerald-300 rounded-xl p-3 flex items-center justify-between text-xs font-bold text-emerald-900">
                     <span className="flex items-center gap-1.5">
@@ -497,10 +497,10 @@ export default function StockVerification() {
             </div>
 
             {/* Right Column (7 cols): Medicine Stock Counts & Pharmacy Inventory */}
-            <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 border border-[#D2E2E6] shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b border-[#D2E2E6] pb-3">
+            <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 border border-[#E8DCC8] shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E8DCC8] pb-3">
                 <div className="flex items-center gap-2">
-                  <Layers size={18} className="text-[#367588]" />
+                  <Layers size={18} className="text-[#046A38]" />
                   <h3 className="font-extrabold text-sm sm:text-base text-slate-950">
                     Respective Medicine Stock Counts in Dispensary
                   </h3>
@@ -520,7 +520,7 @@ export default function StockVerification() {
                   return (
                     <div
                       key={idx}
-                      className="p-4 rounded-xl border border-[#D2E2E6] hover:border-[#367588] bg-white transition-all shadow-2xs space-y-2.5"
+                      className="p-4 rounded-xl border border-[#E8DCC8] hover:border-[#046A38] bg-white transition-all shadow-2xs space-y-2.5"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -545,11 +545,11 @@ export default function StockVerification() {
                         </div>
 
                         {/* Big Stock Counter Badge */}
-                        <div className="text-left sm:text-right shrink-0 bg-[#F3F8F9] border border-[#D2E2E6] p-2.5 rounded-xl shadow-2xs">
+                        <div className="text-left sm:text-right shrink-0 bg-[#FAF6EF] border border-[#E8DCC8] p-2.5 rounded-xl shadow-2xs">
                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                             Available Stock
                           </p>
-                          <p className="text-lg sm:text-xl font-black text-[#367588] leading-tight">
+                          <p className="text-lg sm:text-xl font-black text-[#046A38] leading-tight">
                             {s.stockCount} <span className="text-xs font-bold text-slate-600">{s.unitsPerPack.split(' ')[0]}</span>
                           </p>
                           <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
@@ -559,7 +559,7 @@ export default function StockVerification() {
                       </div>
 
                       {/* Stock Specs Strip */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-[#F3F8F9] p-2 rounded-lg border border-[#D2E2E6] font-medium text-slate-700">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-[#FAF6EF] p-2 rounded-lg border border-[#E8DCC8] font-medium text-slate-700">
                         <div>
                           <span className="text-slate-400 block text-[9px] uppercase font-bold">Batch / Lot</span>
                           <span className="font-mono font-bold text-slate-900">{s.batchNo}</span>
@@ -587,7 +587,7 @@ export default function StockVerification() {
                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
-                              isLow ? 'bg-amber-500' : 'bg-[#367588]'
+                              isLow ? 'bg-amber-500' : 'bg-[#046A38]'
                             }`}
                             style={{ width: `${stockHealthPct}%` }}
                           />
@@ -603,11 +603,11 @@ export default function StockVerification() {
 
         {/* Matched Single Medicine Result View */}
         {matchedData?.type === 'medicine' && (
-          <div className="bg-white rounded-2xl p-5 border border-[#D2E2E6] shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D2E2E6] pb-3">
+          <div className="bg-white rounded-2xl p-5 border border-[#E8DCC8] shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8DCC8] pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-black bg-[#367588]/10 text-[#367588] border border-[#A0C7D1] px-2 py-0.5 rounded-md">
+                  <span className="font-mono text-xs font-black bg-[#046A38]/10 text-[#046A38] border border-[#A8D7BD] px-2 py-0.5 rounded-md">
                     {matchedData.stock.code}
                   </span>
                   <Badge variant="success">INVENTORY VERIFIED</Badge>
@@ -620,14 +620,14 @@ export default function StockVerification() {
                 </p>
               </div>
 
-              <div className="bg-[#F3F8F9] border border-[#D2E2E6] p-3 rounded-xl text-right">
-                <span className="text-[10px] font-bold text-[#367588] uppercase block">Dispensary Stock</span>
+              <div className="bg-[#FAF6EF] border border-[#E8DCC8] p-3 rounded-xl text-right">
+                <span className="text-[10px] font-bold text-[#046A38] uppercase block">Dispensary Stock</span>
                 <span className="text-2xl font-black text-slate-950">{matchedData.stock.stockCount}</span>
-                <span className="text-xs font-bold text-[#367588] block">{matchedData.stock.unitsPerPack}</span>
+                <span className="text-xs font-bold text-[#046A38] block">{matchedData.stock.unitsPerPack}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-[#F3F8F9] p-3 rounded-xl border border-[#D2E2E6]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-[#FAF6EF] p-3 rounded-xl border border-[#E8DCC8]">
               <div>
                 <span className="text-slate-400 text-[10px] uppercase font-bold block">Batch / Lot No</span>
                 <span className="font-mono font-bold text-slate-900">{matchedData.stock.batchNo}</span>
@@ -653,14 +653,14 @@ export default function StockVerification() {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {matchedData.relatedPrescriptions.map(p => (
-                    <div key={p.id} className="p-3 rounded-xl border border-[#D2E2E6] bg-white text-xs flex items-center justify-between">
+                    <div key={p.id} className="p-3 rounded-xl border border-[#E8DCC8] bg-white text-xs flex items-center justify-between">
                       <div>
-                        <span className="font-mono font-bold text-[#367588]">{p.id.toUpperCase()}</span>
+                        <span className="font-mono font-bold text-[#046A38]">{p.id.toUpperCase()}</span>
                         <p className="text-slate-900 font-semibold">{data?.users[p.patientId]?.name}</p>
                       </div>
                       <button
                         onClick={() => setRxCodeInput(p.id)}
-                        className="text-[11px] font-bold text-[#367588] hover:underline cursor-pointer"
+                        className="text-[11px] font-bold text-[#046A38] hover:underline cursor-pointer"
                       >
                         Inspect Rx →
                       </button>
@@ -674,23 +674,23 @@ export default function StockVerification() {
 
         {/* Not Found View */}
         {matchedData?.type === 'not_found' && (
-          <div className="bg-[#F3F8F9] rounded-2xl p-6 text-center border-2 border-dashed border-[#D2E2E6] space-y-2">
+          <div className="bg-[#FAF6EF] rounded-2xl p-6 text-center border-2 border-dashed border-[#E8DCC8] space-y-2">
             <AlertCircle size={24} className="mx-auto text-slate-400" />
             <h4 className="font-bold text-sm text-slate-900">No match found for &ldquo;{matchedData.query}&rdquo;</h4>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Please check the code format. Try entering a prescription code like <span className="font-mono font-bold text-[#367588]">RX-001</span> or a medicine item code like <span className="font-mono font-bold text-[#367588]">MET-500</span>.
+              Please check the code format. Try entering a prescription code like <span className="font-mono font-bold text-[#046A38]">RX-001</span> or a medicine item code like <span className="font-mono font-bold text-[#046A38]">MET-500</span>.
             </p>
           </div>
         )}
       </div>
 
       {/* ── Complete Dispensary Formulary & Stock Catalog ── */}
-      <div className="card border border-[#D2E2E6] bg-white">
-        <div className="card-header bg-[#F3F8F9] rounded-t-2xl border-b border-[#D2E2E6] flex items-center justify-between flex-wrap gap-2">
+      <div className="card border border-[#E8DCC8] bg-white">
+        <div className="card-header bg-[#FAF6EF] rounded-t-2xl border-b border-[#E8DCC8] flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Package size={18} className="text-[#367588]" />
+            <Package size={18} className="text-[#046A38]" />
             <h3 className="font-extrabold text-base text-slate-950">Complete Dispensary Stock Directory</h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#367588] border border-[#A0C7D1]">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#046A38] border border-[#A8D7BD]">
               {inventoryItems.length} Formulations
             </span>
           </div>
@@ -699,7 +699,7 @@ export default function StockVerification() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-[#D2E2E6] text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+            <thead className="bg-slate-50 border-b border-[#E8DCC8] text-slate-600 font-bold uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3 px-4">Code</th>
                 <th className="py-3 px-4">Medicine & Formulation</th>
@@ -711,12 +711,12 @@ export default function StockVerification() {
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#D2E2E6]">
+            <tbody className="divide-y divide-[#E8DCC8]">
               {inventoryItems.map((item, idx) => {
                 const isLow = item.stockCount <= item.reorderLevel;
                 return (
-                  <tr key={idx} className="hover:bg-[#F3F8F9] transition">
-                    <td className="py-3 px-4 font-mono font-bold text-[#367588]">
+                  <tr key={idx} className="hover:bg-[#FAF6EF] transition">
+                    <td className="py-3 px-4 font-mono font-bold text-[#046A38]">
                       {item.code}
                     </td>
                     <td className="py-3 px-4">
@@ -750,7 +750,7 @@ export default function StockVerification() {
                           setRxCodeInput(item.code);
                           window.scrollTo({ top: 120, behavior: 'smooth' });
                         }}
-                        className="px-2.5 py-1 bg-white hover:bg-[#F3F8F9] text-[#367588] border border-[#A0C7D1] rounded-lg font-bold text-xs transition cursor-pointer"
+                        className="px-2.5 py-1 bg-white hover:bg-[#FAF6EF] text-[#046A38] border border-[#A8D7BD] rounded-lg font-bold text-xs transition cursor-pointer"
                       >
                         Inspect
                       </button>

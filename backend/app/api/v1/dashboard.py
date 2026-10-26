@@ -15,6 +15,42 @@ from app.models.models import (
 router = APIRouter(tags=["Dashboard & Notifications"])
 
 
+@router.get("/dashboard")
+def get_dashboard_data(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Protected demonstration endpoint returning dashboard metrics,
+    user profile details, and authenticated session state.
+    """
+    from app.models.models import Session as UserSession
+    active_sessions = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_revoked == False
+    ).count()
+
+    return {
+        "status": "healthy",
+        "message": f"Welcome back, {current_user.name}!",
+        "user": {
+            "id": current_user.id,
+            "name": current_user.name,
+            "email": current_user.email,
+            "role": current_user.role,
+            "status": current_user.status,
+            "verified": current_user.verified
+        },
+        "stats": {
+            "activeSessions": active_sessions,
+            "securityProtocol": "Argon2id + Silent Refresh + CSRF Guard",
+            "sessionWindow": "7 Days (Fixed Expiry)",
+            "tokenDuration": "15 Minutes (In-Memory JWT)"
+        },
+        "systemTime": datetime.now(timezone.utc).isoformat()
+    }
+
+
 @router.get("/patients/{patient_id}/summary")
 def get_patient_summary(
     patient_id: str,

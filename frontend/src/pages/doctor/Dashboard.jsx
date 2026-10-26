@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../auth/AuthContext';
 import { StatCard, LoadingSpinner, Badge, SearchBar, EmptyState, Avatar, Modal } from '../../components/ui';
 import {
   Users, AlertTriangle, Pill, CalendarDays, MessageSquare, TrendingUp,
@@ -11,9 +12,12 @@ import { formatDate, formatDateTime } from '../../data/demoDate';
 
 export default function DoctorDashboard() {
   const { currentUser, data } = useApp();
+  const { user: authUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  const isDoctorPending = authUser?.status === 'pending' || authUser?.approvalStatus === 'pending' || currentUser?.status === 'pending';
 
   // Prescription Logs Filter & Search State
   const [rxSearch, setRxSearch] = useState('');
@@ -89,7 +93,7 @@ export default function DoctorDashboard() {
       <div className="pb-2 border-b-2 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">Clinician Command Center</h1>
-          <p className="text-sm sm:text-base font-semibold text-slate-700 mt-1">Welcome back, {currentUser?.name} — Diabetology & Endocrinology</p>
+          <p className="text-sm sm:text-base font-semibold text-slate-700 mt-1">Welcome back, {currentUser?.name || authUser?.name} — Diabetology & Endocrinology</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -101,6 +105,31 @@ export default function DoctorDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Pending Doctor Verification Alert */}
+      {isDoctorPending && (
+        <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 shadow-sm flex items-start gap-4 animate-fade-in">
+          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+            <Clock className="w-5 h-5 animate-pulse" />
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h4 className="font-extrabold text-amber-950 text-base">
+                Medical Credentials Pending Review
+              </h4>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                {authUser?.displayId || 'DOC-PENDING'}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                Restricted Access Mode
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
+              Your medical registration and council credentials have been received and are pending authorization by our medical directorate administrator. Until your credentials are confirmed, access to confidential patient health records and prescription authoring is restricted.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">

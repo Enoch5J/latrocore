@@ -288,13 +288,13 @@ export default function TestReminders() {
       {/* ── TAB 1: 3 Interval Schedule Cards (Exact Slide Design) ── */}
       {activeTab === 'schedule' && (
         <div className="space-y-6">
-          {/* Main Container Styled with #367588 Top Accent Border */}
-          <div className="card p-6 sm:p-8 bg-white border-2 border-[#D2E2E6] rounded-3xl shadow-sm space-y-6">
+          {/* Main Container Styled with #046A38 Top Accent Border */}
+          <div className="card p-6 sm:p-8 bg-white border-2 border-[#E8DCC8] rounded-3xl shadow-sm space-y-6">
             {/* Header Accent Row */}
-            <div className="border-t-4 border-[#367588] pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="border-t-4 border-[#046A38] pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#367588]"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#046A38]"></span>
                   <h2 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight">
                     Patient Welfare — Diabetes Test Reminder Schedule
                   </h2>
@@ -304,7 +304,7 @@ export default function TestReminders() {
                 </p>
               </div>
 
-              <span className="text-xs font-bold text-[#1D3F4A] bg-[#E3EFF2] border border-[#A0C7D1] px-3 py-1 rounded-full self-start sm:self-center">
+              <span className="text-xs font-bold text-[#03542C] bg-[#E8F5EE] border border-[#A8D7BD] px-3 py-1 rounded-full self-start sm:self-center">
                 Protocol: ADA Standards of Care 2026
               </span>
             </div>
@@ -372,8 +372,7 @@ export default function TestReminders() {
                       </div>
                       <button
                         onClick={() => navigate(card.actionRoute)}
-                        className="btn-primary btn-sm text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
-                        style={{ backgroundColor: '#367588' }}
+                        className="btn-primary btn-sm text-white text-xs font-bold flex items-center gap-1 cursor-pointer bg-[#046A38] hover:bg-[#03542C]"
                       >
                         <span>{card.clinicalAction}</span>
                         <ArrowRight size={13} />
@@ -385,26 +384,26 @@ export default function TestReminders() {
             </div>
 
             {/* Banner: PATIENT WELFARE • Remind → Record → Complete → Escalate */}
-            <div className="rounded-2xl bg-[#F3F8F9] border border-[#C7DFE5] py-4 px-6 text-center shadow-xs">
-              <p className="text-xs sm:text-sm font-black text-[#1D3F4A] tracking-wider uppercase">
+            <div className="rounded-2xl bg-[#E8F5EE] border border-[#A8D7BD] py-4 px-6 text-center shadow-xs">
+              <p className="text-xs sm:text-sm font-black text-[#03542C] tracking-wider uppercase">
                 PATIENT WELFARE &bull; Remind &rarr; Record &rarr; Complete &rarr; Escalate to the care team when due or abnormal
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-[#D2E2E6] text-left">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-[#A8D7BD] text-left">
                 <div>
-                  <span className="text-[10px] font-extrabold text-[#367588] block">1. REMIND</span>
-                  <p className="text-[10px] text-[#24383F] font-medium">Automatic alert triggered 14 days before due window.</p>
+                  <span className="text-[10px] font-extrabold text-[#046A38] block">1. REMIND</span>
+                  <p className="text-[10px] text-[#03542C] font-medium">Automatic alert triggered 14 days before due window.</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold text-[#367588] block">2. RECORD</span>
-                  <p className="text-[10px] text-[#24383F] font-medium">Capture laboratory and diagnostic clinic reports.</p>
+                  <span className="text-[10px] font-extrabold text-[#046A38] block">2. RECORD</span>
+                  <p className="text-[10px] text-[#03542C] font-medium">Capture laboratory and diagnostic clinic reports.</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold text-[#367588] block">3. COMPLETE</span>
-                  <p className="text-[10px] text-[#24383F] font-medium">Auto-verify results against personalized target baselines.</p>
+                  <span className="text-[10px] font-extrabold text-[#046A38] block">3. COMPLETE</span>
+                  <p className="text-[10px] text-[#03542C] font-medium">Auto-verify results against personalized target baselines.</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold text-[#367588] block">4. ESCALATE</span>
-                  <p className="text-[10px] text-[#24383F] font-medium">Diabetologist flagged immediately if values are abnormal.</p>
+                  <span className="text-[10px] font-extrabold text-[#046A38] block">4. ESCALATE</span>
+                  <p className="text-[10px] text-[#03542C] font-medium">Diabetologist flagged immediately if values are abnormal.</p>
                 </div>
               </div>
             </div>

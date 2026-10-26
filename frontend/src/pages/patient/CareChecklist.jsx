@@ -252,13 +252,13 @@ export default function CareChecklist() {
       </div>
 
       {/* Progress & Overview Banner */}
-      <div className="card p-5 sm:p-6 bg-gradient-to-br from-[#12282F] via-[#1D3F4A] to-[#254F5D] text-white rounded-3xl shadow-md border-0 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-[#367588]/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="card p-5 sm:p-6 bg-gradient-to-br from-[#012513] via-[#03542C] to-[#046A38] text-white rounded-3xl shadow-md border-0 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-[#046A38]/30 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 text-[#A0C7D1] border border-white/20">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 text-[#A8D7BD] border border-white/20">
                 ADA Standards of Care 2026 Protocol
               </span>
               <span className="text-[11px] font-semibold text-slate-300">
@@ -277,11 +277,11 @@ export default function CareChecklist() {
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/15 min-w-[260px] space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-slate-300">Completion Score</span>
-              <span className="text-base font-black text-[#A0C7D1]">{progressPct}%</span>
+              <span className="text-base font-black text-[#A8D7BD]">{progressPct}%</span>
             </div>
             <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden p-0.5 border border-white/20">
               <div
-                className="h-full bg-gradient-to-r from-[#6FA9B8] to-[#367588] rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-[#72BC97] to-[#046A38] rounded-full transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>

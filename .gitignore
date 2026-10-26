@@ -20,7 +20,13 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 ENV/
+*.db
+*.sqlite
+*.pem
+*.key
+.pytest_cache/
 
 # Node
 node_modules/
@@ -38,3 +44,7 @@ dist-ssr/
 *.njsproj
 *.sln
 *.sw?
+
+# Uploads
+backend/uploads/prescriptions/*
+!backend/uploads/prescriptions/.gitkeep

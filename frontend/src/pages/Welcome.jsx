@@ -1,156 +1,71 @@
 import { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../auth/AuthContext';
+import ScrollHero3D from '../components/home/ScrollHero3D';
+import patientImg from '../assets/images/patient.png';
+import doctorImg from '../assets/images/doctor.png';
+import pharmacistImg from '../assets/images/pharmacist.png';
+import adminImg from '../assets/images/admin.png';
 import {
-  Stethoscope, User, Pill, Shield, ArrowRight, Play, Heart, Brain,
-  Activity, CheckCircle2, ChevronRight, BookOpen, Layers, Lock,
-  FileText, AlertTriangle, Sparkles, Menu, X, Database, Clock,
-  Droplets, BarChart3, RefreshCw, Check, ArrowUpRight, Zap
+  Search, Upload, ShieldCheck, Stethoscope, Pill, Activity,
+  ArrowRight, Lock, FileText, Sparkles, Menu, X, BarChart3,
+  Award, ThermometerSnowflake, Shield, PhoneCall
 } from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
-  ResponsiveContainer, ReferenceLine
-} from 'recharts';
 
-const DEMO_ACCOUNTS = [
+// ── WORKSTATIONS (ROLE-BASED CLINICAL LAUNCHPAD) ────────────────────────
+const WORKSTATIONS = [
   {
     id: 'pat-001',
     role: 'patient',
-    badge: 'Patient Portal',
-    title: 'Patient Companion',
-    name: 'Priya Sharma',
-    subtitle: 'Type 2 Diabetes • 8 Yrs History',
-    desc: 'Empowers patients to track real-time CGM curves, log meals & activity, and receive culturally tailored multilingual lifestyle coaching.',
-    icon: User,
-    theme: {
-      border: 'border-teal-300 hover:border-teal-700',
-      badge: 'bg-teal-100 text-teal-950 border-teal-300',
-      iconBg: 'bg-teal-800 text-white',
-      button: 'bg-teal-800 hover:bg-teal-900 text-white',
-      accentText: 'text-teal-850',
-    },
+    title: 'Patient Portal',
+    desc: 'Monitor continuous glucose levels, track daily medicines, and get personalized diet care.',
+    image: patientImg,
     route: '/patient/dashboard',
-    highlights: ['Continuous CGM & self-log tracker', 'Multilingual AI health assistant', 'Real-time adherence reminders']
   },
   {
     id: 'doc-001',
     role: 'doctor',
-    badge: 'Physician Workstation',
-    title: 'Consultant Endocrinologist',
-    name: 'Dr. Arun Krishnamurthy',
-    subtitle: 'Senior Diabetes Specialist',
-    desc: 'Provides longitudinal glycemic oversight, automated HbA1c trajectory tracking, smart prescription authoring, and clinical escalation triage.',
-    icon: Stethoscope,
-    theme: {
-      border: 'border-blue-300 hover:border-blue-700',
-      badge: 'bg-blue-100 text-blue-950 border-blue-300',
-      iconBg: 'bg-blue-800 text-white',
-      button: 'bg-blue-800 hover:bg-blue-900 text-white',
-      accentText: 'text-blue-850',
-    },
+    title: 'Doctor Station',
+    desc: 'Surveil cohort glycemic trajectories, review patient histories, and issue digital prescriptions.',
+    image: doctorImg,
     route: '/doctor/dashboard',
-    highlights: ['Cohort glycemic trajectory charts', 'Smart digital prescription suite', 'Pharm D escalation review panel']
   },
   {
     id: 'pharm-001',
     role: 'pharmacist',
-    badge: 'Pharm D Clinical Station',
-    title: 'Clinical Pharmacist',
-    name: 'Kavitha Rajan (Pharm D)',
-    subtitle: 'Medication Therapy Specialist',
-    desc: 'Executes comprehensive medication reconciliation, screens for drug-drug interactions, evaluates renal dosing, and records patient counselling.',
-    icon: Pill,
-    theme: {
-      border: 'border-purple-300 hover:border-purple-700',
-      badge: 'bg-purple-100 text-purple-950 border-purple-300',
-      iconBg: 'bg-purple-800 text-white',
-      button: 'bg-purple-800 hover:bg-purple-900 text-white',
-      accentText: 'text-purple-850',
-    },
+    title: 'Pharmacist Station',
+    desc: 'Reconcile medications, scan drug interactions, and adjust therapeutic dosages.',
+    image: pharmacistImg,
     route: '/pharmacist/dashboard',
-    highlights: ['Automated DDI interaction scanner', 'Therapeutic adherence surveillance', 'Structured counselling records']
   },
   {
     id: 'admin-001',
     role: 'admin',
-    badge: 'System Governance',
-    title: 'Clinical Compliance & Audit',
-    name: 'Platform Governance',
-    subtitle: 'HIPAA & CDSCO Oversight',
-    desc: 'Maintains immutable cryptographically timestamped clinical audit trails, configures role access parameters, and monitors platform health.',
-    icon: Shield,
-    theme: {
-      border: 'border-slate-300 hover:border-slate-800',
-      badge: 'bg-slate-200 text-slate-950 border-slate-400',
-      iconBg: 'bg-slate-900 text-white',
-      button: 'bg-slate-950 hover:bg-black text-white',
-      accentText: 'text-slate-950',
-    },
+    title: 'Admin Console',
+    desc: 'Oversee platform security, compliance audit logs, and system user permissions.',
+    image: adminImg,
     route: '/admin/dashboard',
-    highlights: ['Immutable audit trail inspection', 'Role-based access security', 'One-click demo state reset']
   },
 ];
 
-const SAMPLE_CGM_DATA = [
-  { time: '06:00', value: 92 },
-  { time: '07:30', value: 128 },
-  { time: '09:00', value: 154 },
-  { time: '11:00', value: 110 },
-  { time: '13:00', value: 135 },
-  { time: '15:00', value: 118 },
-  { time: '18:00', value: 104 },
-  { time: '20:30', value: 142 },
-  { time: '22:00', value: 114 },
-];
-
 export default function Welcome() {
-  const { data, setUser } = useApp();
+  const { data, setUser, addToast } = useApp();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeConsoleTab, setActiveConsoleTab] = useState('cgm');
 
-  const handleLogin = async (account) => {
-    const user = data?.users?.[account.id];
+  // Navigation & UI state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+
+  // Launch Workstation Demo
+  const handleWorkstationLaunch = (station) => {
+    const user = data?.users?.[station.id];
     if (user) {
       setUser(user);
-      try {
-        const emailMap = {
-          'pat-001': 'patient@latrocore.com',
-          'doc-001': 'doctor@latrocore.com',
-          'pharm-001': 'pharmacist@latrocore.com',
-          'admin-001': 'admin@latrocore.com',
-        };
-        const passMap = {
-          'pat-001': 'patient123',
-          'doc-001': 'doctor123',
-          'pharm-001': 'care123',
-          'admin-001': 'admin123',
-        };
-        const email = emailMap[account.id] || `${account.role}@latrocore.com`;
-        const pass = passMap[account.id] || 'admin123';
-        const backendUrl = import.meta.env.VITE_API_BASE || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000/api/v1' : '');
-        if (backendUrl) {
-          try {
-            const res = await fetch(`${backendUrl}/auth/login`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password: pass }),
-            });
-            if (res.ok) {
-              const authData = await res.json();
-              if (authData.access_token) {
-                localStorage.setItem('latrocore_token', authData.access_token);
-              }
-            }
-          } catch (err) {
-            // Silently fallback to mock demo authentication
-          }
-        }
-      } catch (err) {
-        // Fallback safely to mock demo authentication
-      }
-      navigate(account.route);
     }
+    navigate(station.route);
   };
 
   const handleGuidedDemo = () => {
@@ -162,751 +77,615 @@ export default function Welcome() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950 flex flex-col font-sans antialiased overflow-x-clip w-full selection:bg-teal-100 selection:text-teal-900">
-      
-      {/* ── Top Announcement Bar ──────────────────────────────────────── */}
-      <div className="bg-slate-950 text-white text-xs font-semibold py-2 px-3 sm:px-4 border-b border-slate-800 no-print">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="font-extrabold text-white">LATROCORE Clinical Ecosystem:</span>
-            <span className="text-slate-300 hidden md:inline">Continuous Closed-Loop Diabetes Care & Medication Safety Architecture</span>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-slate-300 font-bold">
-            <span className="bg-slate-800 px-2 py-0.5 rounded text-teal-300 border border-slate-700">v2.4 Production Spec</span>
-            <span className="text-slate-400">Synthetic PHI Sandbox</span>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#FAF6EF] text-slate-900 flex flex-col font-sans antialiased selection:bg-[#F9EBD7] selection:text-[#046A38]">
 
-      {/* ── Main Sticky Navigation Header ────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b-2 border-slate-200 transition-all shadow-xs w-full">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4 w-full">
+      {/* ── MAIN HEALTHCARE HEADER (WARM IVORY BRAND PALETTE) ────────── */}
+      <header className="sticky top-0 z-40 bg-[#FAF6EF]/95 backdrop-blur-md border-b border-[#E8DCC8] shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-22 flex items-center justify-between gap-4 sm:gap-6">
           
-          {/* Brand Identity */}
+          {/* Brand Logo & Name */}
           <div
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0"
+            className="flex items-center gap-3 sm:gap-3.5 cursor-pointer group shrink-0"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-800 to-teal-950 rounded-xl flex items-center justify-center text-white shadow-md shadow-teal-950/20 group-hover:scale-105 transition-transform shrink-0">
-              <Stethoscope size={20} className="sm:w-[22px] sm:h-[22px]" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="LATROCORE Logo"
+              className="h-11 w-11 sm:h-13 sm:w-13 object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
+            />
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-black text-slate-950 tracking-tight text-lg sm:text-xl leading-tight">LATROCORE</span>
-                <span className="hidden sm:inline-block bg-teal-50 text-teal-950 border border-teal-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-md whitespace-nowrap">
-                  Clinical
-                </span>
-              </div>
-              <span className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase tracking-wider block whitespace-nowrap">
-                Closed-Loop System
+              <span className="font-serif font-black text-[#046A38] tracking-tight text-2xl sm:text-3xl leading-none">
+                LATROCORE
+              </span>
+              <span className="hidden sm:block text-[9px] font-black uppercase tracking-[0.18em] text-[#093322]/70 mt-1">
+                Precision Diabetes &amp; Diagnostics
               </span>
             </div>
           </div>
 
-          {/* Desktop Navigation Links - Single line and 1 word each */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-bold text-slate-800 shrink-0">
-            <a href="#workstations" className="px-3 py-1.5 rounded-xl hover:text-teal-950 hover:bg-slate-100 transition-colors whitespace-nowrap">
-              Workstations
-            </a>
-            <a href="#console-preview" className="px-3 py-1.5 rounded-xl hover:text-teal-950 hover:bg-slate-100 transition-colors whitespace-nowrap">
-              Console
-            </a>
-            <a href="#workflow" className="px-3 py-1.5 rounded-xl hover:text-teal-950 hover:bg-slate-100 transition-colors whitespace-nowrap">
-              Continuum
-            </a>
-            <a href="#safety" className="px-3 py-1.5 rounded-xl hover:text-teal-950 hover:bg-slate-100 transition-colors whitespace-nowrap">
-              Safety
-            </a>
-            <NavLink to="/overview" className="px-3 py-1.5 rounded-xl hover:text-teal-950 hover:bg-slate-100 transition-colors whitespace-nowrap">
-              Blueprint
-            </NavLink>
-            <NavLink to="/care-summary" className="px-3 py-1.5 rounded-xl hover:text-teal-950 hover:bg-slate-100 transition-colors whitespace-nowrap">
-              Summary
-            </NavLink>
-          </nav>
-
-          {/* Header Action Buttons */}
-          <div className="hidden sm:flex items-center gap-2.5 shrink-0">
-            <button
-              onClick={handleGuidedDemo}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black text-slate-950 bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
-            >
-              <Play size={13} className="text-teal-800 fill-teal-800 shrink-0" />
-              <span>Tour</span>
-            </button>
-
-            <a
-              href="#workstations"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white bg-teal-800 hover:bg-teal-900 shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
-            >
-              <span>Explore</span>
-              <ArrowRight size={13} className="shrink-0" />
-            </a>
+          {/* Interactive Healthcare Search Bar (Tata 1mg / Apollo Style) */}
+          <div className="hidden md:flex flex-1 max-w-xl mx-2 relative">
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                <Search size={17} />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search specialists, investigations, medicines, or clinical guidelines..."
+                className="w-full pl-11 pr-10 py-3 rounded-full bg-white hover:bg-white focus:bg-white text-xs sm:text-[13px] font-semibold text-slate-900 border border-[#E8DCC8] focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 focus:outline-none transition-all placeholder:text-slate-400 shadow-2xs"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Mobile Hamburger Toggle */}
-          <div className="flex lg:hidden items-center gap-1.5 shrink-0">
+          {/* Header Action Button (Clean Single CTA) */}
+          <div className="flex items-center gap-3 shrink-0">
+            {isAuthenticated ? (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center gap-2 px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-[13px] font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+              >
+                <Shield size={15} className="text-[#F9EBD7]" />
+                <span>Dashboard</span>
+                <ArrowRight size={14} />
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                id="header-login-btn"
+                className="inline-flex items-center gap-2.5 px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-[13px] font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+              >
+                <Lock size={15} className="text-[#F9EBD7]" />
+                <span>Sign In</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
+
+            {/* Mobile Hamburger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-950 font-bold border border-slate-300 cursor-pointer shadow-xs transition-colors shrink-0"
-              aria-label="Toggle navigation menu"
+              className="md:hidden flex items-center justify-center p-3 rounded-xl bg-[#FAF6EF] text-slate-800 border border-[#E8DCC8] cursor-pointer"
+              aria-label="Toggle navigation"
             >
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-              <span className="text-xs font-black uppercase tracking-wider">Menu</span>
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Dropdown Slide-Out */}
+        {/* ── MOBILE MENU SLIDE-DOWN ──────────────────────────────────── */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t-2 border-slate-200 bg-white px-3 sm:px-4 py-4 sm:py-5 space-y-3 animate-fade-in shadow-2xl">
-            <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">Quick Navigation</p>
-            <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-900">
-              <a
-                href="#workstations"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-center truncate"
-              >
-                Workstations
-              </a>
-              <a
-                href="#console-preview"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-center truncate"
-              >
-                Console
-              </a>
-              <a
-                href="#workflow"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-center truncate"
-              >
-                Continuum
-              </a>
-              <a
-                href="#safety"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-center truncate"
-              >
-                Safety
-              </a>
-              <NavLink
-                to="/overview"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-center truncate"
-              >
-                Blueprint
+          <div className="md:hidden bg-white border-t border-[#E8DCC8] px-4 py-4 space-y-3 animate-fade-in shadow-xl">
+            {/* Mobile Search */}
+            <div className="relative w-full">
+              <Search size={15} className="absolute left-3 top-3 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search specialists, medicines, investigations..."
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#FAF6EF] text-xs font-semibold border border-[#E8DCC8] focus:outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-bold pt-2">
+              <NavLink to="/patient/glucose" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
+                📈 Glucose Monitor
               </NavLink>
-              <NavLink
-                to="/care-summary"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-center truncate"
-              >
-                Summary
+              <NavLink to="/doctor/dashboard" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
+                🩺 Doctor Station
+              </NavLink>
+              <a href="#workstations" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
+                🛡️ Workstations
+              </a>
+              <NavLink to="/patient/investigations" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
+                🧪 Investigations
               </NavLink>
             </div>
 
-            <div className="pt-2 border-t border-slate-200 space-y-2">
+            <div className="pt-2 border-t border-slate-200">
               <button
-                onClick={() => { setMobileMenuOpen(false); handleGuidedDemo(); }}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 text-xs font-black text-white bg-teal-800 rounded-xl shadow-xs"
+                onClick={() => { setMobileMenuOpen(false); navigate(isAuthenticated ? '/dashboard' : '/login'); }}
+                className="w-full py-3 rounded-xl text-xs font-black text-white bg-[#046A38] flex items-center justify-center gap-2 shadow-md cursor-pointer"
               >
-                <Play size={14} className="fill-white" />
-                <span>Launch Interactive Tour</span>
+                <Lock size={14} className="text-[#F9EBD7]" />
+                <span>{isAuthenticated ? 'Open Dashboard' : 'Sign In to Portal'}</span>
+                <ArrowRight size={14} />
               </button>
             </div>
           </div>
         )}
       </header>
 
-      {/* ── Hero Section ──────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-8 sm:pt-20 pb-12 sm:pb-24 border-b-2 border-slate-200 bg-gradient-to-b from-white via-slate-50/70 to-teal-50/20">
-        
-        {/* Subtle Ambient Radial Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-teal-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      {/* ── 3D SCROLL-DRIVEN HERO SECTION ────────────────────────────── */}
+      <ScrollHero3D
+        isAuthenticated={isAuthenticated}
+        onGuidedDemo={handleGuidedDemo}
+      />
 
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
-            
-            {/* Clinical Pill Badge */}
-            <div className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-teal-50 border-2 border-teal-200 shadow-xs mb-5 max-w-full">
-              <Sparkles size={14} className="text-teal-800 shrink-0" />
-              <span className="text-[10px] sm:text-xs font-extrabold text-teal-950 uppercase tracking-wider text-center">
-                <span className="sm:hidden">ADA 2024 Guidelines • Care Architecture</span>
-                <span className="hidden sm:inline">Synchronized Healthcare Architecture • ADA 2024 Guidelines</span>
-              </span>
-            </div>
-
-            {/* Grand Headline */}
-            <h1 className="text-2xl sm:text-5xl lg:text-6xl font-black text-slate-950 tracking-tight leading-[1.2] mb-5">
-              Precision Diabetes Care.{' '}
-              <span className="bg-gradient-to-r from-teal-800 via-teal-950 to-slate-950 bg-clip-text text-transparent block sm:inline">
-                Closed-Loop Collaboration.
-              </span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-sm sm:text-lg text-slate-800 font-semibold leading-relaxed mb-6 sm:mb-8 max-w-3xl mx-auto">
-              Bridging the critical 8,700-hour gap between clinic appointments by linking Type 2 Diabetes patients, endocrinologists, Pharm D clinical pharmacists, and supervised AI into one synchronized continuum.
-            </p>
-
-            {/* Main Action CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-8 sm:mb-10 max-w-md sm:max-w-none mx-auto w-full">
-              <button
-                onClick={handleGuidedDemo}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 sm:px-7 py-3.5 sm:py-4 rounded-xl bg-teal-800 hover:bg-teal-900 text-white font-black text-xs sm:text-sm shadow-md hover:shadow-xl transition-all cursor-pointer active:scale-95"
-              >
-                <Play size={16} className="fill-white shrink-0" />
-                <span>Launch Interactive Guided Tour</span>
-              </button>
-
-              <NavLink
-                to="/overview"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-xl bg-white hover:bg-slate-100 text-slate-950 border-2 border-slate-300 font-black text-xs sm:text-sm transition-all shadow-xs active:scale-95 text-center"
-              >
-                <BookOpen size={16} className="text-slate-800 shrink-0" />
-                <span>Clinical Architecture Blueprint</span>
-              </NavLink>
-            </div>
-
-            {/* Quick Station Switcher Bar */}
-            <div className="p-3 bg-white/90 backdrop-blur-md rounded-2xl border-2 border-slate-200 shadow-sm max-w-3xl mx-auto mb-14">
-              <p className="text-[11px] font-black uppercase tracking-wider text-slate-800 mb-2">
-                Instant Workstation Jump
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {DEMO_ACCOUNTS.map(acc => (
-                  <button
-                    key={acc.id}
-                    onClick={() => handleLogin(acc)}
-                    className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 hover:border-teal-700 bg-slate-50 hover:bg-teal-50/50 transition-all text-left cursor-pointer group"
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${acc.theme.iconBg}`}>
-                      <acc.icon size={16} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="block text-xs font-black text-slate-950 truncate group-hover:text-teal-900">
-                        {acc.role.toUpperCase()}
-                      </span>
-                      <span className="block text-[10px] font-semibold text-slate-700 truncate">
-                        {acc.name.split(' ')[0]}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Interactive Live Clinical Console Preview ───────────────── */}
-          <div id="console-preview" className="max-w-5xl mx-auto">
-            <div className="bg-white rounded-3xl border-2 border-slate-300 shadow-2xl overflow-hidden">
-              
-              {/* Console Window Header */}
-              <div className="bg-slate-950 px-5 py-3.5 flex items-center justify-between border-b border-slate-800">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-rose-500" />
-                    <div className="w-3 h-3 rounded-full bg-amber-500" />
-                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                  </div>
-                  <span className="text-xs font-mono font-bold text-slate-300 ml-2 hidden sm:inline">
-                    LATROCORE // Clinical Telemetry Station // Patient #PAT-001
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Real-time Telemetry: Active</span>
-                </div>
-              </div>
-
-              {/* Console Interactive Tabs */}
-              <div className="bg-slate-100 px-4 pt-3 border-b-2 border-slate-200 flex items-center gap-2 overflow-x-auto">
-                {[
-                  { id: 'cgm', label: 'CGM Glycemic Stream', icon: Activity },
-                  { id: 'pharmd', label: 'Pharm D Safety Radar', icon: Pill },
-                  { id: 'matrix', label: 'Care Continuum Matrix', icon: Layers },
-                  { id: 'safety', label: 'Clinical Rails', icon: Shield },
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveConsoleTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-black rounded-t-xl transition-all cursor-pointer whitespace-nowrap border-t-2 border-x-2 -mb-0.5 ${
-                      activeConsoleTab === tab.id
-                        ? 'bg-white border-slate-300 text-teal-900 shadow-xs'
-                        : 'border-transparent text-slate-700 hover:text-slate-950 hover:bg-slate-200/60'
-                    }`}
-                  >
-                    <tab.icon size={15} />
-                    <span>{tab.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Console Content Area */}
-              <div className="p-4 sm:p-6 bg-white min-h-[340px]">
-                {activeConsoleTab === 'cgm' && (
-                  <div className="space-y-4 animate-fade-in">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="p-3.5 rounded-xl border border-slate-200 bg-teal-50/50">
-                        <span className="text-[11px] font-bold uppercase text-slate-700 block">Current Glucose</span>
-                        <span className="text-2xl font-black text-teal-900 block mt-0.5">114 mg/dL</span>
-                        <span className="text-xs font-bold text-emerald-800 flex items-center gap-1 mt-1">
-                          <Check size={14} /> Normal Fasting Window
-                        </span>
-                      </div>
-                      <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                        <span className="text-[11px] font-bold uppercase text-slate-700 block">Time in Range (TIR)</span>
-                        <span className="text-2xl font-black text-slate-950 block mt-0.5">82.4%</span>
-                        <span className="text-xs font-bold text-teal-800 block mt-1">Target &ge; 70% (ADA Benchmark)</span>
-                      </div>
-                      <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                        <span className="text-[11px] font-bold uppercase text-slate-700 block">Latest HbA1c</span>
-                        <span className="text-2xl font-black text-slate-950 block mt-0.5">7.2%</span>
-                        <span className="text-xs font-bold text-amber-800 block mt-1">Target &le; 7.0%</span>
-                      </div>
-                    </div>
-
-                    <div className="border border-slate-200 rounded-xl p-3 bg-white">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-extrabold text-slate-900">Today&apos;s Continuous Glucose Curve (mg/dL)</span>
-                        <span className="text-xs font-bold text-slate-600">Target Band: 70 - 180 mg/dL</span>
-                      </div>
-                      <div className="w-full min-w-0 overflow-hidden" style={{ minHeight: 180 }}>
-                        <ResponsiveContainer width="100%" height={180} minWidth={0}>
-                          <LineChart data={SAMPLE_CGM_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                            <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#090D16', fontWeight: 600 }} />
-                            <YAxis domain={[60, 200]} tick={{ fontSize: 10, fill: '#090D16', fontWeight: 600 }} />
-                            <ReferenceLine y={180} stroke="#D97706" strokeDasharray="4 4" strokeWidth={1.5} />
-                            <ReferenceLine y={70} stroke="#D97706" strokeDasharray="4 4" strokeWidth={1.5} />
-                            <Line type="monotone" dataKey="value" stroke="#0D7A71" strokeWidth={3} dot={{ r: 3, fill: '#0D7A71' }} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeConsoleTab === 'pharmd' && (
-                  <div className="space-y-4 animate-fade-in">
-                    <div className="p-4 rounded-xl bg-purple-50/70 border-2 border-purple-200 flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-purple-800 text-white shrink-0 mt-0.5">
-                        <Pill size={18} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-purple-950">Pharm D Medication Reconciliation & Interaction Check</h4>
-                        <p className="text-xs text-purple-900 font-medium mt-1 leading-relaxed">
-                          Patient currently prescribed Metformin 500mg BID + Glimepiride 1mg OD + Telmisartan 40mg OD. Screened for renal contraindications, drug-drug interactions, and hypoglycemia risk.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 border border-slate-200 rounded-xl bg-slate-50 space-y-2">
-                        <span className="font-black text-slate-950 block uppercase tracking-wider text-[11px]">Active Clinical Checks</span>
-                        <div className="flex items-center justify-between font-bold text-slate-800">
-                          <span>eGFR Renal Function:</span>
-                          <span className="text-emerald-700">84 mL/min (Normal)</span>
-                        </div>
-                        <div className="flex items-center justify-between font-bold text-slate-800">
-                          <span>Lactic Acidosis Risk:</span>
-                          <span className="text-emerald-700">Low (eGFR &gt; 45)</span>
-                        </div>
-                        <div className="flex items-center justify-between font-bold text-slate-800">
-                          <span>Glimepiride Hypo Alert:</span>
-                          <span className="text-amber-800">Counselling Documented</span>
-                        </div>
-                      </div>
-
-                      <div className="p-3 border border-slate-200 rounded-xl bg-slate-50 space-y-2">
-                        <span className="font-black text-slate-950 block uppercase tracking-wider text-[11px]">Pharmacist Actions Taken</span>
-                        <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                          <CheckCircle2 size={14} className="text-teal-800" />
-                          <span>Patient counselled on timing with breakfast</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                          <CheckCircle2 size={14} className="text-teal-800" />
-                          <span>Emergency glucose tabs supplied</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                          <CheckCircle2 size={14} className="text-teal-800" />
-                          <span>Refill authorized by Dr. Krishnamurthy</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeConsoleTab === 'matrix' && (
-                  <div className="space-y-4 animate-fade-in text-slate-950">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="p-4 rounded-xl border-2 border-teal-200 bg-teal-50/50">
-                        <span className="text-xs font-black uppercase text-teal-900 block mb-1">1. Patient Telemetry</span>
-                        <p className="text-xs font-medium text-slate-800 leading-relaxed">
-                          Daily continuous logging of blood glucose, medication intake, carbohydrate logs, and symptom reporting.
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl border-2 border-purple-200 bg-purple-50/50">
-                        <span className="text-xs font-black uppercase text-purple-900 block mb-1">2. Pharm D Safety Review</span>
-                        <p className="text-xs font-medium text-slate-800 leading-relaxed">
-                          Detects adherence gaps, drug-drug contraindications, and titrates patient lifestyle education.
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl border-2 border-blue-200 bg-blue-50/50">
-                        <span className="text-xs font-black uppercase text-blue-900 block mb-1">3. Doctor Oversight</span>
-                        <p className="text-xs font-medium text-slate-800 leading-relaxed">
-                          Evaluates longitudinal HbA1c trajectory, adjusts pharmacotherapy, and approves clinical referrals.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-slate-100 rounded-xl text-center text-xs font-black text-slate-900">
-                      Closed-loop handoffs ensure no patient decision goes unguided between clinic visits.
-                    </div>
-                  </div>
-                )}
-
-                {activeConsoleTab === 'safety' && (
-                  <div className="space-y-3 animate-fade-in">
-                    <div className="p-3.5 bg-rose-50 border-2 border-rose-200 rounded-xl text-xs text-rose-950 font-bold flex items-center gap-2">
-                      <AlertTriangle size={18} className="text-rose-700 shrink-0" />
-                      <span>Strict Clinician Governance Rail: AI decision engine NEVER modifies prescriptions autonomously.</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-900">
-                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2">
-                        <CheckCircle2 size={16} className="text-teal-800" />
-                        <span>Hypoglycemia trigger: &lt; 70 mg/dL immediate escalation</span>
-                      </div>
-                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2">
-                        <CheckCircle2 size={16} className="text-teal-800" />
-                        <span>Hyperglycemia trigger: &gt; 250 mg/dL clinical notification</span>
-                      </div>
-                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2">
-                        <CheckCircle2 size={16} className="text-teal-800" />
-                        <span>Prescription changes require digital physician sign-off</span>
-                      </div>
-                      <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-2">
-                        <CheckCircle2 size={16} className="text-teal-800" />
-                        <span>Full cryptographic audit logging of all modifications</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Key Impact Metrics ────────────────────────────────────────── */}
-      <section className="py-12 bg-white border-b-2 border-slate-200">
+      {/* ── 6-PILLAR HEALTHCARE SERVICES GRID (APOLLO / 1MG ICONS) ─────── */}
+      <section className="pt-5 pb-8 sm:pt-6 sm:pb-10 bg-white border-y border-[#E8DCC8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <div className="p-5 rounded-2xl border-2 border-slate-200 bg-slate-50/70 text-center shadow-xs">
-              <span className="block text-3xl sm:text-4xl font-black text-teal-800 tracking-tight">100%</span>
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider block mt-1">Closed-Loop Care</span>
-              <span className="text-[11px] font-semibold text-slate-600 mt-1 block">Replacing episodic care gaps</span>
-            </div>
-            <div className="p-5 rounded-2xl border-2 border-slate-200 bg-slate-50/70 text-center shadow-xs">
-              <span className="block text-3xl sm:text-4xl font-black text-blue-800 tracking-tight">3-Way</span>
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider block mt-1">Clinical Handoffs</span>
-              <span className="text-[11px] font-semibold text-slate-600 mt-1 block">Patient, Doctor & Pharm D</span>
-            </div>
-            <div className="p-5 rounded-2xl border-2 border-slate-200 bg-slate-50/70 text-center shadow-xs">
-              <span className="block text-3xl sm:text-4xl font-black text-purple-800 tracking-tight">Pharm D</span>
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider block mt-1">Medication Safety</span>
-              <span className="text-[11px] font-semibold text-slate-600 mt-1 block">Preventing adverse interactions</span>
-            </div>
-            <div className="p-5 rounded-2xl border-2 border-slate-200 bg-slate-50/70 text-center shadow-xs">
-              <span className="block text-3xl sm:text-4xl font-black text-rose-700 tracking-tight">Zero</span>
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wider block mt-1">Autonomous Meds</span>
-              <span className="text-[11px] font-semibold text-slate-600 mt-1 block">Licensed provider sign-off</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Interactive Workstations Section ──────────────────────────── */}
-      <section id="workstations" className="py-16 sm:py-24 bg-slate-50 border-b-2 border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-black text-teal-800 uppercase tracking-widest bg-teal-100/70 px-3.5 py-1.5 rounded-full border border-teal-300 inline-block mb-3">
-              Explore The Care Team
-            </span>
-            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-950 tracking-tight">
-              Select Your Clinical Workstation
+          
+          <div className="text-center max-w-2xl mx-auto mb-5 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Comprehensive Diabetes Care Continuum
             </h2>
-            <p className="text-sm sm:text-base font-bold text-slate-700 mt-3">
-              Enter specialized environments tailored to patients, physicians, clinical pharmacists, and governance administrators.
+            <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1">
+              Synchronized diagnostic telemetry, specialized clinical oversight, medication safety, and patient companion tools.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {DEMO_ACCOUNTS.map(account => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            
+            {/* Card 1 */}
+            <NavLink
+              to="/patient/investigations"
+              className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md"
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#E34222] shadow-xs group-hover:scale-105 transition-transform mb-3">
+                <Activity size={24} />
+              </div>
+              <h3 className="font-extrabold text-xs text-slate-900 mb-1 group-hover:text-[#046A38]">
+                Lab Investigations
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                Longitudinal biomarkers & diagnostic records
+              </p>
+            </NavLink>
+
+            {/* Card 2 */}
+            <NavLink
+              to="/doctor/dashboard"
+              className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md"
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#046A38] shadow-xs group-hover:scale-105 transition-transform mb-3">
+                <Stethoscope size={24} />
+              </div>
+              <h3 className="font-extrabold text-xs text-slate-900 mb-1 group-hover:text-[#046A38]">
+                Doctor Station
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                Glycemic cohort surveillance & digital prescriptions
+              </p>
+            </NavLink>
+
+            {/* Card 3 */}
+            <button
+              onClick={() => setUploadModalOpen(true)}
+              className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md w-full"
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#E34222] shadow-xs group-hover:scale-105 transition-transform mb-3">
+                <Pill size={24} />
+              </div>
+              <h3 className="font-extrabold text-xs text-slate-900 mb-1 group-hover:text-[#046A38]">
+                Order Medicines
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                Pharm D checked prescriptions with zero DDI risks
+              </p>
+            </button>
+
+            {/* Card 4 */}
+            <NavLink
+              to="/patient/glucose"
+              className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md"
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#046A38] shadow-xs group-hover:scale-105 transition-transform mb-3">
+                <BarChart3 size={24} />
+              </div>
+              <h3 className="font-extrabold text-xs text-slate-900 mb-1 group-hover:text-[#046A38]">
+                Glucose Monitor
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                Daily glycemic logs & Time-in-Range
+              </p>
+            </NavLink>
+
+            {/* Card 5 */}
+            <NavLink
+              to="/patient/screening"
+              className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md"
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#E34222] shadow-xs group-hover:scale-105 transition-transform mb-3">
+                <ShieldCheck size={24} />
+              </div>
+              <h3 className="font-extrabold text-xs text-slate-900 mb-1 group-hover:text-[#046A38]">
+                Preventive Screening
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                Diabetic foot exam, neuropathy & fundus scans
+              </p>
+            </NavLink>
+
+            {/* Card 6 */}
+            <NavLink
+              to="/patient/lifestyle"
+              className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md"
+            >
+              <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#046A38] shadow-xs group-hover:scale-105 transition-transform mb-3">
+                <Sparkles size={24} />
+              </div>
+              <h3 className="font-extrabold text-xs text-slate-900 mb-1 group-hover:text-[#046A38]">
+                Diet & Lifestyle AI
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium leading-tight">
+                Personalized low-GI diabetic meal planning
+              </p>
+            </NavLink>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── ROLE-BASED WORKSTATIONS (ECOSYSTEM LAUNCHPAD) ───────────── */}
+      <section id="workstations" className="py-12 sm:py-16 bg-[#FAF6EF] border-b border-[#E8DCC8]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#093322] tracking-tight">
+              Clinical Workstations
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1.5">
+              Select your role to access the dedicated portal.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {WORKSTATIONS.map(station => (
               <div
-                key={account.id}
-                className={`bg-white rounded-2xl border-2 ${account.theme.border} p-6 flex flex-col justify-between shadow-xs hover:shadow-2xl transition-all duration-300 group`}
+                key={station.id}
+                onClick={() => handleWorkstationLaunch(station)}
+                className="group bg-white rounded-2xl p-6 border border-[#E8DCC8] hover:border-[#046A38] shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col items-center text-center"
               >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${account.theme.iconBg} shadow-sm`}>
-                      <account.icon size={22} />
-                    </div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border ${account.theme.badge}`}>
-                      {account.badge}
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl font-black text-slate-950 tracking-tight mb-0.5">
-                    {account.name}
-                  </h3>
-                  <p className={`text-xs font-bold ${account.theme.accentText} mb-3`}>
-                    {account.subtitle}
-                  </p>
-                  <p className="text-xs font-medium text-slate-700 leading-relaxed mb-5">
-                    {account.desc}
-                  </p>
-
-                  <div className="space-y-2 pt-3 border-t border-slate-100 mb-6">
-                    {account.highlights.map((h, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs font-bold text-slate-900">
-                        <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
-                        <span>{h}</span>
-                      </div>
-                    ))}
-                  </div>
+                {/* 3D Illustration */}
+                <div className="w-full aspect-square max-w-[190px] mb-4 flex items-center justify-center p-2 rounded-2xl bg-[#FAF6EF]/60 group-hover:bg-[#E8F5EE]/60 transition-colors">
+                  <img
+                    src={station.image}
+                    alt={station.title}
+                    className="w-full h-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
                 </div>
 
+                {/* Title */}
+                <h3 className="font-serif font-bold text-xl text-[#093322] mb-1.5 group-hover:text-[#046A38] transition-colors">
+                  {station.title}
+                </h3>
+
+                {/* Simple 1-sentence description */}
+                <p className="text-xs text-slate-600 leading-relaxed font-normal mb-5 flex-1 min-h-[38px] flex items-center justify-center">
+                  {station.desc}
+                </p>
+
+                {/* Clean Launch Button */}
                 <button
-                  onClick={() => handleLogin(account)}
-                  className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer ${account.theme.button}`}
+                  type="button"
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#046A38] hover:bg-[#03542C] text-white flex items-center justify-center gap-1.5 transition-all shadow-xs group-hover:shadow-md cursor-pointer"
                 >
-                  <span>Launch Workstation</span>
-                  <ArrowRight size={14} />
+                  <span>Launch Station</span>
+                  <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             ))}
           </div>
+
         </div>
       </section>
 
-      {/* ── Real-World Clinical Scenario Walkthrough ───────────────────── */}
-      <section id="workflow" className="py-16 sm:py-24 bg-white border-b-2 border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-black text-teal-800 uppercase tracking-widest bg-teal-100/70 px-3.5 py-1.5 rounded-full border border-teal-300 inline-block mb-3">
-              End-to-End Care Workflow
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-950 tracking-tight">
-              A Synchronized Clinical Journey in Action
-            </h2>
-            <p className="text-sm sm:text-base font-bold text-slate-700 mt-2">
-              How LATROCORE responds when Mrs. Priya Sharma records an unexpected post-meal glucose spike.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[
-              {
-                step: '01',
-                title: 'Patient Telemetry Log',
-                role: 'Priya Sharma (Patient)',
-                desc: 'Patient enters 198 mg/dL post-dinner reading with a meal tag of "Paneer Butter Masala + Naan".',
-                badge: 'Patient Portal',
-                color: 'bg-teal-50 border-teal-200 text-teal-900'
-              },
-              {
-                step: '02',
-                title: 'Pharm D Alert & Screening',
-                role: 'Kavitha Rajan (Pharm D)',
-                desc: 'Platform flags consecutive post-prandial excursions. Pharmacist reviews adherence history and identifies a missed dose.',
-                badge: 'Pharm D Console',
-                color: 'bg-purple-50 border-purple-200 text-purple-900'
-              },
-              {
-                step: '03',
-                title: 'Structured Counselling',
-                role: 'Clinical AI + Pharm D',
-                desc: 'Patient receives culturally attuned dietary advice (Hindi/English) and pharmacist follows up to reinforce medication timing.',
-                badge: 'Educational AI',
-                color: 'bg-amber-50 border-amber-200 text-amber-900'
-              },
-              {
-                step: '04',
-                title: 'Physician Review & Titration',
-                role: 'Dr. Arun Krishnamurthy',
-                desc: 'Endocrinologist reviews 30-day glycemic trend, approves dose titration with verified e-prescription.',
-                badge: 'Doctor Workstation',
-                color: 'bg-blue-50 border-blue-200 text-blue-900'
-              },
-            ].map((st, i) => (
-              <div key={i} className={`p-5 rounded-2xl border-2 ${st.color} flex flex-col justify-between shadow-xs`}>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-2xl font-black opacity-60">#{st.step}</span>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/80 border">
-                      {st.badge}
-                    </span>
-                  </div>
-                  <h4 className="text-base font-black mb-1">{st.title}</h4>
-                  <p className="text-xs font-bold opacity-80 mb-2">{st.role}</p>
-                  <p className="text-xs font-medium leading-relaxed">{st.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ── Strict Safety Guardrails Section ──────────────────────────── */}
-      <section id="safety" className="py-16 sm:py-24 bg-slate-950 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3.5 py-1 rounded-full text-xs font-black uppercase mb-4">
-              <AlertTriangle size={15} />
-              <span>Zero Autonomous Prescription Protocols</span>
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-6">
-              Clinical Guardrails That Protect Every Patient.
-            </h2>
-            <p className="text-slate-300 text-sm sm:text-base font-medium leading-relaxed mb-8">
-              Medical algorithms should support care teams, not replace them. LATROCORE operates under strict regulatory guidelines where every medication modification, referral, and titration requires verified licensed clinician sign-off.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                <span className="font-black text-white text-sm block mb-1">Hard Escalation Rails</span>
-                <p className="text-xs text-slate-300 font-normal leading-relaxed">
-                  Glucose values below 70 mg/dL or above 250 mg/dL trigger immediate urgent alerts to the care team.
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                <span className="font-black text-white text-sm block mb-1">Drug Interaction Check</span>
-                <p className="text-xs text-slate-300 font-normal leading-relaxed">
-                  Prescriptions automatically cross-checked against active drugs for severe DDIs and renal dose adjustments.
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                <span className="font-black text-white text-sm block mb-1">Cryptographic Audit</span>
-                <p className="text-xs text-slate-300 font-normal leading-relaxed">
-                  Every dosage change, counselling note, and log entry is immutably timestamped with provider credentials.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <button
-                onClick={handleGuidedDemo}
-                className="bg-teal-600 hover:bg-teal-500 text-white px-6 py-3.5 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer shadow-md transition-all flex items-center gap-2"
-              >
-                <Play size={14} className="fill-white" />
-                <span>Test Guided Safety Demo</span>
-              </button>
-              <NavLink
-                to="/overview"
-                className="text-slate-300 hover:text-white text-xs font-bold underline underline-offset-4 cursor-pointer"
-              >
-                Inspect Clinical Governance Framework &rarr;
-              </NavLink>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Professional Comprehensive Footer ─────────────────────────── */}
-      <footer className="bg-slate-900 text-white pt-16 pb-12 border-t-2 border-slate-800">
+      {/* ── WHY CHOOSE LATROCORE (APOLLO TRUST PILLARS) ───────────────── */}
+      <section className="py-12 sm:py-16 bg-[#FAF6EF] border-b border-[#E8DCC8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-800">
-            {/* Col 1: Platform Brand */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-teal-700 rounded-xl flex items-center justify-center text-white shadow-xs">
-                  <Stethoscope size={22} />
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Why Patients & Physicians Trust LATROCORE
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1">
+              Engineered to clinical compliance benchmarks with zero tolerance for diagnostic errors.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] flex items-center justify-center text-[#046A38] mb-3">
+                <Award size={20} />
+              </div>
+              <h3 className="font-black text-sm text-slate-900 mb-1">Dual-Verified Pathology</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                NABL & CAP accredited partner laboratories with barcode-tracked specimen chains and double pathologist sign-offs.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-[#FAF6EF] flex items-center justify-center text-[#E34222] border border-[#E8DCC8] mb-3">
+                <ThermometerSnowflake size={20} />
+              </div>
+              <h3 className="font-black text-sm text-slate-900 mb-1">Cold-Chain Sample Logistics</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Temperature-monitored smart icebox carriers ensure enzymatic integrity for sensitive HbA1c and lipid samples.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] flex items-center justify-center text-[#046A38] mb-3">
+                <ShieldCheck size={20} />
+              </div>
+              <h3 className="font-black text-sm text-slate-900 mb-1">Zero-Trust Cryptography</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Argon2id password hashing, ephemeral token rotations, and encrypted patient data compliant with HIPAA and CDSCO rules.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-[#FDECE8] flex items-center justify-center text-[#E34222] mb-3">
+                <Pill size={20} />
+              </div>
+              <h3 className="font-black text-sm text-slate-900 mb-1">Pharm D DDI Scanner</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Real-time surveillance detects dangerous drug-drug interactions before prescription dispensing takes place.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── HIGH-FIDELITY CLINICAL FOOTER (WARM IVORY & DEEP EMERALD PALETTE) ─── */}
+      <footer className="relative bg-[#093322] text-[#E8F5EE] pt-14 pb-10 border-t-2 border-[#046A38] overflow-hidden">
+        {/* Subtle Ambient Spotlights */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#046A38]/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#E34222]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Top Assistance & Emergency Bar (Neat, Elegant, Non-Messy) */}
+          <div className="bg-[#046A38]/40 border border-[#155238] rounded-2xl p-5 sm:p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-5 shadow-lg backdrop-blur-xs">
+            <div className="flex items-center gap-4 text-center sm:text-left">
+              <div className="w-12 h-12 rounded-xl bg-[#E8F5EE] text-[#046A38] flex items-center justify-center shrink-0 shadow-sm">
+                <Stethoscope size={24} />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-base sm:text-lg text-white">
+                  Continuous Clinical Telemetry &amp; Emergency Diabetology
+                </h3>
+                <p className="text-xs text-[#A8D7BD] font-medium mt-0.5">
+                  Supervised 24/7 hypoglycemia surveillance and rapid Pharm D medication reconciliation.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <a
+                href="tel:18005287622"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#FAF6EF] text-[#093322] text-xs font-black shadow-sm transition-all cursor-pointer"
+              >
+                <PhoneCall size={14} className="text-[#E34222]" />
+                <span>1800-LATRO-CARE</span>
+              </a>
+              <button
+                onClick={() => setUploadModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white border border-[#A8D7BD]/40 text-xs font-bold transition-all cursor-pointer"
+              >
+                <Upload size={14} className="text-[#F9EBD7]" />
+                <span>Upload Rx</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Clean Columns Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-12 border-b border-[#155238]">
+            
+            {/* Col 1: Brand & Certified Accreditations (Span 4) */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="flex items-center gap-3.5">
+                <div className="p-2 rounded-2xl bg-white border border-[#155238] shadow-sm shrink-0">
+                  <img
+                    src="/logo.png"
+                    alt="LATROCORE Logo"
+                    className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                  />
                 </div>
                 <div>
-                  <span className="font-black text-white tracking-tight text-xl block leading-none">LATROCORE</span>
-                  <span className="text-[10px] font-bold text-teal-400 tracking-wider uppercase block mt-1">Clinical Care System</span>
+                  <span className="font-serif font-black text-white text-2xl tracking-tight block leading-none">
+                    LATROCORE
+                  </span>
+                  <span className="text-[10px] font-bold text-[#A8D7BD] tracking-wider uppercase mt-1 block">
+                    Precision Diabetes &amp; Diagnostics
+                  </span>
                 </div>
               </div>
-              <p className="text-xs font-medium text-slate-300 max-w-sm leading-relaxed">
-                An advanced multi-disciplinary healthcare platform linking Type 2 Diabetes patients, endocrinologists, and Pharm D medication specialists into one closed-loop care continuum.
+              
+              <p className="text-xs text-[#D1E7DD] leading-relaxed max-w-sm font-normal">
+                Closed-loop precision healthcare operating system connecting Type 2 diabetes patients, endocrinologists, and Pharm D clinical specialists with continuous biometric telemetry.
               </p>
-              <div className="flex items-center gap-2 pt-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-slate-300">All 4 Workstations Operational &amp; Synced</span>
+
+              {/* Accreditations Badges */}
+              <div className="pt-2 flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full bg-[#046A38]/60 border border-[#155238] text-[11px] font-bold text-[#F9EBD7] inline-flex items-center gap-1.5">
+                  <ShieldCheck size={13} className="text-[#A8D7BD]" />
+                  <span>CDSCO Registered</span>
+                </span>
+                <span className="px-3 py-1 rounded-full bg-[#046A38]/60 border border-[#155238] text-[11px] font-bold text-[#A8D7BD] inline-flex items-center gap-1.5">
+                  <Award size={13} className="text-[#F9EBD7]" />
+                  <span>NABL Partnered</span>
+                </span>
+                <span className="px-3 py-1 rounded-full bg-[#046A38]/60 border border-[#155238] text-[11px] font-bold text-[#FBD4CB] inline-flex items-center gap-1.5">
+                  <Shield size={13} className="text-[#E34222]" />
+                  <span>HIPAA &amp; ISO 27001</span>
+                </span>
               </div>
             </div>
 
-            {/* Col 2: Care Stations */}
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-wider text-slate-200">Workstations</p>
-              <ul className="space-y-2 text-xs font-semibold text-slate-400">
+            {/* Col 2: Diagnostic Services (Span 3) */}
+            <div className="lg:col-span-3">
+              <p className="font-serif text-xs font-black uppercase tracking-[0.2em] text-[#F9EBD7] mb-4">
+                Diagnostic Telemetry
+              </p>
+              <ul className="space-y-2.5 text-xs text-[#D1E7DD] font-medium">
                 <li>
-                  <button onClick={() => handleLogin(DEMO_ACCOUNTS[0])} className="hover:text-white transition-colors cursor-pointer text-left">
-                    Patient Care Portal
-                  </button>
+                  <NavLink to="/patient/glucose" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Continuous CGM Sensor Sync
+                  </NavLink>
                 </li>
                 <li>
-                  <button onClick={() => handleLogin(DEMO_ACCOUNTS[1])} className="hover:text-white transition-colors cursor-pointer text-left">
-                    Physician Workstation
-                  </button>
+                  <NavLink to="/patient/investigations" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> HbA1c &amp; Fasting Glucose Panels
+                  </NavLink>
                 </li>
                 <li>
-                  <button onClick={() => handleLogin(DEMO_ACCOUNTS[2])} className="hover:text-white transition-colors cursor-pointer text-left">
-                    Pharm D Clinical Station
-                  </button>
+                  <NavLink to="/patient/investigations" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Lipid &amp; Cardio-Renal Profiling
+                  </NavLink>
                 </li>
                 <li>
-                  <button onClick={() => handleLogin(DEMO_ACCOUNTS[3])} className="hover:text-white transition-colors cursor-pointer text-left">
-                    Platform Governance
-                  </button>
+                  <NavLink to="/patient/screening" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Diabetic Neuropathy &amp; Eye Screening
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/patient/lifestyle" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Personalized Low-GI Meal Engine
+                  </NavLink>
                 </li>
               </ul>
             </div>
 
-            {/* Col 3: Framework */}
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-wider text-slate-200">Clinical Framework</p>
-              <ul className="space-y-2 text-xs font-semibold text-slate-400">
-                <li><NavLink to="/overview" className="hover:text-white transition-colors">Clinical Blueprint</NavLink></li>
-                <li><NavLink to="/care-summary" className="hover:text-white transition-colors">Care Summary Dashboard</NavLink></li>
-                <li><a href="#workflow" className="hover:text-white transition-colors">Continuum Protocols</a></li>
-                <li><a href="#safety" className="hover:text-white transition-colors">Safety Guardrails</a></li>
+            {/* Col 3: Care Workstations (Span 2) */}
+            <div className="lg:col-span-2">
+              <p className="font-serif text-xs font-black uppercase tracking-[0.2em] text-[#A8D7BD] mb-4">
+                Clinical Portals
+              </p>
+              <ul className="space-y-2.5 text-xs text-[#D1E7DD] font-medium">
+                <li>
+                  <NavLink to="/patient/dashboard" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Patient Station
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/doctor/dashboard" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Doctor Station
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/pharmacist/dashboard" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Pharmacist Console
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/admin/dashboard" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Admin Governance
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/overview" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                    <span className="text-[#A8D7BD]">›</span> Blueprint Overview
+                  </NavLink>
+                </li>
               </ul>
             </div>
 
-            {/* Col 4: Standards & Compliance */}
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-wider text-slate-200">Compliance &amp; Standards</p>
-              <ul className="space-y-2.5 text-xs font-semibold text-slate-400">
-                <li className="flex items-center gap-2"><Lock size={13} className="text-teal-400 shrink-0" /> <span>HL7 FHIR Interoperable</span></li>
-                <li className="flex items-center gap-2"><Shield size={13} className="text-teal-400 shrink-0" /> <span>HIPAA Audit Compliant</span></li>
-                <li className="flex items-center gap-2"><Database size={13} className="text-teal-400 shrink-0" /> <span>Synthetic PHI Environment</span></li>
-                <li className="flex items-center gap-2"><FileText size={13} className="text-teal-400 shrink-0" /> <span>CDSCO Guidelines Aligned</span></li>
-              </ul>
+            {/* Col 4: Contact & Clinical Access (Span 3) */}
+            <div className="lg:col-span-3">
+              <p className="font-serif text-xs font-black uppercase tracking-[0.2em] text-[#FBD4CB] mb-4">
+                Clinical Helpdesk
+              </p>
+              <div className="space-y-3 text-xs text-[#D1E7DD]">
+                <div className="p-3 rounded-xl bg-[#046A38]/30 border border-[#155238]">
+                  <span className="text-[10px] font-bold text-[#A8D7BD] uppercase tracking-wider block">
+                    Emergency Hotline (24x7)
+                  </span>
+                  <span className="text-sm font-black text-white block mt-0.5">
+                    1800-LATRO-CARE
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-[#046A38]/30 border border-[#155238]">
+                  <span className="text-[10px] font-bold text-[#A8D7BD] uppercase tracking-wider block">
+                    Clinical Communication
+                  </span>
+                  <span className="text-xs font-semibold text-white block mt-0.5">
+                    clinical@latrocore.internal
+                  </span>
+                </div>
+                <NavLink
+                  to="/login"
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-[#FAF6EF] hover:bg-[#F9EBD7] text-[#093322] shadow-sm transition-all cursor-pointer"
+                >
+                  <Lock size={13} className="text-[#046A38]" />
+                  <span>Authorized Staff Portal Sign In</span>
+                </NavLink>
+              </div>
             </div>
+
           </div>
 
-          {/* Legal Notice */}
-          <div className="pt-8 space-y-4 text-[11px] font-medium text-slate-400 leading-relaxed">
-            <p>
-              <strong>Clinical Demonstration Notice:</strong> LATROCORE is an educational and technological platform designed for clinical scenario simulation. All patient identities, diagnostic readings, and medication records are synthetic and contain zero real Protected Health Information (PHI).
+          {/* Bottom Bar: Copyright & Compliance */}
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#8FBAA3] gap-4">
+            <p className="font-medium text-center sm:text-left">
+              &copy; 2026 LATROCORE Healthcare Systems. All rights reserved.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800 text-slate-500 font-bold">
-              <span>&copy; 2026 LATROCORE Healthcare Systems. All rights reserved.</span>
-              <div className="flex items-center gap-4">
-                <span className="hover:text-slate-400 transition-colors">Confidentiality Protocol</span>
-                <span>&bull;</span>
-                <span className="hover:text-slate-400 transition-colors">Security Architecture</span>
-                <span>&bull;</span>
-                <span className="hover:text-slate-400 transition-colors">Terms of Demonstration</span>
-              </div>
-            </div>
+            <p className="text-[11px] text-[#A8D7BD]/80 text-center sm:text-right max-w-lg leading-relaxed">
+              Clinical telemetry and medication titration tools operate under licensed physician oversight in accordance with CDSCO guidelines.
+            </p>
           </div>
+
         </div>
       </footer>
+
+      {/* ── QUICK PRESCRIPTION UPLOAD MODAL ─────────────────────────── */}
+      {uploadModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative text-center">
+            <button
+              onClick={() => setUploadModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E8F5EE] flex items-center justify-center text-[#046A38] mb-4">
+              <Upload size={28} className="text-[#E34222]" />
+            </div>
+
+            <h3 className="text-lg font-black text-slate-900 mb-1">
+              Upload Doctor's Prescription
+            </h3>
+            <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+              Drop your prescription image or PDF. Our Pharm D clinical pharmacists will verify medications, screen for drug interactions, and arrange 2-hour doorstep delivery.
+            </p>
+
+            <div className="border-2 border-dashed border-[#A8D7BD] rounded-2xl p-6 bg-[#FAF6EF] hover:bg-[#F9EBD7]/40 transition-colors cursor-pointer mb-5">
+              <FileText size={32} className="mx-auto text-[#046A38] mb-2" />
+              <p className="text-xs font-bold text-slate-900">Click to Browse or Drag File Here</p>
+              <p className="text-[10px] text-slate-500 mt-1">Supports JPG, PNG, PDF up to 10MB</p>
+            </div>
+
+            <button
+              onClick={() => {
+                setUploadModalOpen(false);
+                addToast({
+                  title: 'Prescription Uploaded',
+                  message: 'Our Pharm D team is reviewing your prescription for DDI safety.',
+                  type: 'success',
+                });
+              }}
+              className="w-full py-3 rounded-xl text-xs font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md cursor-pointer transition-all active:scale-95"
+            >
+              Upload & Verify with Pharmacist
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

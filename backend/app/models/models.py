@@ -44,7 +44,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
     phone = Column(String(20), nullable=True)
-    role = Column(Enum("patient", "doctor", "care_team", "admin", name="user_role"), nullable=False)
+    role = Column(Enum("patient", "doctor", "pharmacist", "care_team", "admin", name="user_role"), nullable=False)
     status = Column(Enum("active", "pending", "suspended", name="user_status"), default="active")
     verified = Column(Boolean, default=False)
     mfa_enabled = Column(Boolean, default=False)
@@ -54,7 +54,10 @@ class User(Base):
     
     organization = relationship("Organization", back_populates="users")
     patient_profile = relationship("Patient", back_populates="user", uselist=False)
+    doctor_profile = relationship("DoctorProfile", foreign_keys="DoctorProfile.user_id", back_populates="user", uselist=False)
+    pharmacist_profile = relationship("PharmacistProfile", foreign_keys="PharmacistProfile.user_id", back_populates="user", uselist=False)
     assignments = relationship("Assignment", foreign_keys="Assignment.user_id", back_populates="user")
+    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
 
 
 # ─── 3. Memberships ─────────────────────────────────────────────────
@@ -76,8 +79,12 @@ class Patient(Base):
     __tablename__ = "patients"
     
     id = Column(String(36), primary_key=True, default=gen_uuid)
+    patient_id_display = Column(String(50), unique=True, nullable=True, index=True)
     user_id = Column(String(36), ForeignKey("users.id"), unique=True, nullable=False)
     date_of_birth = Column(Date, nullable=True)
+    age = Column(Integer, nullable=True)
+    height = Column(Float, nullable=True)  # in cm
+    weight = Column(Float, nullable=True)  # in kg
     gender = Column(String(20), nullable=True)
     blood_type = Column(String(10), nullable=True)
     language = Column(String(10), default="en")
@@ -85,6 +92,8 @@ class Patient(Base):
     allergies = Column(Text, nullable=True)  # JSON string
     conditions = Column(Text, nullable=True)  # JSON string
     medicine_history = Column(Text, nullable=True)
+    prescription_file_url = Column(String(500), nullable=True)
+    prescription_file_name = Column(String(255), nullable=True)
     emergency_contact_name = Column(String(255), nullable=True)
     emergency_contact_phone = Column(String(20), nullable=True)
     created_at = Column(DateTime, default=utcnow)
@@ -456,3 +465,119 @@ class AuditEvent(Base):
     __table_args__ = (
         Index("ix_audit_actor_time", "actor_id", "created_at"),
     )
+
+
+# ─── 23. Sessions & Refresh Tokens & Rate Limiting ───────────────────
+
+class Session(Base):
+    __tablename__ = "sessions"
+    
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    is_revoked = Column(Boolean, default=False, nullable=False, index=True)
+    revoked_at = Column(DateTime, nullable=True)
+    user_agent = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    
+    user = relationship("User", back_populates="sessions")
+    refresh_tokens = relationship("RefreshToken", back_populates="session", cascade="all, delete-orphan")
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    session_id = Column(String(36), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    is_consumed = Column(Boolean, default=False, nullable=False, index=True)
+    consumed_at = Column(DateTime, nullable=True)
+    
+    session = relationship("Session", back_populates="refresh_tokens")
+
+
+class RateLimitAttempt(Base):
+    __tablename__ = "rate_limit_attempts"
+    
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    key = Column(String(255), unique=True, nullable=False, index=True)
+    attempts = Column(Integer, default=0, nullable=False)
+    first_attempt_at = Column(DateTime, default=utcnow, nullable=False)
+    locked_until = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+
+# ─── 24. Email Verification OTPs ─────────────────────────────────────
+
+class EmailVerificationOTP(Base):
+    __tablename__ = "email_verification_otps"
+    
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    email = Column(String(255), nullable=False, index=True)
+    otp_hash = Column(String(128), nullable=False)
+    purpose = Column(String(50), nullable=False)  # "signup", "reset_password"
+    token = Column(String(128), unique=True, nullable=True, index=True)
+    attempts = Column(Integer, default=0, nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    is_consumed = Column(Boolean, default=False, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    token_expires_at = Column(DateTime, nullable=True)
+    cooldown_until = Column(DateTime, nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+    __table_args__ = (
+        Index("ix_otp_email_purpose", "email", "purpose"),
+    )
+
+
+# ─── 25. Doctor Profiles ─────────────────────────────────────────────
+
+class DoctorProfile(Base):
+    __tablename__ = "doctor_profiles"
+    
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    doctor_id_display = Column(String(50), unique=True, nullable=False, index=True)
+    license_number = Column(String(100), nullable=False)
+    council = Column(String(255), nullable=False)
+    specialization = Column(String(255), nullable=False)
+    hospital_clinic = Column(String(255), nullable=True)
+    approval_status = Column(Enum("pending", "approved", "rejected", name="doctor_approval_status"), default="pending")
+    rejection_reason = Column(Text, nullable=True)
+    approved_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    
+    user = relationship("User", foreign_keys=[user_id], back_populates="doctor_profile")
+    approver = relationship("User", foreign_keys=[approved_by])
+
+
+# ─── 26. Pharmacist Profiles ──────────────────────────────────────────
+
+class PharmacistProfile(Base):
+    __tablename__ = "pharmacist_profiles"
+    
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    pharmacist_id_display = Column(String(50), unique=True, nullable=False, index=True)
+    license_number = Column(String(100), nullable=False)
+    council = Column(String(255), nullable=False)
+    specialization = Column(String(255), nullable=False)
+    pharmacy_name = Column(String(255), nullable=True)
+    approval_status = Column(Enum("pending", "approved", "rejected", name="pharmacist_approval_status"), default="pending")
+    rejection_reason = Column(Text, nullable=True)
+    approved_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    
+    user = relationship("User", foreign_keys=[user_id], back_populates="pharmacist_profile")
+    approver = relationship("User", foreign_keys=[approved_by])
+
+

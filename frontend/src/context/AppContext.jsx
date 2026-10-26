@@ -56,14 +56,10 @@ export function AppProvider({ children }) {
       const savedUser = localStorage.getItem('latrocore_user');
       if (savedUser) {
         const user = JSON.parse(savedUser);
-        if (data.users[user.id]) {
+        if (data && data.users && data.users[user.id]) {
           dispatch({ type: 'SET_USER', payload: data.users[user.id] });
-        }
-      } else {
-        // Default to doctor (doc-001) so direct navigations to /overview or workspaces have full session
-        const defaultDoc = data.users['doc-001'] || Object.values(data.users)[0];
-        if (defaultDoc) {
-          dispatch({ type: 'SET_USER', payload: defaultDoc });
+        } else if (user) {
+          dispatch({ type: 'SET_USER', payload: user });
         }
       }
     } catch (e) { /* ignore */ }

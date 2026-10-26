@@ -1,14 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './auth/AuthContext';
+import ProtectedRoute from './auth/ProtectedRoute';
+import Welcome from './pages/Welcome';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import Dashboard from './pages/Dashboard';
+import ProjectOverview from './pages/ProjectOverview';
+import NotFound from './pages/NotFound';
 import { AppProvider, useApp } from './context/AppContext';
 import AppLayout from './layouts/AppLayout';
 import { ToastContainer } from './components/ui';
 import GuidedDemo from './components/GuidedDemo';
 import FloatingAIAssistant from './components/FloatingAIAssistant';
-
-// Pages
-import Welcome from './pages/Welcome';
-import ProjectOverview from './pages/ProjectOverview';
-import NotFound from './pages/NotFound';
 
 // Patient Pages
 import PatientDashboard from './pages/patient/Dashboard';
@@ -49,13 +53,34 @@ function AppRoutes() {
       <FloatingAIAssistant />
 
       <Routes>
-        {/* Welcome / Role Login */}
+        {/* Public Landing Route (Default Home) */}
         <Route path="/" element={<Welcome />} />
+        <Route path="/welcome" element={<Navigate to="/" replace />} />
 
-        {/* Authenticated Layout Routes */}
-        <Route element={<AppLayout />}>
-          {/* Informational Project Presentation / Clinical Guidelines */}
-          <Route path="/overview" element={<ProjectOverview />} /> 
+        {/* Public Authentication Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* Protected Dashboard Route */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected Clinical Suite */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/overview" element={<ProjectOverview />} />
           {/* Patient Routes */}
           <Route path="/patient/dashboard" element={<PatientDashboard />} />
           <Route path="/patient/glucose" element={<GlucoseMonitor />} />
@@ -99,7 +124,7 @@ function AppRoutes() {
           <Route path="/care-summary" element={<CareSummary />} />
           <Route path="/care-summary/:patientId" element={<CareSummary />} />
 
-          {/* Fallback 404 within Layout */}
+          {/* Fallback 404 */}
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
@@ -110,9 +135,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppProvider>
-        <AppRoutes />
-      </AppProvider>
+      <AuthProvider>
+        <AppProvider>
+          <AppRoutes />
+        </AppProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

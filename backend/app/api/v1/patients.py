@@ -59,6 +59,11 @@ def list_patients(
     per_page: int = Query(20, ge=1, le=100)
 ):
     """List patients scoped by role. Doctors/care_team see only assigned patients."""
+    if current_user.role == "doctor" and current_user.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your doctor account is pending administrative verification before patient records can be accessed."
+        )
     query = db.query(Patient).join(User, Patient.user_id == User.id)
     
     if current_user.role == "patient":

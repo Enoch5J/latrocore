@@ -1,0 +1,1758 @@
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { useApp } from '../context/AppContext';
+import { api } from '../services/api';
+import patientImg from '../assets/images/patient.png';
+import doctorImg from '../assets/images/doctor.png';
+import pharmacistImg from '../assets/images/pharmacist.png';
+import {
+  ShieldCheck,
+  User,
+  Stethoscope,
+  Pill,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Phone,
+  FileText,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  ArrowRight,
+  ArrowLeft,
+  X,
+  Check,
+  Activity,
+  Copy,
+  Ruler,
+  Weight as WeightIcon,
+  Sparkles,
+  ChevronRight
+} from 'lucide-react';
+
+const WORKSTATION_OPTIONS = [
+  {
+    role: 'patient',
+    title: 'Patient Portal',
+    badge: 'Personalized Care',
+    image: patientImg,
+    tagline: 'Continuous Diabetes Telemetry',
+    desc: 'Monitor continuous glucose levels, track daily medicines, and get personalized diet care.',
+    features: [
+      'Longitudinal CGM telemetry & Time-in-Range tracking',
+      'Smart insulin-to-carb ratios & dose history',
+      'Direct collaboration with endocrinologist'
+    ],
+    cta: 'Register as Patient'
+  },
+  {
+    role: 'doctor',
+    title: 'Doctor Station',
+    badge: 'Clinical Practice',
+    image: doctorImg,
+    tagline: 'Cohort Surveillance & Titration',
+    desc: 'Surveil cohort glycemic trajectories, review patient histories, and issue digital prescriptions.',
+    features: [
+      'Cohort trajectory monitoring & glycemic trends',
+      'Digital e-prescriptions & care protocol titration',
+      'Real-time hypoglycemia deviation alerts'
+    ],
+    cta: 'Register as Doctor'
+  },
+  {
+    role: 'pharmacist',
+    title: 'Pharmacist Station',
+    badge: 'Medication Safety',
+    image: pharmacistImg,
+    tagline: 'Medication Reconciliation & Dispensing',
+    desc: 'Reconcile medications, scan drug interactions, and adjust therapeutic dosages.',
+    features: [
+      'Automated drug-drug interaction analysis',
+      'Renal & hepatic dosage safety verification',
+      'Electronic prescription verification & dispensing'
+    ],
+    cta: 'Register as Pharmacist'
+  }
+];
+
+const COMMON_CONDITIONS = [
+  'Type 2 Diabetes',
+  'Type 1 Diabetes',
+  'Prediabetes',
+  'Gestational Diabetes',
+  'Hypertension (High BP)',
+  'Dyslipidemia (Cholesterol)',
+  'Chronic Kidney Disease',
+  'None',
+  'Prefer not to disclose'
+];
+
+const DOCTOR_SPECIALIZATIONS = [
+  'Diabetology',
+  'Endocrinology',
+  'Internal Medicine',
+  'General Physician',
+  'Cardiology',
+  'Nephrology',
+  'Family Medicine',
+  'Other'
+];
+
+const PHARMACIST_SPECIALIZATIONS = [
+  'Clinical Pharmacist',
+  'Medication Reconciliation Specialist',
+  'Hospital & Health-System Pharmacy',
+  'Community / Retail Pharmacy',
+  'Diabetic Care Specialist (CDCES)',
+  'Ambulatory Care Pharmacist',
+  'Other'
+];
+
+const COUNTRY_CODES = [
+  { code: '+91', country: 'India', flag: '🇮🇳', placeholder: '98765 43210', hint: '10 digits (starts with 6-9)' },
+  { code: '+1', country: 'USA / Canada', flag: '🇺🇸', placeholder: '202 555 0123', hint: '10 digits' },
+  { code: '+44', country: 'United Kingdom', flag: '🇬🇧', placeholder: '7911 123456', hint: '10-11 digits' },
+  { code: '+971', country: 'UAE', flag: '🇦🇪', placeholder: '50 123 4567', hint: '9 digits' },
+  { code: '+65', country: 'Singapore', flag: '🇸🇬', placeholder: '8123 4567', hint: '8 digits' },
+  { code: '+61', country: 'Australia', flag: '🇦🇺', placeholder: '412 345 678', hint: '9 digits' },
+  { code: '+49', country: 'Germany', flag: '🇩🇪', placeholder: '151 23456789', hint: '10-11 digits' }
+];
+
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'image/webp',
+  'image/jpeg',
+  'image/jpg',
+  'image/png'
+];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+export default function Signup() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const roleParam = searchParams.get('role');
+
+  const { setAuthUser } = useAuth();
+  const { addToast } = useApp();
+
+  // Role selection: If roleParam is provided, skip card picker; otherwise show 3 workstation cards first
+  const [showRoleSelection, setShowRoleSelection] = useState(!roleParam);
+  const [accountType, setAccountType] = useState(
+    roleParam === 'doctor'
+      ? 'doctor'
+      : roleParam === 'pharmacist'
+      ? 'pharmacist'
+      : 'patient'
+  );
+
+  // ── Step Navigation (1: Identity & OTP, 2: Clinical Details & Password) ──
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // ── Common Form State (Section 1) ──────────────────────────────────
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [countryCode, setCountryCode] = useState('+91');
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  // ── Patient Metrics in Section 1 (Height & Weight) ─────────────────
+  const [age, setAge] = useState('');
+  const [height, setHeight] = useState(''); // in cm
+  const [weight, setWeight] = useState(''); // in kg
+
+  // ── OTP State (Section 1) ──────────────────────────────────────────
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+  const [cooldown, setCooldown] = useState(0);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpSuccessMessage, setOtpSuccessMessage] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [devOtpCode, setDevOtpCode] = useState('');
+
+  // ── Password State (Section 2) ─────────────────────────────────────
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // ── Patient Specific State (Section 2) ─────────────────────────────
+  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [otherCondition, setOtherCondition] = useState('');
+  const [showOtherCondition, setShowOtherCondition] = useState(false);
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [prescriptionPreview, setPrescriptionPreview] = useState(null);
+  const [uploadedFileMeta, setUploadedFileMeta] = useState(null);
+  const [uploadingPrescription, setUploadingPrescription] = useState(false);
+  const [consentHealthData, setConsentHealthData] = useState(false);
+
+  // ── Doctor / Pharmacist Specific State (Section 2) ─────────────────
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [council, setCouncil] = useState('');
+  const [specialization, setSpecialization] = useState('Diabetology');
+  const [otherSpecialization, setOtherSpecialization] = useState('');
+  const [hospitalClinic, setHospitalClinic] = useState('');
+
+  // ── Terms & Submit State ───────────────────────────────────────────
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [copiedId, setCopiedId] = useState(false);
+
+  // ── Success State ──────────────────────────────────────────────────
+  const [registrationSuccess, setRegistrationSuccess] = useState(null);
+
+  const otpInputRefs = useRef([]);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    let timer = null;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown((c) => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const isValidEmail = (val) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val.trim());
+  };
+
+  // ── Select Role Handler ───────────────────────────────────────────
+  const handleSelectRole = (role) => {
+    setAccountType(role);
+    setShowRoleSelection(false);
+    setSearchParams({ role });
+    setFormError('');
+    if (role === 'doctor') {
+      setSpecialization('Diabetology');
+    } else if (role === 'pharmacist') {
+      setSpecialization('Clinical Pharmacist');
+    }
+  };
+
+  // ── Country-Aware Mobile Validation ────────────────────────────────
+  const validatePhone = (code, val) => {
+    const digits = val.replace(/\D/g, '');
+    if (!digits) {
+      return 'Mobile number is required.';
+    }
+    if (code === '+91') {
+      if (!/^[5-9]\d{9}$/.test(digits)) {
+        return 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).';
+      }
+    } else if (code === '+1') {
+      if (digits.length !== 10) {
+        return 'US/Canada phone number must be 10 digits.';
+      }
+    } else if (code === '+44') {
+      if (digits.length < 10 || digits.length > 11) {
+        return 'UK phone number must be 10 or 11 digits.';
+      }
+    } else if (code === '+971') {
+      if (digits.length !== 9) {
+        return 'UAE phone number must be 9 digits (e.g. 501234567).';
+      }
+    } else if (code === '+65') {
+      if (digits.length !== 8) {
+        return 'Singapore phone number must be 8 digits.';
+      }
+    } else if (code === '+61') {
+      if (digits.length !== 9) {
+        return 'Australia phone number must be 9 digits.';
+      }
+    } else if (code === '+49') {
+      if (digits.length < 10 || digits.length > 11) {
+        return 'German phone number must be 10 or 11 digits.';
+      }
+    } else {
+      if (digits.length < 7 || digits.length > 15) {
+        return 'Phone number must be between 7 and 15 digits.';
+      }
+    }
+    return '';
+  };
+
+  const handlePhoneChange = (e) => {
+    const val = e.target.value;
+    setPhone(val);
+    if (phoneError) {
+      setPhoneError(validatePhone(countryCode, val));
+    }
+  };
+
+  // Changing email resets OTP verification state immediately
+  const handleEmailChange = (e) => {
+    const val = e.target.value;
+    setEmail(val);
+    if (isEmailVerified || otpSent) {
+      setIsEmailVerified(false);
+      setVerificationToken('');
+      setOtpSent(false);
+      setOtpCode(['', '', '', '', '', '']);
+      setOtpError('');
+      setOtpSuccessMessage('');
+      setDevOtpCode('');
+    }
+  };
+
+  // ── Send OTP ───────────────────────────────────────────────────────
+  const handleSendOtp = async () => {
+    if (!isValidEmail(email)) {
+      setOtpError('Please enter a valid email address first.');
+      return;
+    }
+    setSendingOtp(true);
+    setOtpError('');
+    setOtpSuccessMessage('');
+
+    try {
+      const purpose =
+        accountType === 'patient'
+          ? 'patient_signup'
+          : accountType === 'doctor'
+          ? 'doctor_signup'
+          : 'pharmacist_signup';
+
+      const res = await api.sendOtp(email.trim(), purpose);
+      setOtpSent(true);
+      setCooldown(res?.cooldownSeconds || 60);
+
+      if (res?.devOtp) {
+        setDevOtpCode(res.devOtp);
+        setOtpSuccessMessage(`Code dispatched! Local Dev Code: [ ${res.devOtp} ] (Also logged to backend terminal).`);
+      } else {
+        setOtpSuccessMessage(`A 6-digit verification code has been dispatched to ${email.trim()}.`);
+      }
+      setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
+    } catch (err) {
+      setOtpError(err.message || 'Failed to send verification code. Please check your email.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  // ── OTP Inputs & Paste ─────────────────────────────────────────────
+  const handleOtpDigitChange = (index, value) => {
+    const cleaned = value.replace(/\D/g, '');
+    const newOtp = [...otpCode];
+
+    if (cleaned.length > 1) {
+      // Pasted a full code
+      const digits = cleaned.slice(0, 6).split('');
+      digits.forEach((d, i) => {
+        if (i < 6) newOtp[i] = d;
+      });
+      setOtpCode(newOtp);
+      const nextIndex = Math.min(digits.length, 5);
+      otpInputRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    newOtp[index] = cleaned;
+    setOtpCode(newOtp);
+
+    if (cleaned && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  // ── Verify OTP ─────────────────────────────────────────────────────
+  const handleVerifyOtp = async () => {
+    const code = otpCode.join('');
+    if (code.length !== 6) {
+      setOtpError('Please enter all 6 digits of the verification code.');
+      return;
+    }
+
+    setVerifyingOtp(true);
+    setOtpError('');
+
+    try {
+      const purpose =
+        accountType === 'patient'
+          ? 'patient_signup'
+          : accountType === 'doctor'
+          ? 'doctor_signup'
+          : 'pharmacist_signup';
+
+      const res = await api.verifyOtp(email.trim(), code, purpose);
+      if (res?.verificationToken) {
+        setVerificationToken(res.verificationToken);
+        setIsEmailVerified(true);
+        setOtpSuccessMessage('Email verified successfully!');
+        if (addToast) {
+          addToast('Email verified successfully! You can now proceed to the next step.', 'success');
+        }
+      } else {
+        setOtpError('Verification failed. Invalid response from server.');
+      }
+    } catch (err) {
+      setOtpError(err.message || 'Invalid or expired verification code.');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  // ── Step 1 Validation & Proceed to Step 2 ──────────────────────────
+  const handleProceedToStep2 = () => {
+    setFormError('');
+
+    if (!name.trim()) {
+      setFormError('Please enter your full name.');
+      return;
+    }
+
+    if (accountType === 'patient') {
+      const parsedAge = parseInt(age, 10);
+      if (isNaN(parsedAge) || parsedAge < 0 || parsedAge > 120) {
+        setFormError('Age must be a valid number between 0 and 120.');
+        return;
+      }
+    }
+
+    const phoneValidation = validatePhone(countryCode, phone);
+    if (phoneValidation) {
+      setPhoneError(phoneValidation);
+      setFormError(phoneValidation);
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setFormError('Please provide a valid email address.');
+      return;
+    }
+
+    if (!isEmailVerified || !verificationToken) {
+      setFormError('Please verify your email address via the 6-digit OTP code before proceeding.');
+      return;
+    }
+
+    setCurrentStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ── Patient Conditions Toggle ──────────────────────────────────────
+  const toggleCondition = (cond) => {
+    if (cond === 'None' || cond === 'Prefer not to disclose') {
+      setSelectedConditions([cond]);
+      setShowOtherCondition(false);
+      setOtherCondition('');
+      return;
+    }
+
+    let next = selectedConditions.filter((c) => c !== 'None' && c !== 'Prefer not to disclose');
+
+    if (next.includes(cond)) {
+      next = next.filter((c) => c !== cond);
+    } else {
+      next.push(cond);
+    }
+    setSelectedConditions(next);
+  };
+
+  const toggleOtherCondition = () => {
+    const nextVal = !showOtherCondition;
+    setShowOtherCondition(nextVal);
+    if (!nextVal) {
+      setOtherCondition('');
+    } else {
+      setSelectedConditions((prev) =>
+        prev.filter((c) => c !== 'None' && c !== 'Prefer not to disclose')
+      );
+    }
+  };
+
+  // ── Prescription Upload Handling ───────────────────────────────────
+  const handlePrescriptionSelect = async (file) => {
+    if (!file) return;
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      setFormError('Prescription file must be a PDF, WEBP, PNG, JPG, or JPEG.');
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setFormError('Prescription file size exceeds the 10 MB limit.');
+      return;
+    }
+
+    setPrescriptionFile(file);
+    setFormError('');
+
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setPrescriptionPreview(e.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setPrescriptionPreview(null);
+    }
+
+    setUploadingPrescription(true);
+    try {
+      const uploadRes = await api.uploadPrescription(file);
+      setUploadedFileMeta(uploadRes);
+      if (addToast) {
+        addToast('Prescription uploaded securely.', 'success');
+      }
+    } catch (err) {
+      setFormError(err.message || 'Failed to upload prescription. You can continue and upload later.');
+    } finally {
+      setUploadingPrescription(false);
+    }
+  };
+
+  const removePrescription = () => {
+    setPrescriptionFile(null);
+    setPrescriptionPreview(null);
+    setUploadedFileMeta(null);
+  };
+
+  // ── Submit Registration ───────────────────────────────────────────
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    setFormError('');
+
+    if (!isEmailVerified || !verificationToken) {
+      setFormError('Email verification is required. Please return to Step 1.');
+      return;
+    }
+
+    if (password.length < 12 || password.length > 128) {
+      setFormError('Password must be between 12 and 128 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setFormError('Password and confirm password do not match.');
+      return;
+    }
+
+    if (!acceptTerms) {
+      setFormError('You must agree to the Terms of Service and Privacy Policy to proceed.');
+      return;
+    }
+
+    if (accountType === 'patient' && !consentHealthData) {
+      setFormError('You must provide explicit consent for processing submitted health data.');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      if (accountType === 'patient') {
+        const payload = {
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          countryCode,
+          age: parseInt(age, 10),
+          height: height ? parseFloat(height) : null,
+          weight: weight ? parseFloat(weight) : null,
+          conditions: selectedConditions,
+          otherCondition: otherCondition.trim() || null,
+          prescriptionFileUrl: uploadedFileMeta?.fileUrl || null,
+          prescriptionFileName: uploadedFileMeta?.fileName || null,
+          password,
+          confirmPassword,
+          verificationToken,
+          consentHealthData,
+          acceptTerms
+        };
+
+        const res = await api.registerPatient(payload);
+        setAuthUser(res.user, res.accessToken);
+        setRegistrationSuccess({
+          type: 'patient',
+          displayId: res.user.displayId,
+          name: res.user.name,
+          email: res.user.email
+        });
+      } else if (accountType === 'doctor') {
+        if (!licenseNumber.trim()) {
+          setFormError('Medical registration / license number is required.');
+          setSubmitting(false);
+          return;
+        }
+
+        if (!council.trim()) {
+          setFormError('Medical council or licensing authority is required.');
+          setSubmitting(false);
+          return;
+        }
+
+        const finalSpec = specialization === 'Other' ? otherSpecialization.trim() : specialization;
+        if (!finalSpec) {
+          setFormError('Please specify your medical specialization.');
+          setSubmitting(false);
+          return;
+        }
+
+        const payload = {
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          countryCode,
+          licenseNumber: licenseNumber.trim(),
+          council: council.trim(),
+          specialization: finalSpec,
+          hospitalClinic: hospitalClinic.trim() || null,
+          password,
+          confirmPassword,
+          verificationToken,
+          acceptTerms
+        };
+
+        const res = await api.registerDoctor(payload);
+        setAuthUser(res.user, res.accessToken);
+        setRegistrationSuccess({
+          type: 'doctor',
+          displayId: res.user.displayId,
+          name: res.user.name,
+          email: res.user.email,
+          status: 'pending'
+        });
+      } else {
+        // Pharmacist Registration
+        if (!licenseNumber.trim()) {
+          setFormError('Pharmacy registration / license number is required.');
+          setSubmitting(false);
+          return;
+        }
+
+        if (!council.trim()) {
+          setFormError('State Pharmacy Council or licensing authority is required.');
+          setSubmitting(false);
+          return;
+        }
+
+        const finalSpec = specialization === 'Other' ? otherSpecialization.trim() : specialization;
+        if (!finalSpec) {
+          setFormError('Please specify your pharmacy practice area.');
+          setSubmitting(false);
+          return;
+        }
+
+        const payload = {
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          countryCode,
+          licenseNumber: licenseNumber.trim(),
+          council: council.trim(),
+          specialization: finalSpec,
+          pharmacyName: hospitalClinic.trim() || null,
+          password,
+          confirmPassword,
+          verificationToken,
+          acceptTerms
+        };
+
+        const res = await api.registerPharmacist(payload);
+        setAuthUser(res.user, res.accessToken);
+        setRegistrationSuccess({
+          type: 'pharmacist',
+          displayId: res.user.displayId,
+          name: res.user.name,
+          email: res.user.email,
+          status: 'pending'
+        });
+      }
+    } catch (err) {
+      setFormError(err.message || 'Registration failed. Please review your input.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
+  // ── Success Screen ─────────────────────────────────────────────────
+  if (registrationSuccess) {
+    const isDoc = registrationSuccess.type === 'doctor';
+    const isPharm = registrationSuccess.type === 'pharmacist';
+    return (
+      <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col items-center justify-center p-4 sm:p-6 lg:p-10 font-sans">
+        <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-8 sm:p-12 text-center animate-fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-[#E8F5EE] border-2 border-[#046A38] text-[#046A38] flex items-center justify-center mx-auto mb-5 shadow-sm">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+
+          <span className="inline-block px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-[#046A38] border border-emerald-200 mb-3">
+            Registration Complete
+          </span>
+
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#112228] tracking-tight mb-2">
+            Welcome to LATROCORE, {registrationSuccess.name}!
+          </h2>
+
+          <div className="my-6 p-5 rounded-2xl bg-[#FAF6EF] border border-[#E8DCC8] text-left">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
+                {isDoc
+                  ? 'Assigned Doctor Account ID'
+                  : isPharm
+                  ? 'Assigned Pharmacist Account ID'
+                  : 'Assigned Patient Health ID'}
+              </span>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(registrationSuccess.displayId)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#046A38] hover:text-[#03542C] cursor-pointer"
+              >
+                {copiedId ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedId ? 'Copied' : 'Copy ID'}</span>
+              </button>
+            </div>
+            <div className="text-2xl sm:text-3xl font-mono font-extrabold text-[#046A38] tracking-wide">
+              {registrationSuccess.displayId}
+            </div>
+            <p className="text-xs text-stone-500 mt-1">
+              Please save this ID. It serves as your permanent public health identity within LATROCORE.
+            </p>
+          </div>
+
+          {isDoc || isPharm ? (
+            <div className="text-left mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm">
+              <div className="flex items-center gap-2 font-bold mb-1">
+                <Clock className="w-4 h-4 text-amber-600 animate-pulse" />
+                <span>
+                  {isDoc
+                    ? 'Doctor Credential Verification In Progress'
+                    : 'Pharmacy Practice Credential Verification In Progress'}
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                As required by clinical governance standards, your professional registration credentials are under verification by the authorized administration team. You can sign in to view your dashboard in restricted mode while approval is completed.
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs sm:text-sm text-stone-600 mb-6 leading-relaxed">
+              Your patient workstation is now active. You can log glucose measurements, track insulin and medication schedules, and review physician recommendations.
+            </p>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (isDoc) {
+                  navigate('/doctor/dashboard');
+                } else if (isPharm) {
+                  navigate('/pharmacist/dashboard');
+                } else {
+                  navigate('/patient/dashboard');
+                }
+              }}
+              className="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-[#046A38] hover:bg-[#03542C] transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Access Your Workstation</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="py-3 px-6 rounded-xl font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-all cursor-pointer"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentCountryMeta = COUNTRY_CODES.find((c) => c.code === countryCode) || COUNTRY_CODES[0];
+
+  return (
+    <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col justify-between p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#046A38] selection:text-white">
+      {/* Top Navigation Bar */}
+      <div className="w-full max-w-5xl mx-auto flex items-center justify-between py-2 mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (!showRoleSelection && !roleParam) {
+              setShowRoleSelection(true);
+            } else {
+              navigate('/');
+            }
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white/80 hover:bg-white border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{!showRoleSelection && !roleParam ? 'Change Workstation' : 'Back to Home'}</span>
+        </button>
+
+        <div className="text-xs text-stone-500">
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            className="font-bold text-[#046A38] hover:text-[#03542C] transition-colors ml-1"
+          >
+            Sign in here
+          </Link>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          VIEW 1: WORKSTATION / ROLE SELECTION (3 CARDS MATCHING SCREENSHOT)
+         ══════════════════════════════════════════════════════════════════ */}
+      {showRoleSelection ? (
+        <div className="w-full max-w-5xl mx-auto my-auto animate-fade-in">
+          {/* Header */}
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#E8F5EE] border border-[#A8D7BD] text-xs font-bold text-[#046A38] mb-3">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#046A38]" />
+              <span>LATROCORE Clinical Gateway</span>
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#112228] tracking-tight">
+              Select Your Workstation
+            </h1>
+            <p className="text-stone-600 text-sm mt-2">
+              Choose whether you are enrolling as a Patient, Doctor, or Pharmacist to access your customized care portal.
+            </p>
+          </div>
+
+          {/* 3 Workstation Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {WORKSTATION_OPTIONS.map((station) => (
+              <div
+                key={station.role}
+                onClick={() => handleSelectRole(station.role)}
+                className="group bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DCC8] hover:border-[#046A38] shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between text-center relative overflow-hidden"
+              >
+                <div>
+                  {/* Badge */}
+                  <div className="flex justify-center mb-4">
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#FAF6EF] text-[#046A38] border border-[#E8DCC8] group-hover:bg-[#E8F5EE] group-hover:border-[#A8D7BD] transition-colors">
+                      {station.badge}
+                    </span>
+                  </div>
+
+                  {/* 3D Illustration */}
+                  <div className="w-full aspect-square max-w-[170px] mx-auto mb-5 flex items-center justify-center p-3 rounded-2xl bg-[#FAF6EF]/60 group-hover:bg-[#E8F5EE]/80 transition-colors">
+                    <img
+                      src={station.image}
+                      alt={station.title}
+                      className="w-full h-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-xl font-extrabold text-[#112228] mb-1.5 group-hover:text-[#046A38] transition-colors">
+                    {station.title}
+                  </h3>
+
+                  {/* Simple 1-sentence description matching screenshot */}
+                  <p className="text-xs text-stone-600 leading-relaxed font-normal mb-5 min-h-[42px] flex items-center justify-center">
+                    {station.desc}
+                  </p>
+
+                  {/* Feature bullet points */}
+                  <div className="space-y-2 text-left mb-6 pt-4 border-t border-stone-100">
+                    {station.features.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-[11px] text-stone-600">
+                        <Check className="w-3.5 h-3.5 text-[#046A38] shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CTA Button */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectRole(station.role)}
+                  className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] group-hover:bg-[#03542C] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer mt-2"
+                >
+                  <span>{station.cta}</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center text-xs text-stone-500">
+            Protected under LATROCORE Enterprise Healthcare Protocols. Compliant with HIPAA & GDPR.
+          </div>
+        </div>
+      ) : (
+        /* ══════════════════════════════════════════════════════════════════
+            VIEW 2: REGISTRATION FORM (CLEAN, SPACIOUS, NO LEFT GREEN PANEL)
+           ══════════════════════════════════════════════════════════════════ */
+        <div className="w-full max-w-4xl mx-auto my-auto bg-white rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-6 sm:p-10 lg:p-12 animate-fade-in">
+          
+          {/* Header Row: Title & Change Workstation link */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#E8DCC8] gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] border border-[#A8D7BD] flex items-center justify-center text-[#046A38] shadow-2xs">
+                {accountType === 'patient' ? (
+                  <User className="w-5 h-5 text-[#046A38]" />
+                ) : accountType === 'doctor' ? (
+                  <Stethoscope className="w-5 h-5 text-[#046A38]" />
+                ) : (
+                  <Pill className="w-5 h-5 text-[#046A38]" />
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-[#112228] tracking-tight">
+                  {accountType === 'patient'
+                    ? 'Patient Registration'
+                    : accountType === 'doctor'
+                    ? 'Doctor Onboarding'
+                    : 'Pharmacist Registration'}
+                </h2>
+                <span className="text-xs text-stone-500">
+                  {accountType === 'patient'
+                    ? 'Personalized diabetes care & continuous glucose tracking'
+                    : accountType === 'doctor'
+                    ? 'Cohort surveillance, titration & e-prescriptions'
+                    : 'Medication reconciliation & clinical dosage safety'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowRoleSelection(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer self-start sm:self-auto"
+            >
+              <span>Change Workstation</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+
+          {/* 2-Step Interactive Progress Stepper */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(1)}
+                className={`flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
+                  currentStep === 1 ? 'text-[#046A38]' : 'text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                <span
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold ${
+                    isEmailVerified
+                      ? 'bg-[#046A38] text-white'
+                      : currentStep === 1
+                      ? 'bg-[#046A38] text-white'
+                      : 'bg-stone-200 text-stone-600'
+                  }`}
+                >
+                  {isEmailVerified ? '✓' : '1'}
+                </span>
+                <span>Section 1: Identity & OTP</span>
+              </button>
+
+              <div className="h-1 flex-1 mx-4 bg-[#E8DCC8] rounded-full relative overflow-hidden">
+                <div
+                  className={`h-full bg-[#046A38] transition-all duration-300 ${
+                    currentStep === 2 ? 'w-full' : isEmailVerified ? 'w-1/2' : 'w-0'
+                  }`}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isEmailVerified) setCurrentStep(2);
+                }}
+                disabled={!isEmailVerified}
+                className={`flex items-center gap-2 text-xs font-bold transition-colors ${
+                  !isEmailVerified
+                    ? 'text-stone-400 cursor-not-allowed'
+                    : currentStep === 2
+                    ? 'text-[#046A38] cursor-pointer'
+                    : 'text-stone-500 hover:text-stone-800 cursor-pointer'
+                }`}
+              >
+                <span
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold ${
+                    currentStep === 2
+                      ? 'bg-[#046A38] text-white'
+                      : 'bg-stone-200 text-stone-600'
+                  }`}
+                >
+                  2
+                </span>
+                <span>
+                  {accountType === 'patient'
+                    ? 'Section 2: Health Profile & Password'
+                    : 'Section 2: Credentials & Password'}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Form-level Error Banner */}
+          {formError && (
+            <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-[#E34222] text-xs sm:text-sm flex items-start gap-2.5 animate-shake">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex-1 font-semibold">{formError}</div>
+              <button
+                type="button"
+                onClick={() => setFormError('')}
+                className="text-stone-400 hover:text-stone-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              SECTION 1: Identity, Physical Metrics & Email Verification
+             ══════════════════════════════════════════════════════════════════ */}
+          {currentStep === 1 && (
+            <div className="space-y-6 animate-fade-in">
+                {/* ── ROW 1: Full Name & Mobile Number (1 Row) ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={
+                        accountType === 'doctor'
+                          ? 'Dr. Sarah Jenkins'
+                          : accountType === 'pharmacist'
+                          ? 'Pharm. Rajesh Kumar'
+                          : 'Priya Sharma'
+                      }
+                      className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                    />
+                  </div>
+
+                  {/* Mobile Number with Country Code */}
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center justify-between">
+                      <span>
+                        Mobile Number <span className="text-red-500">*</span>
+                      </span>
+                      <span className="text-[10px] text-stone-400 font-normal">
+                        Country code: {countryCode}
+                      </span>
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        value={countryCode}
+                        onChange={(e) => {
+                          setCountryCode(e.target.value);
+                          if (phone) {
+                            setPhoneError(validatePhone(e.target.value, phone));
+                          }
+                        }}
+                        className="w-36 sm:w-40 px-2.5 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer shrink-0"
+                        title="Select Country Dialing Code"
+                      >
+                        {COUNTRY_CODES.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.flag} {c.country} ({c.code})
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={handlePhoneChange}
+                        onBlur={() => setPhoneError(validatePhone(countryCode, phone))}
+                        placeholder={currentCountryMeta.placeholder}
+                        className={`flex-1 min-w-0 px-3.5 py-3.5 rounded-xl border text-sm transition-all focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 ${
+                          phoneError
+                            ? 'border-red-300 bg-red-50/30 focus:border-red-500'
+                            : 'border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#046A38]'
+                        }`}
+                      />
+                    </div>
+                    {phoneError ? (
+                      <p className="text-[11px] text-[#E34222] font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{phoneError}</span>
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-stone-400 mt-1">
+                        Format: {currentCountryMeta.hint}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Patient-Only Biometrics (Age, Height, Weight) */}
+                {accountType === 'patient' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Age (0 – 120) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        max="120"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        placeholder="e.g. 42"
+                        className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
+                        <Ruler className="w-3.5 h-3.5 text-[#046A38]" />
+                        <span>Height (cm)</span>
+                        <span className="text-stone-400 font-normal text-[10px]">(Opt)</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="30"
+                        max="260"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                        placeholder="e.g. 172"
+                        className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
+                        <WeightIcon className="w-3.5 h-3.5 text-[#046A38]" />
+                        <span>Weight (kg)</span>
+                        <span className="text-stone-400 font-normal text-[10px]">(Opt)</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="2"
+                        max="350"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        placeholder="e.g. 68.5"
+                        className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+              {/* ── ROW 2: Email Address & Verification (1 Row) ── */}
+              <div className="p-5 rounded-2xl bg-[#FAF6EF]/70 border border-[#E8DCC8] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                    <Mail className="w-4 h-4 text-[#046A38]" />
+                    <span>Email Address &amp; Verification</span>
+                    <span className="text-red-500">*</span>
+                  </span>
+
+                  {isEmailVerified && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#046A38] bg-emerald-100/90 px-3 py-1 rounded-full shadow-2xs">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Email Verified
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    disabled={isEmailVerified}
+                    value={email}
+                    onChange={handleEmailChange}
+                    placeholder="name@latrocore.com"
+                    className="flex-1 px-4 py-3.5 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed transition-all"
+                  />
+                  {!isEmailVerified && (
+                    <button
+                      type="button"
+                      disabled={sendingOtp || cooldown > 0 || !isValidEmail(email)}
+                      onClick={handleSendOtp}
+                      className="px-5 py-3.5 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                    >
+                      {sendingOtp ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : otpSent ? 'Resend Code' : 'Send Code'}
+                    </button>
+                  )}
+                </div>
+
+                {otpSuccessMessage && (
+                  <p className="text-xs text-[#046A38] font-medium flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>{otpSuccessMessage}</span>
+                  </p>
+                )}
+
+                {otpError && (
+                  <p className="text-xs text-[#E34222] font-semibold flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{otpError}</span>
+                  </p>
+                )}
+
+                {/* 6-Digit Verification Code Inputs */}
+                {otpSent && !isEmailVerified && (
+                  <div className="pt-2 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-stone-600">
+                        Enter the 6-digit code sent to your email:
+                      </span>
+                      <span className="text-[11px] text-stone-400">Expires in 5 mins</span>
+                    </div>
+
+                    <div className="flex justify-between gap-2">
+                      {otpCode.map((digit, idx) => (
+                        <input
+                          key={idx}
+                          ref={(el) => (otpInputRefs.current[idx] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                          className="w-12 h-12 text-center text-lg font-mono font-bold rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] shadow-2xs"
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      {devOtpCode ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpCode(devOtpCode.split(''));
+                            setOtpError('');
+                          }}
+                          className="text-[11px] font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] px-3 py-1.5 rounded-lg border border-emerald-200 transition-all cursor-pointer"
+                        >
+                          Auto-fill Dev Code ({devOtpCode})
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-stone-400">Max 5 attempts allowed</span>
+                      )}
+                      <button
+                        type="button"
+                        disabled={verifyingOtp || otpCode.join('').length !== 6}
+                        onClick={handleVerifyOtp}
+                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
+                      >
+                        {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── SMALL NEXT BUTTON REVEALED AFTER OTP VERIFICATION ── */}
+                {isEmailVerified && (
+                  <div className="pt-3 border-t border-[#E8DCC8] flex items-center justify-between gap-3 animate-fade-in">
+                    <div className="flex items-center gap-1.5 text-xs text-[#046A38] font-bold">
+                      <CheckCircle2 className="w-4 h-4 text-[#046A38]" />
+                      <span>Email verified! You can now proceed to Step 2.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleProceedToStep2}
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
+                    >
+                      <span>Next</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom State: Only shown if email is NOT yet verified */}
+              {!isEmailVerified && (
+                <div className="pt-1 text-center text-xs text-stone-500 font-medium">
+                  {otpSent ? (
+                    <span className="text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200">
+                      Please enter your 6-digit OTP code above and click <strong>Verify OTP</strong> to proceed.
+                    </span>
+                  ) : (
+                    <span>
+                      Enter your email above and click <strong>Send Code</strong> to receive your OTP.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════
+              SECTION 2: Clinical Details, Password & Consents
+             ══════════════════════════════════════════════════════════════════ */}
+          {currentStep === 2 && (
+            <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
+              {/* Back to Step 1 Banner */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#FAF6EF] border border-[#E8DCC8]">
+                <div className="text-xs text-stone-700">
+                  Registering as <strong className="text-stone-900">{name}</strong> ({email})
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#046A38] hover:text-[#03542C] hover:underline cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Edit Step 1</span>
+                </button>
+              </div>
+
+              {/* ── PATIENT SPECIFIC FIELDS ── */}
+              {accountType === 'patient' && (
+                <div className="space-y-6">
+                  {/* Medical Conditions Selector */}
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      Chronic / Medical Conditions <span className="text-red-500">*</span>
+                    </label>
+                    <p className="text-[11px] text-stone-500 mb-3">
+                      Select all relevant diagnoses to help configure your glycemic target curves.
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {COMMON_CONDITIONS.map((cond) => {
+                        const isSelected = selectedConditions.includes(cond);
+                        return (
+                          <button
+                            key={cond}
+                            type="button"
+                            onClick={() => toggleCondition(cond)}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#046A38] text-white shadow-2xs border border-[#046A38]'
+                                : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3 inline mr-1.5" />}
+                            <span>{cond}</span>
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        type="button"
+                        onClick={toggleOtherCondition}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                          showOtherCondition
+                            ? 'bg-[#046A38] text-white shadow-2xs border border-[#046A38]'
+                            : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
+                        }`}
+                      >
+                        {showOtherCondition && <Check className="w-3 h-3 inline mr-1.5" />}
+                        <span>Other Condition...</span>
+                      </button>
+                    </div>
+
+                    {showOtherCondition && (
+                      <div className="mt-3">
+                        <input
+                          type="text"
+                          value={otherCondition}
+                          onChange={(e) => setOtherCondition(e.target.value)}
+                          placeholder="Specify condition (e.g. Hashimoto's Thyroiditis, PCOS)"
+                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Prescription Upload Dropzone */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-stone-700 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-[#046A38]" />
+                        <span>Recent Medical Prescription</span>
+                        <span className="text-stone-400 font-normal">(Optional)</span>
+                      </label>
+                      <span className="text-[11px] text-stone-400 font-medium">
+                        PDF, WEBP, PNG, JPG, JPEG &lt; 10 MB
+                      </span>
+                    </div>
+
+                    {!prescriptionFile ? (
+                      <label className="border-2 border-dashed border-[#E8DCC8] hover:border-[#046A38] bg-stone-50/40 hover:bg-[#FAF6EF]/60 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                        <div className="w-12 h-12 rounded-xl bg-white border border-[#E8DCC8] flex items-center justify-center text-[#046A38] group-hover:scale-105 transition-transform mb-2 shadow-2xs">
+                          <UploadCloud className="w-6 h-6 text-[#046A38]" />
+                        </div>
+                        <span className="text-xs font-bold text-stone-800">
+                          Click to upload or drag & drop prescription
+                        </span>
+                        <span className="text-[11px] text-stone-400 mt-1">
+                          Our clinical OCR will extract your insulin dosage and current medications
+                        </span>
+                        <input
+                          type="file"
+                          accept=".pdf,.webp,.png,.jpg,.jpeg"
+                          onChange={(e) => handlePrescriptionSelect(e.target.files?.[0])}
+                          className="hidden"
+                        />
+                      </label>
+                    ) : (
+                      <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          {prescriptionPreview ? (
+                            <img
+                              src={prescriptionPreview}
+                              alt="Preview"
+                              className="w-12 h-12 object-cover rounded-lg border border-stone-200 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-emerald-100 text-[#046A38] flex items-center justify-center font-bold text-xs shrink-0">
+                              PDF
+                            </div>
+                          )}
+                          <div className="overflow-hidden">
+                            <span className="text-xs font-bold text-stone-900 truncate block">
+                              {prescriptionFile.name}
+                            </span>
+                            <span className="text-[11px] text-stone-400">
+                              {(prescriptionFile.size / (1024 * 1024)).toFixed(2)} MB •{' '}
+                              {uploadingPrescription ? 'Uploading securely...' : 'Uploaded'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-semibold text-[#046A38] hover:underline cursor-pointer">
+                            Replace
+                            <input
+                              type="file"
+                              accept=".pdf,.webp,.png,.jpg,.jpeg"
+                              onChange={(e) => handlePrescriptionSelect(e.target.files?.[0])}
+                              className="hidden"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={removePrescription}
+                            className="p-1.5 text-stone-400 hover:text-red-500 rounded-lg hover:bg-stone-200 transition-colors cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── DOCTOR SPECIFIC FIELDS ── */}
+              {accountType === 'doctor' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Medical License Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={licenseNumber}
+                        onChange={(e) => setLicenseNumber(e.target.value)}
+                        placeholder="e.g. MCI-2018-84729"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        State Medical Council / Authority <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={council}
+                        onChange={(e) => setCouncil(e.target.value)}
+                        placeholder="e.g. Delhi Medical Council"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Primary Specialization <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={specialization}
+                        onChange={(e) => setSpecialization(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer"
+                      >
+                        {DOCTOR_SPECIALIZATIONS.map((spec) => (
+                          <option key={spec} value={spec}>
+                            {spec}
+                          </option>
+                        ))}
+                      </select>
+                      {specialization === 'Other' && (
+                        <input
+                          type="text"
+                          required
+                          value={otherSpecialization}
+                          onChange={(e) => setOtherSpecialization(e.target.value)}
+                          placeholder="Specify specialization"
+                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] mt-2"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Hospital / Clinic Affiliation
+                      </label>
+                      <input
+                        type="text"
+                        value={hospitalClinic}
+                        onChange={(e) => setHospitalClinic(e.target.value)}
+                        placeholder="e.g. Apollo Diabetes Centre"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── PHARMACIST SPECIFIC FIELDS ── */}
+              {accountType === 'pharmacist' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Pharmacy Registration Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={licenseNumber}
+                        onChange={(e) => setLicenseNumber(e.target.value)}
+                        placeholder="e.g. PCI-REG-2022-77192"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        State Pharmacy Council / Authority <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={council}
+                        onChange={(e) => setCouncil(e.target.value)}
+                        placeholder="e.g. Karnataka State Pharmacy Council"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Practice Area <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={specialization}
+                        onChange={(e) => setSpecialization(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer"
+                      >
+                        {PHARMACIST_SPECIALIZATIONS.map((spec) => (
+                          <option key={spec} value={spec}>
+                            {spec}
+                          </option>
+                        ))}
+                      </select>
+                      {specialization === 'Other' && (
+                        <input
+                          type="text"
+                          required
+                          value={otherSpecialization}
+                          onChange={(e) => setOtherSpecialization(e.target.value)}
+                          placeholder="Specify practice area"
+                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] mt-2"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Pharmacy / Hospital Affiliation
+                      </label>
+                      <input
+                        type="text"
+                        value={hospitalClinic}
+                        onChange={(e) => setHospitalClinic(e.target.value)}
+                        placeholder="e.g. Fortis Hospital Pharmacy / MedPlus"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Password Fields (12-128 chars, Argon2id) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                    Password (min. 12 characters) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={12}
+                      maxLength={128}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full pl-4 pr-11 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-stone-400 mt-1 block">
+                    Use letters, numbers, and symbols for high entropy.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      minLength={12}
+                      maxLength={128}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full pl-4 pr-11 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {confirmPassword && password !== confirmPassword && (
+                    <span className="text-[11px] text-[#E34222] font-semibold mt-1 block">
+                      Passwords do not match.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Consent and Terms Checkboxes */}
+              <div className="space-y-3 pt-2">
+                {accountType === 'patient' && (
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consentHealthData}
+                      onChange={(e) => setConsentHealthData(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-[#046A38] rounded border-stone-300 focus:ring-[#046A38]"
+                    />
+                    <span className="text-xs text-stone-600 leading-relaxed">
+                      I give my explicit consent to store, analyze, and process my continuous glucose telemetry, medical conditions, and uploaded prescriptions under encrypted healthcare storage protocols.
+                    </span>
+                  </label>
+                )}
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-[#046A38] rounded border-stone-300 focus:ring-[#046A38]"
+                  />
+                  <span className="text-xs text-stone-600 leading-relaxed">
+                    I agree to the{' '}
+                    <a href="#terms" className="font-semibold text-[#046A38] hover:underline">
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href="#privacy" className="font-semibold text-[#046A38] hover:underline">
+                      Privacy Policy
+                    </a>
+                    .
+                  </span>
+                </label>
+              </div>
+
+              {/* Action Buttons: Back & Complete */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="py-3.5 px-6 rounded-xl font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to Step 1</span>
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-3.5 px-6 rounded-xl font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-base"
+                >
+                  {submitting ? (
+                    <span>Registering Account...</span>
+                  ) : (
+                    <>
+                      <span>
+                        {accountType === 'patient'
+                          ? 'Complete Patient Registration'
+                          : accountType === 'doctor'
+                          ? 'Submit for Doctor Verification'
+                          : 'Submit for Pharmacist Verification'}
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="w-full text-center text-xs text-stone-400 py-4 mt-6">
+        © 2026 LATROCORE Systems Inc. Clinical precision & data privacy reserved.
+      </footer>
+    </div>
+  );
+}

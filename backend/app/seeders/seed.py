@@ -24,7 +24,7 @@ def seed():
     
     try:
         # Check if already seeded
-        if db.query(User).first():
+        if db.query(Organization).first():
             print("Database already has data. Skipping seed.")
             return
         

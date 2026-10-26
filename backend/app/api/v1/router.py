@@ -9,6 +9,7 @@ from app.api.v1.doses import router as doses_router
 from app.api.v1.referrals import router as referrals_router
 from app.api.v1.conversations import router as conversations_router
 from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.admin import router as admin_router
 
 api_router = APIRouter()
 
@@ -20,3 +21,5 @@ api_router.include_router(doses_router)
 api_router.include_router(referrals_router)
 api_router.include_router(conversations_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(admin_router)
+

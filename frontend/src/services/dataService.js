@@ -27,25 +27,6 @@ function sanitizeData(data) {
     modified = true;
   }
 
-  // Ensure today's health entries exist so Today's Timeline is never blank
-  const todayStr = new Date().toDateString();
-  const hasTodayHealth = (data.healthEntries || []).some(e => new Date(e.date).toDateString() === todayStr);
-  if (!hasTodayHealth) {
-    const today = new Date();
-    const makeTodayTime = (h, m = 0) => {
-      const d = new Date(today);
-      d.setHours(h, m, 0, 0);
-      return d.toISOString();
-    };
-    if (!data.healthEntries) data.healthEntries = [];
-    data.healthEntries.unshift(
-      { id: `meal-bfast-today`, patientId: 'pat-001', type: 'meal', mealType: 'Breakfast', items: 'Oats with chia seeds & boiled eggs', calories: 340, date: makeTodayTime(8, 30), notes: 'Low glycemic index meal' },
-      { id: `meal-lunch-today`, patientId: 'pat-001', type: 'meal', mealType: 'Lunch', items: 'Brown rice, yellow dal, palak & fresh salad', calories: 480, date: makeTodayTime(13, 15), notes: 'High dietary fiber' },
-      { id: `act-walk-today`, patientId: 'pat-001', type: 'activity', activityType: 'Brisk Walk', duration: 15, date: makeTodayTime(17, 30), notes: 'Evening neighborhood walk' },
-      { id: `bp-today`, patientId: 'pat-001', type: 'blood_pressure', systolic: 122, diastolic: 78, date: makeTodayTime(8, 0), notes: 'Normotensive' }
-    );
-    modified = true;
-  }
 
   if (modified) saveData(data);
   return data;

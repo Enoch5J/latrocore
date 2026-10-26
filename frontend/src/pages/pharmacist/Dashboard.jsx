@@ -327,15 +327,15 @@ export default function PharmacistDashboard({ initialTab }) {
       </div>
 
       {/* ── Prescription Code & Medicine Stock Verification Station Banner ── */}
-      <div className="card p-5 sm:p-6 border-2 border-[#367588]/30 bg-gradient-to-r from-white via-[#F3F8F9] to-white shadow-xs">
+      <div className="card p-5 sm:p-6 border-2 border-[#046A38]/30 bg-gradient-to-r from-white via-[#FAF6EF] to-white shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#367588] text-white flex items-center justify-center shrink-0 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#046A38] text-white flex items-center justify-center shrink-0 shadow-xs">
               <Package size={24} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-black uppercase tracking-wider bg-[#367588]/10 text-[#367588] px-2 py-0.5 rounded-full border border-[#A0C7D1]">
+                <span className="text-[11px] font-black uppercase tracking-wider bg-[#046A38]/10 text-[#046A38] px-2 py-0.5 rounded-full border border-[#A8D7BD]">
                   Dispensary Station
                 </span>
                 <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">

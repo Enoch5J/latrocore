@@ -1,73 +1,97 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #367588;
-  --color-primary-50: #F3F8F9;
-  --color-primary-100: #E3EFF2;
-  --color-primary-200: #C7DFE5;
-  --color-primary-300: #A0C7D1;
-  --color-primary-400: #6FA9B8;
-  --color-primary-500: #4B94A7;
-  --color-primary-600: #367588;
-  --color-primary-700: #2C6170;
-  --color-primary-800: #367588;
-  --color-primary-850: #254F5D;
-  --color-primary-900: #1D3F4A;
-  --color-primary-950: #12282F;
+  --color-primary: #046A38;
+  --color-primary-50: #E8F5EE;
+  --color-primary-100: #D1EBDD;
+  --color-primary-200: #A8D7BD;
+  --color-primary-300: #72BC97;
+  --color-primary-400: #429E72;
+  --color-primary-500: #1D8252;
+  --color-primary-600: #046A38;
+  --color-primary-700: #03542C;
+  --color-primary-800: #023D1F;
+  --color-primary-850: #02331A;
+  --color-primary-900: #012513;
+  --color-primary-950: #01170C;
 
-  --color-primary-light: #508E9F;
-  --color-primary-dark: #254F5D;
+  --color-primary-light: #1D8252;
+  --color-primary-dark: #03542C;
 
-  --color-brand: #367588;
-  --color-brand-light: #E3EFF2;
-  --color-brand-dark: #254F5D;
+  --color-brand: #046A38;
+  --color-brand-light: #E8F5EE;
+  --color-brand-dark: #03542C;
 
-  /* Overriding teal scale to strictly adhere to #367588 medical blue-teal across all components */
-  --color-teal-50: #F3F8F9;
-  --color-teal-100: #E3EFF2;
-  --color-teal-200: #C7DFE5;
-  --color-teal-300: #A0C7D1;
-  --color-teal-400: #6FA9B8;
-  --color-teal-500: #4B94A7;
-  --color-teal-600: #367588;
-  --color-teal-700: #2C6170;
-  --color-teal-800: #367588;
-  --color-teal-850: #254F5D;
-  --color-teal-900: #1D3F4A;
-  --color-teal-950: #12282F;
+  /* Overriding teal scale to Emerald Green (#046A38) across all clinical components */
+  --color-teal-50: #E8F5EE;
+  --color-teal-100: #D1EBDD;
+  --color-teal-200: #A8D7BD;
+  --color-teal-300: #72BC97;
+  --color-teal-400: #429E72;
+  --color-teal-500: #1D8252;
+  --color-teal-600: #046A38;
+  --color-teal-700: #03542C;
+  --color-teal-800: #023D1F;
+  --color-teal-850: #02331A;
+  --color-teal-900: #012513;
+  --color-teal-950: #01170C;
 
-  --color-secondary: #2C6170;
-  --color-secondary-light: #6FA9B8;
-  --color-secondary-dark: #1D3F4A;
+  /* Vermilion Secondary & Alert Accents */
+  --color-secondary: #E34222;
+  --color-secondary-light: #FDECE8;
+  --color-secondary-dark: #CA3517;
 
-  --color-page-bg: #FFFFFF;
+  --color-page-bg: #FAF6EF;
   --color-card: #FFFFFF;
   --color-text-primary: #112228;
   --color-text-secondary: #24383F;
   --color-text-muted: #48616A;
-  --color-border: #D2E2E6;
-  --color-border-dark: #A5C2CA;
+  --color-border: #E8DCC8;
+  --color-border-dark: #D8C6AC;
 
-  --color-success: #059669;
-  --color-success-light: #DCFCE7;
+  --color-success: #046A38;
+  --color-success-light: #E8F5EE;
   --color-warning: #D97706;
   --color-warning-light: #FEF3C7;
-  --color-danger: #DC2626;
-  --color-danger-light: #FEE2E2;
-  --color-info: #367588;
-  --color-info-light: #E3EFF2;
+  --color-danger: #E34222;
+  --color-danger-light: #FDECE8;
+  --color-info: #046A38;
+  --color-info-light: #E8F5EE;
 
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Latrocore Palette: Warm Ivory, Emerald Green & Vermilion Accent */
+  --color-ivory: #F9EBD7;
+  --color-ivory-50: #FDFBF7;
+  --color-ivory-100: #FAF6EF;
+  --color-ivory-200: #F9EBD7;
+  --color-ivory-300: #F4DEBF;
+  --color-ivory-400: #ECC799;
+
+  --color-emerald-deep: #046A38;
+  --color-emerald-800: #046A38;
+  --color-emerald-900: #03542C;
+  --color-emerald-950: #023D1F;
+  --color-emerald-50: #E8F5EE;
+  --color-emerald-100: #D1EBDD;
+  --color-emerald-200: #A8D7BD;
+
+  --color-vermilion: #E34222;
+  --color-vermilion-50: #FDECE8;
+  --color-vermilion-100: #FBD4CB;
+  --color-vermilion-500: #E34222;
+  --color-vermilion-600: #CA3517;
+  --color-vermilion-700: #A8270E;
 }
 
 @layer base {
   html {
-    background-color: #FFFFFF;
+    background-color: #FAF6EF;
     min-height: 100vh;
   }
 
   body {
-    background-color: #FFFFFF;
+    background-color: #FAF6EF;
     color: #112228;
     font-family: var(--font-sans);
     min-height: 100vh;
@@ -88,7 +112,7 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #A5C2CA #F3F8F9;
+    scrollbar-color: #A8D7BD #FAF6EF;
   }
 
   *::-webkit-scrollbar {
@@ -96,14 +120,14 @@
     height: 6px;
   }
   *::-webkit-scrollbar-track {
-    background: #F3F8F9;
+    background: #FAF6EF;
   }
   *::-webkit-scrollbar-thumb {
-    background-color: #A5C2CA;
+    background-color: #A8D7BD;
     border-radius: 9999px;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background-color: #367588;
+    background-color: #046A38;
   }
 
   /* Utilities for hiding scrollbars cleanly */
@@ -124,33 +148,33 @@
   }
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 text-white shadow-sm hover:shadow;
-    background-color: #367588;
+    background-color: #046A38;
   }
   .btn-primary:hover:not(:disabled) {
-    background-color: #254F5D;
+    background-color: #03542C;
   }
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 text-white shadow-sm hover:shadow;
-    background-color: #2C6170;
+    background-color: #E34222;
   }
   .btn-secondary:hover:not(:disabled) {
-    background-color: #1D3F4A;
+    background-color: #CA3517;
   }
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 border-2 bg-white shadow-xs;
-    border-color: #D2E2E6;
+    border-color: #E8DCC8;
     color: #112228;
   }
   .btn-outline:hover:not(:disabled) {
-    background-color: #F3F8F9;
-    border-color: #367588;
-    color: #367588;
+    background-color: #FAF6EF;
+    border-color: #046A38;
+    color: #046A38;
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 bg-danger text-white hover:bg-red-700 shadow-sm hover:shadow focus:ring-danger;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 text-slate-800 hover:bg-[#F3F8F9] hover:text-[#367588];
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 text-slate-800 hover:bg-[#E8F5EE] hover:text-[#046A38];
   }
   .btn-sm {
     @apply px-3 py-1.5 text-xs rounded-md;
@@ -161,18 +185,18 @@
 
   .card {
     @apply bg-white rounded-2xl shadow-xs hover:shadow-sm transition-shadow duration-200 max-w-full overflow-hidden;
-    border: 1px solid #D2E2E6;
+    border: 1px solid #E8DCC8;
   }
   .card-header {
     @apply px-4 sm:px-6 py-3.5 sm:py-4 text-slate-950 font-bold;
-    border-bottom: 1px solid #D2E2E6;
+    border-bottom: 1px solid #E8DCC8;
   }
   .card-body {
     @apply p-3.5 sm:p-6 max-w-full min-w-0;
   }
   .card-footer {
     @apply px-4 sm:px-6 py-3.5 sm:py-4;
-    border-top: 1px solid #D2E2E6;
+    border-top: 1px solid #E8DCC8;
   }
 
   .badge {
@@ -180,9 +204,9 @@
   }
   .badge-primary {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold;
-    background-color: #E3EFF2;
-    color: #1D3F4A;
-    border-color: #A0C7D1;
+    background-color: #E8F5EE;
+    color: #046A38;
+    border-color: #A8D7BD;
   }
   .badge-success {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-950 border-emerald-300;
@@ -297,4 +321,66 @@
 @keyframes toastCountdown {
   from { width: 100%; }
   to { width: 0%; }
+}
+
+/* 3D Animation & Spatial Telemetry Keyframes */
+@keyframes float3d {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(-9px) rotateX(2.5deg) rotateY(-2.5deg);
+  }
+}
+
+@keyframes float3dReverse {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(7px) rotateX(-2deg) rotateY(2.5deg);
+  }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.06); }
+}
+
+@keyframes telemetryScan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-float-3d {
+  animation: float3d 5.5s ease-in-out infinite;
+}
+
+.animate-float-3d-reverse {
+  animation: float3dReverse 5s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 32s linear infinite;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 3.5s ease-in-out infinite;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1200 {
+  perspective: 1200px;
 }

@@ -541,11 +541,11 @@ export default function PatientDashboard() {
       </div>
 
       {/* ── Quick Links & Actions ── */}
-      <div className="card border border-[#D2E2E6] bg-white">
-        <div className="card-header bg-[#F3F8F9] rounded-t-2xl border-b border-[#D2E2E6] flex items-center justify-between flex-wrap gap-2">
+      <div className="card border border-[#E8DCC8] bg-white">
+        <div className="card-header bg-[#FAF6EF] rounded-t-2xl border-b border-[#E8DCC8] flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <h2 className="font-extrabold text-base text-slate-950">Quick Links & Actions</h2>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#367588] border border-[#A0C7D1]">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#046A38] border border-[#A8D7BD]">
               Shortcuts
             </span>
           </div>
@@ -557,12 +557,12 @@ export default function PatientDashboard() {
               <button
                 key={i}
                 onClick={a.onClick}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-slate-200 hover:border-[#367588] bg-white hover:bg-[#F3F8F9] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
+                className="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-slate-200 hover:border-[#046A38] bg-white hover:bg-[#E8F5EE] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-xs ${a.color} group-hover:scale-105 transition-transform`}>
                   <a.icon size={22} />
                 </div>
-                <span className="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-[#367588] leading-tight">
+                <span className="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-[#046A38] leading-tight">
                   {a.label}
                 </span>
               </button>
