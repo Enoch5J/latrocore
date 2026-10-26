@@ -232,48 +232,15 @@ export default function PatientDashboard() {
     setConsultNote('');
   };
 
-  // Default diabetic schedule if today's doses are empty
-  const defaultTabletSchedule = [
-    {
-      id: 'tab-1',
-      medicineName: 'Metformin HCl',
-      dose: '500 mg',
-      scheduledTime: '08:30 AM',
-      timing: 'Post-Breakfast',
-      instruction: 'Take with or immediately after food',
-      status: takenTablets['Metformin HCl'] ? 'taken' : 'due',
-    },
-    {
-      id: 'tab-2',
-      medicineName: 'Glimepiride',
-      dose: '1 mg',
-      scheduledTime: '01:00 PM',
-      timing: 'Pre-Lunch',
-      instruction: 'Take 15 minutes before lunch',
-      status: takenTablets['Glimepiride'] ? 'taken' : 'upcoming',
-    },
-    {
-      id: 'tab-3',
-      medicineName: 'Atorvastatin',
-      dose: '10 mg',
-      scheduledTime: '08:30 PM',
-      timing: 'Post-Dinner',
-      instruction: 'Take after dinner before sleep',
-      status: takenTablets['Atorvastatin'] ? 'taken' : 'upcoming',
-    },
-  ];
-
-  const tabletScheduleItems = todayDoses.length > 0
-    ? todayDoses.map(d => ({
-        id: d.id,
-        medicineName: d.medicineName,
-        dose: d.dose || '1 tablet',
-        scheduledTime: formatTime(d.scheduledTime),
-        timing: 'As Prescribed',
-        instruction: 'Follow physician food guidelines',
-        status: takenTablets[d.medicineName] ? 'taken' : d.status,
-      }))
-    : defaultTabletSchedule;
+  const tabletScheduleItems = todayDoses.map(d => ({
+    id: d.id,
+    medicineName: d.medicineName,
+    dose: d.dose || '1 tablet',
+    scheduledTime: formatTime(d.scheduledTime),
+    timing: 'As Prescribed',
+    instruction: 'Follow physician food guidelines',
+    status: takenTablets[d.medicineName] ? 'taken' : d.status,
+  }));
 
   // ── Patient Diagnostic Tests Reminders ─────────────────────────────────
   const testReminders = [
@@ -281,10 +248,10 @@ export default function PatientDashboard() {
       id: 't-hba1c',
       name: 'HbA1c Blood Test',
       target: '< 7.0%',
-      lastResult: latestHbA1c ? `${latestHbA1c.value}% on ${formatDate(latestHbA1c.date)}` : '7.2% on 18 Sep 2026',
-      dueDate: 'Due in 12 Days',
-      status: 'Due Soon',
-      variant: 'warning',
+      lastResult: latestHbA1c ? `${latestHbA1c.value}% on ${formatDate(latestHbA1c.date)}` : 'Not recorded yet',
+      dueDate: 'Routine Check',
+      status: latestHbA1c ? 'Completed' : 'Recommended',
+      variant: latestHbA1c ? 'success' : 'warning',
       frequency: 'Quarterly ADA',
       icon: Droplets,
     },
@@ -292,9 +259,9 @@ export default function PatientDashboard() {
       id: 't-eye',
       name: 'Retinal Eye Screening',
       target: 'Retinopathy Check',
-      lastResult: 'Normal exam in 2025',
-      dueDate: '15 Oct 2026',
-      status: 'Scheduled',
+      lastResult: 'Not recorded yet',
+      dueDate: 'Annual Check',
+      status: 'Recommended',
       variant: 'info',
       frequency: 'Annual Eye Check',
       icon: Eye,
@@ -303,9 +270,9 @@ export default function PatientDashboard() {
       id: 't-kidney',
       name: 'Urine ACR & Kidney eGFR',
       target: 'ACR < 30 mg/g',
-      lastResult: '22 mg/g (Normal)',
-      dueDate: '28 Nov 2026',
-      status: 'Upcoming',
+      lastResult: 'Not recorded yet',
+      dueDate: 'Bi-Annual Check',
+      status: 'Recommended',
       variant: 'primary',
       frequency: 'Bi-Annual Renal',
       icon: Activity,
@@ -314,10 +281,10 @@ export default function PatientDashboard() {
       id: 't-foot',
       name: 'Foot Neuropathy Exam',
       target: '10g Monofilament',
-      lastResult: 'Sensory intact',
-      dueDate: '10 Dec 2026',
-      status: 'Up to Date',
-      variant: 'success',
+      lastResult: 'Not recorded yet',
+      dueDate: 'Annual Check',
+      status: 'Recommended',
+      variant: 'secondary',
       frequency: 'Annual Clinical Check',
       icon: ShieldCheck,
     },
@@ -325,9 +292,9 @@ export default function PatientDashboard() {
       id: 't-lipid',
       name: 'Fasting Lipid Profile',
       target: 'LDL < 70 mg/dL',
-      lastResult: 'LDL 88 mg/dL',
-      dueDate: '15 Jan 2027',
-      status: 'Scheduled',
+      lastResult: 'Not recorded yet',
+      dueDate: 'Routine Check',
+      status: 'Recommended',
       variant: 'gray',
       frequency: 'Every 6 Months',
       icon: FileText,
@@ -485,7 +452,7 @@ export default function PatientDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b-2 border-slate-200">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
-            Welcome back, {currentUser?.name?.split(' ')[0]}
+            Welcome back, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Patient'}
           </h1>
           <p className="text-sm sm:text-base font-semibold text-slate-700 mt-1">
             Here's your comprehensive diabetes care overview for today
@@ -506,36 +473,36 @@ export default function PatientDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           label="Latest Glucose"
-          value={latestGlucose ? `${latestGlucose.value} mg/dL` : 'No data'}
+          value={latestGlucose ? `${latestGlucose.value} mg/dL` : '—'}
           icon={Droplets}
           color="primary"
-          subtitle={latestGlucose ? `${latestGlucose.context?.toUpperCase()} • ${formatTime(latestGlucose.dateTime)}` : 'Log your reading'}
+          subtitle={latestGlucose ? `${latestGlucose.context?.toUpperCase()} • ${formatTime(latestGlucose.dateTime)}` : 'No readings logged yet'}
           onClick={() => navigate('/patient/glucose')}
         />
         <StatCard
           label="Latest HbA1c"
-          value={latestHbA1c ? `${latestHbA1c.value}%` : '7.2%'}
+          value={latestHbA1c ? `${latestHbA1c.value}%` : '—'}
           icon={TrendingUp}
           color="warning"
-          subtitle={latestHbA1c ? `Recorded on ${formatDate(latestHbA1c.date)}` : 'Recorded on 18 Sept 2026'}
+          subtitle={latestHbA1c ? `Recorded on ${formatDate(latestHbA1c.date)}` : 'No test records'}
           onClick={() => navigate('/patient/investigations')}
         />
         <StatCard
           label="Medication Adherence"
-          value={adherence ? `${adherence.pct}%` : '97%'}
+          value={adherence ? `${adherence.pct}%` : '—'}
           icon={Pill}
-          color={adherence && adherence.pct >= 80 ? 'success' : 'success'}
-          subtitle={adherence ? `${adherence.taken}/${adherence.total} doses taken on time` : '111/115 doses logged on time'}
+          color={adherence && adherence.pct >= 80 ? 'success' : 'secondary'}
+          subtitle={adherence ? `${adherence.taken}/${adherence.total} doses taken on time` : 'No prescriptions active'}
           onClick={() => navigate('/patient/medications')}
         />
         <StatCard
           label="Activity Progression"
-          value={`${activeMin} min`}
+          value={`${activeMin || 0} min`}
           icon={Heart}
           color={activeMin >= 30 ? 'success' : 'secondary'}
           badge={activeMin >= 30 ? 'Goal Met (100%)' : `${activityProgress}%`}
           progress={activityProgress}
-          subtitle={activeMin >= 30 ? 'Daily goal reached (≥30m active)' : `Target: 30 min • ${Math.max(0, 30 - activeMin)}m remaining`}
+          subtitle={activeMin >= 30 ? 'Daily goal reached (≥30m active)' : activeMin > 0 ? `Target: 30 min • ${Math.max(0, 30 - activeMin)}m remaining` : 'Target: 30 min • Log activity'}
           onClick={() => navigate('/patient/lifestyle')}
         />
       </div>
