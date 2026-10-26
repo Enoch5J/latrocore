@@ -61,8 +61,8 @@ export default function CareChecklist() {
         title: 'Medication adherence ≥80%',
         category: 'Pharmacotherapy',
         frequency: 'Daily Continuous',
-        done: adherence ? adherence.pct >= 80 : true,
-        currentValue: adherence ? `${adherence.pct}% (${adherence.taken}/${adherence.total} doses taken)` : '97% (111/115 doses on time)',
+        done: adherence ? adherence.pct >= 80 : false,
+        currentValue: adherence ? `${adherence.pct}% (${adherence.taken}/${adherence.total} doses taken)` : 'No active prescriptions',
         detail: 'Monthly prescription adherence tracking',
         clinicalRationale: 'Sustained medication compliance blunts glucose excursions and prevents cardiovascular and microvascular damage.',
         icon: Pill,
@@ -70,7 +70,7 @@ export default function CareChecklist() {
         actionLabel: 'View Medication Plan',
         actionRoute: '/patient/medications',
         target: '≥ 80% on-time doses',
-        lastChecked: 'Logged today',
+        lastChecked: adherence ? 'Logged today' : 'No prescriptions active',
       },
       {
         id: 'glucose-logging',
@@ -96,7 +96,7 @@ export default function CareChecklist() {
         category: 'Laboratory Review',
         frequency: 'Every 3 Months',
         done: !!latestHbA1c,
-        currentValue: latestHbA1c ? `${latestHbA1c.value}% (${latestHbA1c.status || 'Good Control'})` : '7.2% on 18 Sept 2026',
+        currentValue: latestHbA1c ? `${latestHbA1c.value}% (${latestHbA1c.status || 'Good Control'})` : 'No test records',
         detail: 'Quarterly glycated hemoglobin check',
         clinicalRationale: 'HbA1c quantifies average blood glucose over the past 3 months. Essential for evaluating overall diabetes management strategy.',
         icon: TrendingUp,
@@ -104,7 +104,7 @@ export default function CareChecklist() {
         actionLabel: 'View Lab Investigations',
         actionRoute: '/patient/investigations',
         target: '< 7.0% (individualized)',
-        lastChecked: latestHbA1c ? formatDate(latestHbA1c.date) : '18 Sept 2026',
+        lastChecked: latestHbA1c ? formatDate(latestHbA1c.date) : 'Pending schedule',
       },
       {
         id: 'bp-monthly',
@@ -112,7 +112,7 @@ export default function CareChecklist() {
         category: 'Cardiovascular Risk',
         frequency: 'Monthly Check',
         done: healthEntries.some(e => e.type === 'blood_pressure' && new Date(e.date) > new Date(Date.now() - 30 * 86400000)),
-        currentValue: latestBP?.value ? `${latestBP.value} mmHg` : '124/82 mmHg (Controlled)',
+        currentValue: latestBP?.value ? `${latestBP.value} mmHg` : 'No reading recorded',
         detail: 'Monthly blood pressure measurement',
         clinicalRationale: 'Tight BP control significantly reduces the rate of microvascular progression (nephropathy, retinopathy) and stroke risk.',
         icon: Activity,
@@ -120,7 +120,7 @@ export default function CareChecklist() {
         actionLabel: 'Log Vitals / Blood Pressure',
         actionRoute: '/patient/lifestyle?action=add',
         target: '< 130/80 mmHg',
-        lastChecked: latestBP ? formatDate(latestBP.date) : 'Within past 30 days',
+        lastChecked: latestBP ? formatDate(latestBP.date) : 'Pending measurement',
       },
       {
         id: 'eye-screening',
@@ -163,8 +163,10 @@ export default function CareChecklist() {
         title: 'Kidney monitoring current',
         category: 'Renal Function',
         frequency: 'At Least Annually',
-        done: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed') || true, // matches 50% state
-        currentValue: 'Urine ACR & eGFR verified normal',
+        done: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed'),
+        currentValue: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed')
+          ? 'Urine ACR & eGFR verified normal'
+          : 'Annual assessment due',
         detail: 'Spot urine albumin-to-creatinine ratio (uACR) + serum creatinine',
         clinicalRationale: 'Microalbuminuria is the earliest clinical herald of diabetic nephropathy; early detection allows renal-protective ACEi/ARB initiation.',
         icon: ClipboardCheck,
@@ -172,7 +174,7 @@ export default function CareChecklist() {
         actionLabel: 'Review Renal Panel',
         actionRoute: '/patient/investigations',
         target: 'uACR < 30 mg/g • eGFR > 60',
-        lastChecked: 'Completed (Within range)',
+        lastChecked: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed') ? 'Completed' : 'Pending Schedule',
       },
       {
         id: 'physical-activity',
@@ -269,7 +271,11 @@ export default function CareChecklist() {
               {completedCount} of {totalCount} Checkpoints In Target ({progressPct}% Complete)
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-              You are currently meeting guidelines for medication adherence, quarterly HbA1c review, blood pressure control, and renal markers. Completing your pending eye and foot examinations will bring your score to 100%.
+              {completedCount === totalCount
+                ? 'Excellent work! All preventative care checkpoints and routine diagnostics are fully up to date.'
+                : completedCount > 0
+                ? `You have achieved ${completedCount} of ${totalCount} clinical checkpoints. Complete remaining surveillance screenings to protect long-term glycemic and vascular health.`
+                : 'Stay ahead of diabetic complications by completing routine preventative tests and recording your daily vitals.'}
             </p>
           </div>
 
