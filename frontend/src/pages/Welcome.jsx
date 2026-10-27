@@ -7,6 +7,7 @@ import patientImg from '../assets/images/patient.png';
 import doctorImg from '../assets/images/doctor.png';
 import pharmacistImg from '../assets/images/pharmacist.png';
 import adminImg from '../assets/images/admin.png';
+import latrocoreLogo from '../assets/Latrocore Medical Monogram Logo.png';
 import {
   Search, Upload, ShieldCheck, Stethoscope, Pill, Activity,
   ArrowRight, Lock, FileText, Sparkles, Menu, X, BarChart3,
@@ -130,22 +131,14 @@ export default function Welcome() {
           
           {/* Brand Logo & Name */}
           <div
-            className="flex items-center gap-3 sm:gap-3.5 cursor-pointer group shrink-0"
+            className="flex items-center cursor-pointer group shrink-0"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <img
-              src="/logo-emblem.png"
-              alt="LATROCORE"
-              className="h-12 w-12 sm:h-14 sm:w-14 object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
+              src={latrocoreLogo}
+              alt="LATROCORE Medical Monogram Logo"
+              className="h-14 sm:h-16 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
             />
-            <div className="flex flex-col justify-center">
-              <span className="font-serif font-black text-[#046A38] tracking-tight text-2xl sm:text-[28px] leading-none">
-                LATROCORE
-              </span>
-              <span className="hidden sm:block text-[9.5px] sm:text-[10px] font-black uppercase tracking-[0.19em] text-[#093322]/70 mt-1">
-                Precision Diabetes &amp; Diagnostics
-              </span>
-            </div>
           </div>
 
           {/* Interactive Healthcare Search Bar (Tata 1mg / Apollo Style) */}

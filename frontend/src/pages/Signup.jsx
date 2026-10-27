@@ -6,6 +6,7 @@ import { api } from '../services/api';
 import patientImg from '../assets/images/patient.png';
 import doctorImg from '../assets/images/doctor.png';
 import pharmacistImg from '../assets/images/pharmacist.png';
+import latrocoreLogo from '../assets/Latrocore Medical Monogram Logo.png';
 import PhoneInputWithCountry from '../components/common/PhoneInputWithCountry';
 import {
   ShieldCheck,
@@ -769,7 +770,7 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col justify-between p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#046A38] selection:text-white">
       {/* Top Navigation Bar */}
-      <div className="w-full max-w-5xl mx-auto flex items-center justify-between py-2 mb-4">
+      <div className={`w-full ${showRoleSelection ? 'max-w-5xl' : 'max-w-lg'} mx-auto flex items-center justify-between py-2 mb-2`}>
         <button
           type="button"
           onClick={() => {
@@ -794,6 +795,20 @@ export default function Signup() {
             Sign in here
           </Link>
         </div>
+      </div>
+
+      {/* ── Centered LATROCORE Brand Header (matches Login page width and brand) ── */}
+      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center text-center my-2 sm:my-3">
+        <Link
+          to="/"
+          className="inline-flex flex-col items-center justify-center group focus:outline-none"
+        >
+          <img
+            src={latrocoreLogo}
+            alt="LATROCORE Medical Monogram Logo"
+            className="h-20 sm:h-24 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
+          />
+        </Link>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -861,12 +876,12 @@ export default function Signup() {
         /* ══════════════════════════════════════════════════════════════════
             VIEW 2: REGISTRATION FORM (CLEAN, SPACIOUS, NO LEFT GREEN PANEL)
            ══════════════════════════════════════════════════════════════════ */
-        <div className="w-full max-w-4xl mx-auto my-auto bg-white rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-6 sm:p-10 lg:p-12 animate-fade-in">
+        <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-6 sm:p-8 animate-fade-in">
           
           {/* Header Row: Title & Change Workstation link */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#E8DCC8] gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] border border-[#A8D7BD] flex items-center justify-center text-[#046A38] shadow-2xs">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E8DCC8] gap-3 mb-5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] border border-[#A8D7BD] flex items-center justify-center text-[#046A38] shadow-2xs shrink-0">
                 {accountType === 'patient' ? (
                   <User className="w-5 h-5 text-[#046A38]" />
                 ) : accountType === 'doctor' ? (
@@ -875,20 +890,20 @@ export default function Signup() {
                   <Pill className="w-5 h-5 text-[#046A38]" />
                 )}
               </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#112228] tracking-tight">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-extrabold text-[#112228] tracking-tight truncate">
                   {accountType === 'patient'
                     ? 'Patient Registration'
                     : accountType === 'doctor'
                     ? 'Doctor Onboarding'
                     : 'Pharmacist Registration'}
                 </h2>
-                <span className="text-xs text-stone-500">
+                <span className="text-[11px] text-stone-500 truncate block">
                   {accountType === 'patient'
-                    ? 'Personalized diabetes care & continuous glucose tracking'
+                    ? 'Personalized diabetes care & continuous telemetry'
                     : accountType === 'doctor'
-                    ? 'Cohort surveillance, titration & e-prescriptions'
-                    : 'Medication reconciliation & clinical dosage safety'}
+                    ? 'Cohort surveillance & e-prescriptions'
+                    : 'Medication reconciliation & safety'}
                 </span>
               </div>
             </div>
@@ -896,76 +911,82 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => setShowRoleSelection(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer self-start sm:self-auto"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shrink-0"
             >
-              <span>Change Workstation</span>
+              <span>Change</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-
-          {/* 2-Step Interactive Progress Stepper */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(1)}
-                className={`flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
-                  currentStep === 1 ? 'text-[#046A38]' : 'text-stone-500 hover:text-stone-800'
+          {/* Simple Clean 2-Step Indicator */}
+          <div className="flex items-center justify-between mb-6 px-1">
+            {/* Step 1 */}
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="flex items-center gap-2 cursor-pointer focus:outline-none group text-left"
+            >
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
+                  isEmailVerified
+                    ? 'bg-[#046A38] text-white shadow-2xs'
+                    : currentStep === 1
+                    ? 'bg-[#046A38] text-white ring-2 ring-[#046A38]/20 shadow-2xs'
+                    : 'bg-stone-200 text-stone-600'
                 }`}
               >
-                <span
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold ${
-                    isEmailVerified
-                      ? 'bg-[#046A38] text-white'
-                      : currentStep === 1
-                      ? 'bg-[#046A38] text-white'
-                      : 'bg-stone-200 text-stone-600'
-                  }`}
-                >
-                  {isEmailVerified ? '✓' : '1'}
-                </span>
-                <span>Section 1: Identity & OTP</span>
-              </button>
-
-              <div className="h-1 flex-1 mx-4 bg-[#E8DCC8] rounded-full relative overflow-hidden">
-                <div
-                  className={`h-full bg-[#046A38] transition-all duration-300 ${
-                    currentStep === 2 ? 'w-full' : isEmailVerified ? 'w-1/2' : 'w-0'
-                  }`}
-                />
+                {isEmailVerified ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '1'}
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (isEmailVerified) setCurrentStep(2);
-                }}
-                disabled={!isEmailVerified}
-                className={`flex items-center gap-2 text-xs font-bold transition-colors ${
-                  !isEmailVerified
-                    ? 'text-stone-400 cursor-not-allowed'
-                    : currentStep === 2
-                    ? 'text-[#046A38] cursor-pointer'
-                    : 'text-stone-500 hover:text-stone-800 cursor-pointer'
+              <span
+                className={`text-xs font-medium transition-colors ${
+                  currentStep === 1
+                    ? 'text-[#046A38] font-bold'
+                    : isEmailVerified
+                    ? 'text-stone-700'
+                    : 'text-stone-500'
                 }`}
               >
-                <span
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold ${
-                    currentStep === 2
-                      ? 'bg-[#046A38] text-white'
-                      : 'bg-stone-200 text-stone-600'
-                  }`}
-                >
-                  2
-                </span>
-                <span>
-                  {accountType === 'patient'
-                    ? 'Section 2: Health Profile & Password'
-                    : 'Section 2: Credentials & Password'}
-                </span>
-              </button>
+                Identity &amp; OTP
+              </span>
+            </button>
+
+            {/* Connecting progress bar */}
+            <div className="flex-1 mx-3 sm:mx-4 h-0.5 bg-stone-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full bg-[#046A38] transition-all duration-300 ${
+                  currentStep === 2 || isEmailVerified ? 'w-full' : 'w-0'
+                }`}
+              />
             </div>
+
+            {/* Step 2 */}
+            <button
+              type="button"
+              onClick={() => {
+                if (isEmailVerified) setCurrentStep(2);
+              }}
+              disabled={!isEmailVerified}
+              className={`flex items-center gap-2 focus:outline-none text-left ${
+                !isEmailVerified ? 'cursor-not-allowed opacity-50' : 'cursor-pointer group'
+              }`}
+            >
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
+                  currentStep === 2
+                    ? 'bg-[#046A38] text-white ring-2 ring-[#046A38]/20 shadow-2xs'
+                    : 'bg-stone-200 text-stone-600'
+                }`}
+              >
+                2
+              </div>
+              <span
+                className={`text-xs font-medium transition-colors ${
+                  currentStep === 2 ? 'text-[#046A38] font-bold' : 'text-stone-500'
+                }`}
+              >
+                {accountType === 'patient' ? 'Profile & Password' : 'Credentials'}
+              </span>
+            </button>
           </div>
 
           {/* Form-level Error Banner */}
@@ -987,117 +1008,115 @@ export default function Signup() {
               SECTION 1: Identity, Physical Metrics & Email Verification
              ══════════════════════════════════════════════════════════════════ */}
           {currentStep === 1 && (
-            <div className="space-y-6 animate-fade-in">
-                {/* ── ROW 1: Full Name & Mobile Number (1 Row) ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4 animate-fade-in">
+              {/* ── ROW 1: Full Name (Row 1) ── */}
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={
+                    accountType === 'doctor'
+                      ? 'Dr. Sarah Jenkins'
+                      : accountType === 'pharmacist'
+                      ? 'Pharm. Rajesh Kumar'
+                      : 'Priya Sharma'
+                  }
+                  className="w-full px-3.5 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                />
+              </div>
+
+              {/* ── ROW 2: Mobile Number with Country Picker (Row 2) ── */}
+              <div>
+                <PhoneInputWithCountry
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  countryCode={countryCode}
+                  onCountryCodeChange={(newCode) => {
+                    setCountryCode(newCode);
+                    if (phone) {
+                      setPhoneError(validatePhone(newCode, phone));
+                    }
+                  }}
+                  error={phoneError}
+                  onBlur={() => setPhoneError(validatePhone(countryCode, phone))}
+                  required
+                  label="Mobile Number"
+                />
+              </div>
+
+              {/* Patient-Only Biometrics (Age, Height, Weight) */}
+              {accountType === 'patient' && (
+                <div className="grid grid-cols-3 gap-2.5">
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                      Full Name <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 truncate">
+                      Age (0–120) <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="text"
+                      type="number"
                       required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={
-                        accountType === 'doctor'
-                          ? 'Dr. Sarah Jenkins'
-                          : accountType === 'pharmacist'
-                          ? 'Pharm. Rajesh Kumar'
-                          : 'Priya Sharma'
-                      }
-                      className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      min="0"
+                      max="120"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      placeholder="e.g. 42"
+                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                     />
                   </div>
 
-                  {/* Mobile Number with Comprehensive Country Code Picker matching requested UI */}
-                  <PhoneInputWithCountry
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    countryCode={countryCode}
-                    onCountryCodeChange={(newCode) => {
-                      setCountryCode(newCode);
-                      if (phone) {
-                        setPhoneError(validatePhone(newCode, phone));
-                      }
-                    }}
-                    error={phoneError}
-                    onBlur={() => setPhoneError(validatePhone(countryCode, phone))}
-                    required
-                    label="Mobile Number"
-                  />
-                </div>
-
-                {/* Patient-Only Biometrics (Age, Height, Weight) */}
-                {accountType === 'patient' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                        Age (0 – 120) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="0"
-                        max="120"
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                        placeholder="e.g. 42"
-                        className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
-                        <Ruler className="w-3.5 h-3.5 text-[#046A38]" />
-                        <span>Height (cm)</span>
-                        <span className="text-stone-400 font-normal text-[10px]">(Opt)</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="30"
-                        max="260"
-                        value={height}
-                        onChange={(e) => setHeight(e.target.value)}
-                        placeholder="e.g. 172"
-                        className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
-                        <WeightIcon className="w-3.5 h-3.5 text-[#046A38]" />
-                        <span>Weight (kg)</span>
-                        <span className="text-stone-400 font-normal text-[10px]">(Opt)</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="2"
-                        max="350"
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        placeholder="e.g. 68.5"
-                        className="w-full px-4 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1 truncate">
+                      <Ruler className="w-3.5 h-3.5 text-[#046A38] shrink-0" />
+                      <span className="truncate">Height (cm)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="30"
+                      max="260"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      placeholder="172"
+                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                    />
                   </div>
-                )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1 truncate">
+                      <WeightIcon className="w-3.5 h-3.5 text-[#046A38] shrink-0" />
+                      <span className="truncate">Weight (kg)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="2"
+                      max="350"
+                      value={weight}
+                      onChange={(e) => setWeight(e.target.value)}
+                      placeholder="68.5"
+                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* ── ROW 2: Email Address & Verification (1 Row) ── */}
-              <div className="p-5 rounded-2xl bg-[#FAF6EF]/70 border border-[#E8DCC8] space-y-3.5">
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF6EF]/75 border border-[#E8DCC8] space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
                     <Mail className="w-4 h-4 text-[#046A38]" />
-                    <span>Email Address &amp; Verification</span>
+                    <span>Email &amp; Verification</span>
                     <span className="text-red-500">*</span>
                   </span>
 
                   {isEmailVerified && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#046A38] bg-emerald-100/90 px-3 py-1 rounded-full shadow-2xs">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#046A38] bg-emerald-100/90 px-2.5 py-0.5 rounded-full shadow-2xs">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Email Verified
+                      Verified
                     </span>
                   )}
                 </div>
@@ -1110,16 +1129,16 @@ export default function Signup() {
                     value={email}
                     onChange={handleEmailChange}
                     placeholder="name@latrocore.com"
-                    className="flex-1 px-4 py-3.5 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed transition-all"
+                    className="flex-1 px-3.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed transition-all"
                   />
                   {!isEmailVerified && (
                     <button
                       type="button"
                       disabled={sendingOtp || cooldown > 0 || !isValidEmail(email)}
                       onClick={handleSendOtp}
-                      className="px-5 py-3.5 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                      className="px-4 py-3 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer whitespace-nowrap"
                     >
-                      {sendingOtp ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : otpSent ? 'Resend Code' : 'Send Code'}
+                      {sendingOtp ? 'Sending...' : cooldown > 0 ? `Resend (${cooldown}s)` : otpSent ? 'Resend Code' : 'Send Code'}
                     </button>
                   )}
                 </div>
@@ -1143,12 +1162,12 @@ export default function Signup() {
                   <div className="pt-2 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-stone-600">
-                        Enter the 6-digit code sent to your email:
+                        Enter 6-digit verification code:
                       </span>
-                      <span className="text-[11px] text-stone-400">Expires in 5 mins</span>
+                      <span className="text-[10px] text-stone-400">Expires in 5 min</span>
                     </div>
 
-                    <div className="flex justify-between gap-2">
+                    <div className="flex justify-center gap-1.5 sm:gap-2">
                       {otpCode.map((digit, idx) => (
                         <input
                           key={idx}
@@ -1159,7 +1178,7 @@ export default function Signup() {
                           value={digit}
                           onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                          className="w-12 h-12 text-center text-lg font-mono font-bold rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] shadow-2xs"
+                          className="w-10 h-11 sm:w-11 sm:h-12 text-center text-lg font-mono font-bold rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] shadow-2xs"
                         />
                       ))}
                     </div>
@@ -1172,18 +1191,18 @@ export default function Signup() {
                             setOtpCode(devOtpCode.split(''));
                             setOtpError('');
                           }}
-                          className="text-[11px] font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] px-3 py-1.5 rounded-lg border border-emerald-200 transition-all cursor-pointer"
+                          className="text-[11px] font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] px-2.5 py-1.5 rounded-lg border border-emerald-200 transition-all cursor-pointer"
                         >
                           Auto-fill Dev Code ({devOtpCode})
                         </button>
                       ) : (
-                        <span className="text-[11px] text-stone-400">Max 5 attempts allowed</span>
+                        <span className="text-[11px] text-stone-400">Max 5 attempts</span>
                       )}
                       <button
                         type="button"
                         disabled={verifyingOtp || otpCode.join('').length !== 6}
                         onClick={handleVerifyOtp}
-                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
                       >
                         {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
                       </button>
@@ -1193,18 +1212,18 @@ export default function Signup() {
 
                 {/* ── SMALL NEXT BUTTON REVEALED AFTER OTP VERIFICATION ── */}
                 {isEmailVerified && (
-                  <div className="pt-3 border-t border-[#E8DCC8] flex items-center justify-between gap-3 animate-fade-in">
+                  <div className="pt-2.5 border-t border-[#E8DCC8] flex items-center justify-between gap-2 animate-fade-in">
                     <div className="flex items-center gap-1.5 text-xs text-[#046A38] font-bold">
                       <CheckCircle2 className="w-4 h-4 text-[#046A38]" />
-                      <span>Email verified! You can now proceed to Step 2.</span>
+                      <span>Email verified!</span>
                     </div>
                     <button
                       type="button"
                       onClick={handleProceedToStep2}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
                     >
                       <span>Next</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
@@ -1214,8 +1233,8 @@ export default function Signup() {
               {!isEmailVerified && (
                 <div className="pt-1 text-center text-xs text-stone-500 font-medium">
                   {otpSent ? (
-                    <span className="text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200">
-                      Please enter your 6-digit OTP code above and click <strong>Verify OTP</strong> to proceed.
+                    <span className="text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 text-[11px]">
+                      Enter your 6-digit OTP code and click <strong>Verify OTP</strong> to proceed.
                     </span>
                   ) : (
                     <span>
@@ -1541,10 +1560,10 @@ export default function Signup() {
               )}
 
               {/* Password Fields (12-128 chars, Argon2id) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                    Password (min. 12 characters) <span className="text-red-500">*</span>
+                    Password (min. 12 chars) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -1555,18 +1574,18 @@ export default function Signup() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full pl-4 pr-11 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
+                      className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  <span className="text-[11px] text-stone-400 mt-1 block">
-                    Use letters, numbers, and symbols for high entropy.
+                  <span className="text-[10px] text-stone-400 mt-1 block">
+                    Letters, numbers, and symbols.
                   </span>
                 </div>
 
@@ -1583,12 +1602,12 @@ export default function Signup() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full pl-4 pr-11 py-3.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
+                      className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
                     >
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
