@@ -120,13 +120,13 @@ export default function Login() {
       </div>
 
       {/* Main Authentication Card */}
-      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-xl shadow-lg shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
+      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
         {/* Card Title */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-[26px] font-extrabold tracking-tight text-black">
+          <h1 className="text-2xl sm:text-[26px] font-extrabold tracking-tight text-[#112228]">
             Welcome back
           </h1>
-          <p className="text-stone-700 text-sm sm:text-[15px] font-medium mt-1.5">
+          <p className="text-stone-500 text-sm font-medium mt-1.5">
             Enter your credentials to access your portal.
           </p>
         </div>
@@ -169,12 +169,12 @@ export default function Login() {
           <div>
             <label
               htmlFor="identifier-input"
-              className="block text-xs font-extrabold text-black uppercase tracking-wider mb-2"
+              className="block text-[11px] font-bold text-stone-700 uppercase tracking-wider mb-2"
             >
               Email or Phone Number
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                 {isPhoneInput(identifier) ? (
                   <Phone className="w-5 h-5 text-[#046A38] transition-colors" />
                 ) : (
@@ -190,8 +190,7 @@ export default function Login() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 disabled={submitting}
-                placeholder="doctor@latrocore.com or +91 98765 43210"
-                className="w-full pl-11 pr-4 py-3 rounded-lg border border-stone-300 bg-white text-black font-semibold text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs"
+                className="w-full pl-11 pr-4 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs hover:border-stone-300"
               />
             </div>
           </div>
@@ -200,12 +199,12 @@ export default function Login() {
           <div>
             <label
               htmlFor="password-input"
-              className="block text-xs font-extrabold text-black uppercase tracking-wider mb-2"
+              className="block text-[11px] font-bold text-stone-700 uppercase tracking-wider mb-2"
             >
               Password
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                 <Lock className="w-5 h-5" />
               </div>
               <input
@@ -217,15 +216,14 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={submitting}
-                placeholder="••••••••••••"
-                className="w-full pl-11 pr-12 py-3 rounded-lg border border-stone-300 bg-white text-black font-semibold text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs"
+                className="w-full pl-11 pr-12 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs hover:border-stone-300"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={0}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-stone-500 hover:text-black focus:outline-none cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-stone-400 hover:text-stone-700 transition-colors focus:outline-none cursor-pointer"
               >
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -237,10 +235,10 @@ export default function Login() {
           </div>
 
           {/* Action Row: Forgot Password (Left) & Sign In Button (Right Corner) */}
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between pt-2">
             <Link
               to="/forgot-password"
-              className="text-xs sm:text-sm font-bold text-black hover:text-[#046A38] underline decoration-stone-300 underline-offset-2 transition-colors"
+              className="text-xs sm:text-sm font-semibold text-stone-600 hover:text-[#046A38] hover:underline transition-colors"
             >
               Forgot password?
             </Link>
@@ -248,7 +246,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#046A38] hover:bg-[#03542C] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-[#046A38]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#046A38] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] active:scale-[0.98] text-white font-bold text-sm shadow-sm hover:shadow-md shadow-[#046A38]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#046A38] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
@@ -266,8 +264,8 @@ export default function Login() {
         </form>
 
         {/* Sign Up Link */}
-        <div className="mt-6 pt-5 border-t border-stone-100 text-center">
-          <p className="text-xs sm:text-sm text-black font-medium">
+        <div className="mt-8 pt-5 border-t border-[#E8DCC8]/60 text-center">
+          <p className="text-xs sm:text-sm text-stone-600 font-medium">
             Don't have an account yet?{' '}
             <Link
               to="/signup"
