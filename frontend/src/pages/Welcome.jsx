@@ -128,17 +128,25 @@ export default function Welcome() {
       {/* ── MAIN HEALTHCARE HEADER (WARM IVORY BRAND PALETTE) ────────── */}
       <header className="sticky top-0 z-40 bg-[#FAF6EF]/95 backdrop-blur-md border-b border-[#E8DCC8] shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-22 flex items-center justify-between gap-4 sm:gap-6">
-          
+
           {/* Brand Logo & Name */}
           <div
-            className="flex items-center cursor-pointer group shrink-0"
+            className="flex items-center gap-3 sm:gap-3.5 cursor-pointer group shrink-0"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <img
               src={latrocoreLogo}
-              alt="LATROCORE Medical Monogram Logo"
-              className="h-14 sm:h-16 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
+              alt="LATROCORE Emblem"
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain mix-blend-multiply drop-shadow-xs group-hover:scale-105 transition-transform"
             />
+            <div className="flex flex-col justify-center">
+              <span className="font-serif font-black text-[#046A38] tracking-tight text-2xl sm:text-[28px] leading-none">
+                LATROCORE
+              </span>
+              <span className="hidden sm:block text-[9.5px] sm:text-[10px] font-black uppercase tracking-[0.19em] text-[#093322]/75 mt-1">
+                Precision Diabetes &amp; Diagnostics
+              </span>
+            </div>
           </div>
 
           {/* Interactive Healthcare Search Bar (Tata 1mg / Apollo Style) */}
@@ -168,7 +176,7 @@ export default function Welcome() {
           {/* Header Action Button (Clean Single CTA) */}
           <div className="flex items-center gap-3 shrink-0">
             {isAuthenticated && authUser ? (
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <button
                   onClick={handleDashboardClick}
                   id="header-user-dashboard-btn"
@@ -206,7 +214,7 @@ export default function Welcome() {
               <button
                 onClick={() => navigate('/login')}
                 id="header-login-btn"
-                className="inline-flex items-center gap-2.5 px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-[13px] font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                className="hidden md:inline-flex items-center gap-2.5 px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-[13px] font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 <Lock size={15} className="text-[#F9EBD7]" />
                 <span>Sign In</span>
@@ -288,7 +296,7 @@ export default function Welcome() {
       {/* ── 6-PILLAR HEALTHCARE SERVICES GRID (APOLLO / 1MG ICONS) ─────── */}
       <section className="pt-5 pb-8 sm:pt-6 sm:pb-10 bg-white border-y border-[#E8DCC8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-2xl mx-auto mb-5 sm:mb-6">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Comprehensive Diabetes Care Continuum
@@ -299,7 +307,7 @@ export default function Welcome() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-            
+
             {/* Card 1 */}
             <NavLink
               to="/patient/investigations"
@@ -403,7 +411,7 @@ export default function Welcome() {
       {/* ── ROLE-BASED WORKSTATIONS (ECOSYSTEM LAUNCHPAD) ───────────── */}
       <section id="workstations" className="py-12 sm:py-16 bg-[#FAF6EF] border-b border-[#E8DCC8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#093322] tracking-tight">
               Clinical Workstations
@@ -455,7 +463,7 @@ export default function Welcome() {
       {/* ── WHY CHOOSE LATROCORE (APOLLO TRUST PILLARS) ───────────────── */}
       <section className="py-12 sm:py-16 bg-[#FAF6EF] border-b border-[#E8DCC8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Why Patients & Physicians Trust LATROCORE
@@ -517,12 +525,12 @@ export default function Welcome() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#E34222]/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
 
 
           {/* 4 Clean Columns Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10 pb-12 border-b border-[#155238]">
-            
+
             {/* Col 1: Brand & Certified Accreditations (Span 4) */}
             <div className="lg:col-span-4 space-y-4">
               <div className="flex items-center gap-3.5">
@@ -542,7 +550,7 @@ export default function Welcome() {
                   </span>
                 </div>
               </div>
-              
+
               <p className="text-xs text-[#D1E7DD] leading-relaxed max-w-sm font-normal">
                 Closed-loop precision healthcare operating system connecting Type 2 diabetes patients, endocrinologists, and Pharm D clinical specialists with continuous biometric telemetry.
               </p>
