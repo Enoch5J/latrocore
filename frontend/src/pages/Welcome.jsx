@@ -294,7 +294,7 @@ export default function Welcome() {
       />
 
       {/* ── 6-PILLAR HEALTHCARE SERVICES GRID (APOLLO / 1MG ICONS) ─────── */}
-      <section className="pt-5 pb-8 sm:pt-6 sm:pb-10 bg-white border-y border-[#E8DCC8]">
+      <section id="care-continuum" className="pt-5 pb-8 sm:pt-6 sm:pb-10 bg-white border-y border-[#E8DCC8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="text-center max-w-2xl mx-auto mb-5 sm:mb-6">

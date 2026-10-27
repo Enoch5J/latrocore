@@ -50,21 +50,21 @@ export function AIFaceAvatar({ size = 36, className = "" }) {
         </filter>
         <linearGradient id="ai-face-head" x1="10" y1="8" x2="44" y2="46" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="60%" stopColor="#E2E8F0" />
-          <stop offset="100%" stopColor="#CBD5E1" />
+          <stop offset="60%" stopColor="#F5F5F4" />
+          <stop offset="100%" stopColor="#E7E5E4" />
         </linearGradient>
         <linearGradient id="ai-face-visor" x1="12" y1="14" x2="42" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0B132B" />
-          <stop offset="45%" stopColor="#0F172A" />
-          <stop offset="100%" stopColor="#1E293B" />
+          <stop offset="0%" stopColor="#022312" />
+          <stop offset="45%" stopColor="#03351C" />
+          <stop offset="100%" stopColor="#044D29" />
         </linearGradient>
-        <linearGradient id="ai-face-cyan" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#2DD4BF" />
-          <stop offset="100%" stopColor="#38BDF8" />
+        <linearGradient id="ai-face-emerald" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#34D399" />
+          <stop offset="100%" stopColor="#10B981" />
         </linearGradient>
         <linearGradient id="ai-face-ear" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#06B6D4" />
-          <stop offset="100%" stopColor="#0D9488" />
+          <stop offset="0%" stopColor="#046A38" />
+          <stop offset="100%" stopColor="#023B1E" />
         </linearGradient>
         <linearGradient id="ai-face-sheen" x1="16" y1="15" x2="38" y2="24" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.45" />
@@ -72,20 +72,20 @@ export function AIFaceAvatar({ size = 36, className = "" }) {
         </linearGradient>
       </defs>
 
-      {/* Cyber Antenna with Radiant Node */}
-      <circle cx="27" cy="4.5" r="2.8" fill="#2DD4BF" filter="url(#ai-glow-filter)" />
-      <path d="M27 7V12" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round" />
+      {/* Medical Cyber Antenna with Radiant Emerald Node */}
+      <circle cx="27" cy="4.5" r="2.8" fill="#34D399" filter="url(#ai-glow-filter)" />
+      <path d="M27 7V12" stroke="#046A38" strokeWidth="2.5" strokeLinecap="round" />
 
-      {/* Futuristic Audio Pods / Ears (Left & Right) */}
+      {/* Ceramic Clinical Audio Pods (Left & Right) */}
       <rect x="3.5" y="21" width="5" height="13" rx="2.5" fill="url(#ai-face-ear)" />
-      <circle cx="6" cy="27.5" r="1.5" fill="#E0F2FE" />
+      <circle cx="6" cy="27.5" r="1.5" fill="#E8F5EE" />
       <rect x="45.5" y="21" width="5" height="13" rx="2.5" fill="url(#ai-face-ear)" />
-      <circle cx="48" cy="27.5" r="1.5" fill="#E0F2FE" />
+      <circle cx="48" cy="27.5" r="1.5" fill="#E8F5EE" />
 
       {/* Ceramic Head Chassis */}
-      <rect x="7" y="11" width="40" height="34" rx="16" fill="url(#ai-face-head)" stroke="#94A3B8" strokeWidth="1.2" />
+      <rect x="7" y="11" width="40" height="34" rx="16" fill="url(#ai-face-head)" stroke="#D6D3D1" strokeWidth="1.2" />
 
-      {/* High-Gloss Curved Obsidian Visor Display */}
+      {/* High-Gloss Curved Forest Visor Display */}
       <rect x="11.5" y="15" width="31" height="25" rx="12" fill="url(#ai-face-visor)" />
 
       {/* Glass Specular Glint Reflection */}
@@ -94,38 +94,38 @@ export function AIFaceAvatar({ size = 36, className = "" }) {
         fill="url(#ai-face-sheen)"
       />
 
-      {/* Expressive Glowing AI Eyes (Curved Smiling Radiant Cyan / Emerald) */}
+      {/* Expressive Glowing AI Eyes (Curved Smiling Radiant Emerald) */}
       <g filter="url(#ai-glow-filter)">
         {/* Left Eye */}
         <path
           d="M17 26.5C17.2 23 19.5 21 22.5 21C25.5 21 27.5 23 27.5 26.5C27 27.2 25.5 27.5 22.5 27.5C19.5 27.5 17 27.2 17 26.5Z"
-          fill="url(#ai-face-cyan)"
+          fill="url(#ai-face-emerald)"
         />
         <circle cx="23.5" cy="23.5" r="1.1" fill="#FFFFFF" />
 
         {/* Right Eye */}
         <path
           d="M26.5 26.5C26.5 23 28.5 21 31.5 21C34.5 21 37 23 37 26.5C37 27.2 34.5 27.5 31.5 27.5C28.5 27.5 26.5 27.2 26.5 26.5Z"
-          fill="url(#ai-face-cyan)"
+          fill="url(#ai-face-emerald)"
         />
         <circle cx="32.5" cy="23.5" r="1.1" fill="#FFFFFF" />
       </g>
 
       {/* Cute Glowing Cheek Blush Dots */}
-      <circle cx="15.5" cy="31" r="1.8" fill="#2DD4BF" opacity="0.65" filter="url(#ai-glow-filter)" />
-      <circle cx="38.5" cy="31" r="1.8" fill="#2DD4BF" opacity="0.65" filter="url(#ai-glow-filter)" />
+      <circle cx="15.5" cy="31" r="1.8" fill="#34D399" opacity="0.65" filter="url(#ai-glow-filter)" />
+      <circle cx="38.5" cy="31" r="1.8" fill="#34D399" opacity="0.65" filter="url(#ai-glow-filter)" />
 
       {/* Friendly Glowing Digital Smile Curve */}
       <path
         d="M23 32C24.5 34.5 29.5 34.5 31 32"
-        stroke="url(#ai-face-cyan)"
+        stroke="url(#ai-face-emerald)"
         strokeWidth="2.2"
         strokeLinecap="round"
         filter="url(#ai-glow-filter)"
       />
 
       {/* Forehead Micro-Core Spark */}
-      <circle cx="27" cy="17" r="1" fill="#38BDF8" opacity="0.9" />
+      <circle cx="27" cy="17" r="1" fill="#6EE7B7" opacity="0.9" />
     </svg>
   );
 }
@@ -302,115 +302,119 @@ export default function FloatingAIAssistant() {
         <>
           {/* Mobile Backdrop Overlay */}
           <div
-            className="sm:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 animate-fade-in"
+            className="sm:hidden fixed inset-0 bg-stone-950/60 backdrop-blur-xs z-50 animate-fade-in"
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
 
           <div
-            className="fixed z-50 flex flex-col bg-white overflow-hidden shadow-2xl border border-slate-200
-              inset-x-0 bottom-0 w-full h-[90vh] rounded-t-3xl sm:rounded-3xl
-              sm:inset-x-auto sm:bottom-8 sm:right-6 sm:w-[450px] sm:max-w-[calc(100vw-2rem)] sm:h-[630px] sm:max-h-[calc(100vh-4.5rem)]
-              animate-in slide-in-from-bottom-5 duration-200 ease-out"
+            className="fixed z-50 flex flex-col bg-white overflow-hidden shadow-2xl border border-stone-200
+              bottom-4 right-4 sm:bottom-6 sm:right-6
+              w-[calc(100vw-2rem)] sm:w-[420px] max-w-[440px]
+              h-[520px] max-h-[calc(100dvh-3rem)] sm:max-h-[calc(100dvh-5rem)]
+              rounded-2xl transition-all"
             role="dialog"
             aria-modal="true"
             aria-label="Clinical AI Assistant"
           >
-            {/* Mobile Drag Indicator */}
-            <div className="sm:hidden w-full flex items-center justify-center pt-2 pb-1 bg-teal-950 cursor-grab">
-              <div className="w-10 h-1 rounded-full bg-teal-400/40" />
-            </div>
 
-            {/* ── Clean Unified Header ── */}
-            <div className="bg-gradient-to-r from-teal-900 via-teal-850 to-teal-950 text-white shrink-0 shadow-sm border-b border-teal-800">
-              {/* Top Row: Brand & Action Controls */}
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="relative shrink-0">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-slate-900 to-teal-950 border border-teal-400/40 flex items-center justify-center shadow-inner overflow-hidden">
-                      <AIFaceAvatar size={28} />
-                    </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-teal-950 rounded-full animate-pulse shadow-[0_0_6px_#34d399]" />
+            {/* ── Clean & Simple Single Header ── */}
+            <div className="bg-[#046A38] text-white shrink-0 px-4 py-3 flex items-center justify-between gap-3 border-b border-[#03542C]">
+              {/* Bot Info with Simple Clean Text */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#03542C] border border-emerald-400/30 flex items-center justify-center overflow-hidden">
+                    <AIFaceAvatar size={26} />
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-nowrap">
-                      <h3 className="font-extrabold text-sm text-white tracking-tight leading-tight whitespace-nowrap">
-                        LATROCORE AI
-                      </h3>
-                      <span className="text-[10px] bg-teal-700/80 border border-teal-400/30 px-1.5 py-0.2 rounded font-bold text-teal-100 whitespace-nowrap">
-                        Clinical Copilot
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-teal-200/80 font-medium truncate mt-0.5">
-                      6 Indian & Global Languages
-                    </p>
-                  </div>
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#046A38] rounded-full" />
                 </div>
-
-                {/* Right Controls */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {/* Reset Chat */}
-                  <button
-                    onClick={resetChat}
-                    className="text-teal-300 hover:text-white hover:bg-teal-800/80 p-1.5 rounded-lg transition cursor-pointer"
-                    title="Reset conversation"
-                    aria-label="Reset chat"
-                  >
-                    <RefreshCw size={15} />
-                  </button>
-
-                  {/* Close Button */}
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="text-teal-200 hover:text-white hover:bg-teal-800/80 p-1.5 rounded-lg transition cursor-pointer"
-                    title="Close Assistant (Esc)"
-                    aria-label="Close Assistant"
-                  >
-                    <X size={18} />
-                  </button>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm text-white tracking-tight leading-tight">
+                    LATROCORE AI
+                  </h3>
+                  <p className="text-xs text-emerald-100/90 leading-tight mt-0.5 font-normal">
+                    Clinical Assistant
+                  </p>
                 </div>
               </div>
 
-              {/* Second Row: Sleek Segmented 6-Language Tabs */}
-              <div className="bg-teal-950/80 px-3 py-1.5 border-t border-teal-900/60 flex items-center justify-between gap-1 overflow-x-auto no-scrollbar">
-                <div className="flex items-center gap-1 min-w-max">
-                  {LANGUAGES.map((l) => (
-                    <button
-                      key={l.code}
-                      onClick={() => handleSelectLanguage(l.code)}
-                      className={`text-xs font-bold px-2.5 py-1 rounded-lg transition cursor-pointer whitespace-nowrap ${
-                        lang === l.code
-                          ? 'bg-teal-600 text-white shadow-xs'
-                          : 'text-teal-200/80 hover:text-white hover:bg-teal-900/80'
-                      }`}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Right Controls */}
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Language Selector Dropdown */}
+                <div className="relative" ref={langMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setLangMenuOpen(!langMenuOpen)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15 transition cursor-pointer"
+                    title="Select language"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>{currentLangObj.label}</span>
+                    <ChevronDown className={`w-3 h-3 text-emerald-200 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-              {/* Safety Sub-strip */}
-              <div className="bg-teal-900/50 px-3.5 py-1 border-t border-teal-800/50 flex items-center justify-between text-[10px] text-teal-200/90 font-medium">
-                <span className="flex items-center gap-1.5 truncate">
-                  <Shield size={11} className="text-teal-300 shrink-0" />
-                  <span>Clinical Decision Support System</span>
-                </span>
-                <span className="text-[9px] bg-teal-800/70 border border-teal-500/30 px-1.5 py-0.2 rounded font-mono text-teal-100 shrink-0 ml-2">
-                  ADA 2024 §6
-                </span>
+                  {/* Language Dropdown Menu */}
+                  {langMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-stone-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-3 py-1.5 text-[10px] font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100 flex items-center justify-between">
+                        <span>Select Language</span>
+                        <span className="text-[#046A38] font-mono font-bold">6 Active</span>
+                      </div>
+                      <div className="py-1">
+                        {LANGUAGES.map((l) => (
+                          <button
+                            key={l.code}
+                            type="button"
+                            onClick={() => handleSelectLanguage(l.code)}
+                            className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between transition cursor-pointer ${
+                              lang === l.code
+                                ? 'bg-[#E8F5EE] text-[#046A38] font-bold'
+                                : 'text-stone-700 hover:bg-stone-50 font-medium'
+                            }`}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-semibold">{l.label}</span>
+                              <span className="text-[10px] text-stone-400">{l.sub}</span>
+                            </div>
+                            {lang === l.code && <Check className="w-4 h-4 text-[#046A38]" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reset Chat */}
+                <button
+                  onClick={resetChat}
+                  className="text-emerald-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition cursor-pointer"
+                  title="Reset conversation"
+                  aria-label="Reset chat"
+                >
+                  <RefreshCw size={15} />
+                </button>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-emerald-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition cursor-pointer"
+                  title="Close Assistant (Esc)"
+                  aria-label="Close Assistant"
+                >
+                  <X size={18} />
+                </button>
               </div>
             </div>
 
             {/* ── Messages Scroll Area ── */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/70 min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FAF6EF] min-h-0">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-xl bg-gradient-to-b from-slate-900 to-teal-950 border border-teal-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs overflow-hidden">
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-b from-[#022A16] to-[#044D29] border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs overflow-hidden">
                       <AIFaceAvatar size={20} />
                     </div>
                   )}
@@ -418,21 +422,21 @@ export default function FloatingAIAssistant() {
                   <div
                     className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed shadow-xs ${
                       msg.role === 'user'
-                        ? 'bg-teal-800 text-white rounded-tr-xs font-medium'
-                        : 'bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs'
+                        ? 'bg-[#046A38] text-white rounded-tr-xs font-normal'
+                        : 'bg-white text-stone-900 border border-[#E8DCC8] rounded-tl-xs'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Evidence citations */}
                     {msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1">
+                      <div className="mt-2.5 pt-2 border-t border-stone-100 flex flex-wrap gap-1">
                         {msg.sources.map((src, idx) => (
                           <span
                             key={idx}
-                            className="inline-flex items-center gap-1 text-[10px] text-teal-850 bg-teal-50 px-2 py-0.5 rounded-md font-semibold border border-teal-200/60"
+                            className="inline-flex items-center gap-1 text-[10px] text-[#046A38] bg-[#E8F5EE] px-2 py-0.5 rounded-md font-semibold border border-[#A8D7BD]/60"
                           >
-                            <Sparkles size={9} className="text-teal-600" />
+                            <Sparkles size={9} className="text-[#046A38]" />
                             {src}
                           </span>
                         ))}
@@ -440,23 +444,25 @@ export default function FloatingAIAssistant() {
                     )}
 
                     {/* Bottom Metadata & Speech Audio */}
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <div className={`mt-2 flex items-center justify-between text-[11px] pt-1 ${
+                      msg.role === 'user' ? 'text-emerald-100/70' : 'text-stone-500'
+                    }`}>
                       <span className="font-semibold text-[10px]">{msg.time}</span>
                       {msg.role === 'assistant' && (
                         <button
                           onClick={() => speakText(msg.text)}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-900 border border-slate-200 hover:border-teal-300 transition cursor-pointer text-[10px] font-bold"
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-100 hover:bg-[#E8F5EE] text-stone-700 hover:text-[#046A38] border border-stone-200 hover:border-[#A8D7BD] transition cursor-pointer text-[10px] font-bold"
                           title="Read aloud"
                           aria-label="Read message aloud"
                         >
                           {isSpeaking ? (
                             <>
-                              <VolumeX size={12} className="text-teal-700" />
+                              <VolumeX size={12} className="text-[#046A38]" />
                               <span>Mute</span>
                             </>
                           ) : (
                             <>
-                              <Volume2 size={12} className="text-teal-700" />
+                              <Volume2 size={12} className="text-[#046A38]" />
                               <span>Listen</span>
                             </>
                           )}
@@ -470,9 +476,9 @@ export default function FloatingAIAssistant() {
             </div>
 
             {/* ── Suggested Questions Strip ── */}
-            <div className="px-3.5 py-2 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
-              <span className="text-[10px] text-teal-850 font-black shrink-0 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles size={11} className="text-teal-600" />
+            <div className="px-3.5 py-2 bg-white border-t border-[#E8DCC8] flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+              <span className="text-[10px] text-[#046A38] font-black shrink-0 uppercase tracking-wider flex items-center gap-1">
+                <Sparkles size={11} className="text-[#046A38]" />
                 Prompt:
               </span>
               <div className="flex items-center gap-1.5 min-w-max">
@@ -480,7 +486,7 @@ export default function FloatingAIAssistant() {
                   <button
                     key={idx}
                     onClick={() => handleSend(q)}
-                    className="shrink-0 text-[11px] bg-slate-50 hover:bg-teal-50 hover:text-teal-950 text-slate-700 font-bold px-3 py-1 rounded-full border border-slate-200/90 hover:border-teal-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                    className="shrink-0 text-[11px] bg-[#FAF6EF] hover:bg-[#E8F5EE] hover:text-[#046A38] text-stone-700 font-bold px-3 py-1 rounded-full border border-[#E8DCC8] hover:border-[#A8D7BD] transition-all active:scale-95 cursor-pointer shadow-2xs"
                   >
                     {q}
                   </button>
@@ -494,21 +500,21 @@ export default function FloatingAIAssistant() {
                 e.preventDefault();
                 handleSend();
               }}
-              className="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0"
+              className="p-2.5 sm:p-3 bg-white border-t border-[#E8DCC8] flex items-center gap-2 shrink-0"
             >
               {/* Mic Speech Input Button */}
               <button
                 type="button"
                 onClick={toggleListening}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer shrink-0 ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition cursor-pointer shrink-0 ${
                   isListening
                     ? 'bg-rose-500 text-white animate-pulse shadow-md'
-                    : 'bg-slate-100 text-slate-700 hover:bg-teal-50 hover:text-teal-800 border border-slate-200'
+                    : 'bg-stone-100 text-stone-700 hover:bg-[#E8F5EE] hover:text-[#046A38] border border-stone-200 hover:border-[#A8D7BD]'
                 }`}
                 title={isListening ? 'Stop listening' : `Voice input (${currentLangObj.label})`}
                 aria-label="Voice input"
               >
-                {isListening ? <MicOff size={17} /> : <Mic size={17} />}
+                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
               </button>
 
               {/* Text Input */}
@@ -517,24 +523,24 @@ export default function FloatingAIAssistant() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={INPUT_PLACEHOLDERS[lang] || INPUT_PLACEHOLDERS.en}
-                className="flex-1 bg-slate-50 border-2 border-slate-200 focus:border-teal-700 focus:bg-white text-xs sm:text-sm rounded-xl px-3.5 py-2.5 outline-none transition text-slate-950 font-medium placeholder:text-slate-400"
+                className="flex-1 bg-stone-50/70 border border-stone-200 focus:border-[#046A38] focus:bg-white focus:ring-2 focus:ring-[#046A38]/15 text-xs sm:text-sm rounded-xl px-3 py-2 outline-none transition text-stone-900 font-medium placeholder:text-stone-400"
               />
 
               {/* Send Button */}
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="w-10 h-10 rounded-xl bg-teal-800 hover:bg-teal-900 disabled:opacity-40 text-white flex items-center justify-center transition shadow-xs cursor-pointer disabled:cursor-not-allowed shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#046A38] hover:bg-[#03542C] disabled:opacity-40 text-white flex items-center justify-center transition shadow-xs cursor-pointer disabled:cursor-not-allowed shrink-0 active:scale-95"
                 title="Send message"
                 aria-label="Send message"
               >
-                <Send size={16} />
+                <Send size={15} />
               </button>
             </form>
 
             {/* Clinical Disclaimer Footnote */}
-            <div className="bg-white pb-2 px-4 text-center">
-              <p className="text-[10px] text-slate-400 font-medium">
+            <div className="bg-white pb-2 pt-0.5 px-3 text-center shrink-0">
+              <p className="text-[10px] text-stone-400 font-medium leading-tight">
                 LATROCORE AI provides clinical decision support. Always confirm with your doctor.
               </p>
             </div>
@@ -545,17 +551,17 @@ export default function FloatingAIAssistant() {
       {/* ── Floating AI Assistant Avatar Trigger (Bottom-Right Corner) ── */}
       {!isOpen && (
         <div className="fixed bottom-6 sm:bottom-8 right-6 sm:right-8 z-40 flex flex-col items-center group">
-          {/* Perfectly Centered Floating Tooltip Badge directly over the bot */}
+          {/* Centered Floating Tooltip Badge */}
           <div className="mb-2 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-200 animate-fade-in select-none">
-            <div className="bg-slate-950/95 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-2xl border border-teal-500/50 flex items-center gap-1.5 whitespace-nowrap backdrop-blur-md">
-              <Sparkles size={13} className="text-teal-400 animate-spin" style={{ animationDuration: '3s' }} />
-              <span className="bg-gradient-to-r from-teal-200 via-cyan-100 to-white bg-clip-text text-transparent">
+            <div className="bg-stone-900 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-2xl border border-emerald-500/50 flex items-center gap-1.5 whitespace-nowrap backdrop-blur-md">
+              <Sparkles size={13} className="text-emerald-400 animate-spin" style={{ animationDuration: '3s' }} />
+              <span className="bg-gradient-to-r from-emerald-200 via-emerald-100 to-white bg-clip-text text-transparent">
                 LATROCORE AI
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5 shadow-[0_0_6px_#34d399]" />
             </div>
             {/* Pointer arrow pointing straight down into the antenna */}
-            <div className="w-2.5 h-2.5 bg-slate-950 border-r border-b border-teal-500/50 transform rotate-45 -mt-1.5" />
+            <div className="w-2.5 h-2.5 bg-stone-900 border-r border-b border-emerald-500/50 transform rotate-45 -mt-1.5" />
           </div>
 
           {/* Trigger Button with AI Face Avatar */}
@@ -564,21 +570,21 @@ export default function FloatingAIAssistant() {
             className="relative flex items-center justify-center cursor-pointer transition-all duration-300 transform group-hover:scale-108 active:scale-95 focus:outline-none"
             aria-label="Open Clinical AI Assistant"
           >
-            {/* Outer Radiant Pulsing Aura Rings */}
-            <span className="absolute -inset-2.5 rounded-full bg-gradient-to-r from-teal-400 via-cyan-400 to-emerald-400 opacity-60 blur-md group-hover:opacity-100 animate-pulse duration-1000" />
-            <span className="absolute -inset-1 rounded-full bg-gradient-to-tr from-teal-500 to-cyan-400 opacity-30 animate-ping duration-1000 pointer-events-none" />
+            {/* Outer Radiant Pulsing Aura Rings in Forest Green & Emerald */}
+            <span className="absolute -inset-2.5 rounded-full bg-gradient-to-r from-[#046A38] via-emerald-400 to-[#03542C] opacity-60 blur-md group-hover:opacity-90 animate-pulse duration-1000" />
+            <span className="absolute -inset-1 rounded-full bg-gradient-to-tr from-[#046A38] to-emerald-400 opacity-30 animate-ping duration-1000 pointer-events-none" />
 
             {/* Glowing Sphere Container */}
-            <div className="relative w-15 h-15 sm:w-16 sm:h-16 rounded-full p-[3px] bg-gradient-to-tr from-teal-400 via-cyan-300 to-emerald-400 shadow-[0_10px_35px_rgba(20,184,166,0.6)]">
-              <div className="w-full h-full rounded-full bg-gradient-to-b from-slate-900 via-teal-950 to-slate-950 flex items-center justify-center overflow-hidden border border-teal-400/40 relative">
+            <div className="relative w-15 h-15 sm:w-16 sm:h-16 rounded-full p-[3px] bg-gradient-to-tr from-[#046A38] via-emerald-400 to-[#02331B] shadow-[0_10px_35px_rgba(4,106,56,0.5)]">
+              <div className="w-full h-full rounded-full bg-gradient-to-b from-[#022A16] via-[#044D29] to-[#022A16] flex items-center justify-center overflow-hidden border border-emerald-400/40 relative">
                 {/* Internal Holographic Radial Light Beam */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-400/30 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-400/25 via-transparent to-transparent pointer-events-none" />
 
                 {/* Animated Eye-Catching AI Face Avatar */}
                 <AIFaceAvatar size={42} className="relative z-10 transition-transform duration-300 group-hover:scale-105" />
 
                 {/* Live Online Glowing Beacon */}
-                <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-950 shadow-[0_0_10px_#34d399] animate-pulse z-20" />
+                <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#022A16] shadow-[0_0_10px_#34d399] animate-pulse z-20" />
               </div>
             </div>
           </button>

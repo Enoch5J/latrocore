@@ -1,58 +1,105 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
+  Bell,
   Sparkles,
+  TrendingUp,
   ArrowRight,
-  Zap,
   ChevronDown
 } from 'lucide-react';
-import hero3dExploded from '../../assets/images/hero-3d-scroll-exploded.jpg';
-import bannerImg1 from '../../assets/images/banner-img-1.png';
-import patientImg from '../../assets/images/patient.png';
-import doctorImg from '../../assets/images/doctor.png';
-import pharmacistImg from '../../assets/images/pharmacist.png';
-import adminImg from '../../assets/images/admin.png';
 
-const STAGES = [
+// Transparent raster illustrations supplied in assets
+import medicineIllustration from '../../assets/herosection-images/Friendly Medicine Reminder Companion-1.png';
+import aiAssistantIllustration from '../../assets/herosection-images/Friendly woman and health assistant robot-2.png';
+import progressTrackingIllustration from '../../assets/herosection-images/Doctor Tracking Glucose Trends-3.png';
+
+// ── FEATURE SCENE CONFIGURATION ──────────────────────────────────────────
+const FEATURES = [
   {
     id: 1,
-    tag: 'STAGE 01',
-    title: 'Connected Biometric Sensor',
-    subtitle: 'Continuous Glycemic Sensing with Sub-Minute Telemetry Precision',
-    desc: 'An ultra-compact CGM sensor continuously samples interstitial glucose, beaming encrypted biometric trajectories directly to your clinical circle.',
-    kicker: 'Continuous Telemetry Discovery',
+    key: 'medicine',
+    title: 'Medicine reminders',
+    subtitle: 'Keep your prescribed routine on track.',
+    description: 'Thoughtful daily alerts synchronized with your prescription routine to prevent missed doses.',
+    image: medicineIllustration,
+    imageAlt: 'Patient managing daily prescribed medicines with companion pill organiser',
+    color: '#046A38',
+    scrollRange: [0.10, 0.35],
+    peakProgress: 0.22,
+    badgeText: 'Prescription Routine',
   },
   {
     id: 2,
-    tag: 'STAGE 02',
-    title: 'Exploded 3D Spatial Architecture',
-    subtitle: 'Multi-Layer Optical Sensing, Microfluidic Calibration & DDI Screening',
-    desc: 'Scroll down to dissect the inner architecture: dual-wavelength enzymatic sensors, telemetry antennae, and on-device machine learning calibration.',
-    kicker: 'Biometric Depth & Hardware Analysis',
+    key: 'ai-support',
+    title: 'AI health support',
+    subtitle: 'Ask questions. Understand your care.',
+    description: 'Instant educational clarity on diabetic lab terms, dietary glycemic index, and lifestyle habits.',
+    image: aiAssistantIllustration,
+    imageAlt: 'Patient discussing questions with friendly AI health assistant robot',
+    color: '#046A38',
+    scrollRange: [0.35, 0.60],
+    peakProgress: 0.47,
+    badgeText: 'Educational Guidance',
   },
   {
     id: 3,
-    tag: 'STAGE 03',
-    title: '4-Pillar Clinical Synchrony',
-    subtitle: 'Patients, Endocrinologists, Clinical Pharmacists & Administrators in One Loop',
-    desc: 'Data transforms into synchronized clinical action: automated glycemic alerts, zero drug-interaction prescriptions, and longitudinal care tracking.',
-    kicker: 'Synchronized Care Ecosystem',
+    key: 'progress-tracking',
+    title: 'Progress tracking',
+    subtitle: 'See your health trends over time.',
+    description: 'Continuous glycemic telemetry curves, Time-in-Range tracking, and longitudinal milestones.',
+    image: progressTrackingIllustration,
+    imageAlt: 'Healthcare doctor reviewing patient glucose trends and longitudinal clinical progress',
+    color: '#046A38',
+    scrollRange: [0.60, 0.85],
+    peakProgress: 0.72,
+    badgeText: 'Longitudinal Telemetry',
   },
 ];
 
-export default function ScrollHero3D({ isAuthenticated, onGuidedDemo }) {
+export default function ScrollHero3D({ isAuthenticated }) {
   const containerRef = useRef(null);
   const stickyRef = useRef(null);
-  const [scrollProgress, setScrollProgress] = useState(0); // 0.0 to 1.0
-  const [activeStage, setActiveStage] = useState(0);
-  const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
 
-  // Scroll Progress Calculator
+  // Scroll & Phase state
+  const [scrollProgress, setScrollProgress] = useState(0); // 0.0 to 1.0
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(-1); // -1 = intro/overview, 0 = medicine, 1 = ai, 2 = progress
+  const [isOverviewPhase, setIsOverviewPhase] = useState(true);
+
+  // Viewport & accessibility state
+  const [isCompact, setIsCompact] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [mouseTilt, setMouseTilt] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Check screen size & reduced motion preference
   useEffect(() => {
-    let animationFrameId = null;
+    const checkViewportAndMotion = () => {
+      const compact = window.innerWidth < 1024 || window.innerHeight < 680;
+      setIsCompact(compact);
+
+      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setPrefersReducedMotion(motionQuery.matches);
+    };
+
+    checkViewportAndMotion();
+    window.addEventListener('resize', checkViewportAndMotion);
+
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionChange = (e) => setPrefersReducedMotion(e.matches);
+    motionQuery.addEventListener('change', handleMotionChange);
+
+    return () => {
+      window.removeEventListener('resize', checkViewportAndMotion);
+      motionQuery.removeEventListener('change', handleMotionChange);
+    };
+  }, []);
+
+  // Optimized Scroll-linked Progress Calculator
+  useEffect(() => {
+    if (isCompact || prefersReducedMotion) return;
+
+    let rafId = null;
 
     const handleScroll = () => {
       if (!containerRef.current) return;
@@ -65,15 +112,30 @@ export default function ScrollHero3D({ isAuthenticated, onGuidedDemo }) {
       const currentScroll = -rect.top;
       const rawProgress = Math.min(Math.max(currentScroll / totalScrollable, 0), 1);
 
-      animationFrameId = requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
         setScrollProgress(rawProgress);
 
-        if (rawProgress < 0.35) {
-          setActiveStage(0);
-        } else if (rawProgress < 0.72) {
-          setActiveStage(1);
+        // Sequence phase mapping:
+        // 0.00 - 0.10: Intro overview
+        // 0.10 - 0.35: Feature 1 (Medicine reminders)
+        // 0.35 - 0.60: Feature 2 (AI health support)
+        // 0.60 - 0.85: Feature 3 (Progress tracking)
+        // 0.85 - 1.00: Complete final overview
+        if (rawProgress < 0.10) {
+          setActiveFeatureIndex(-1);
+          setIsOverviewPhase(true);
+        } else if (rawProgress >= 0.10 && rawProgress < 0.35) {
+          setActiveFeatureIndex(0);
+          setIsOverviewPhase(false);
+        } else if (rawProgress >= 0.35 && rawProgress < 0.60) {
+          setActiveFeatureIndex(1);
+          setIsOverviewPhase(false);
+        } else if (rawProgress >= 0.60 && rawProgress < 0.85) {
+          setActiveFeatureIndex(2);
+          setIsOverviewPhase(false);
         } else {
-          setActiveStage(2);
+          setActiveFeatureIndex(-1);
+          setIsOverviewPhase(true);
         }
       });
     };
@@ -83,405 +145,465 @@ export default function ScrollHero3D({ isAuthenticated, onGuidedDemo }) {
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (rafId) cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [isCompact, prefersReducedMotion]);
 
-  // Mouse Parallax Tilt
-  const handleMouseMove = (e) => {
-    if (!stickyRef.current) return;
+  // Subtle 2.5D mouse parallax tilt
+  const handleMouseMove = useCallback((e) => {
+    if (isCompact || prefersReducedMotion || !stickyRef.current) return;
     const rect = stickyRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setMouseTilt({ x: -(y * 10), y: x * 12 });
-  };
+    setMouseTilt({ x: -(y * 6), y: x * 8 });
+  }, [isCompact, prefersReducedMotion]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
     setMouseTilt({ x: 0, y: 0 });
-  };
+  }, []);
 
-  // Click stage pill to smoothly scroll to that phase
-  const scrollToStage = (stageIdx) => {
+  // Jump to specific feature stage via pill / demo button
+  const scrollToStage = (featureIdx) => {
+    if (isCompact || prefersReducedMotion) {
+      const targetEl = document.getElementById(`feature-card-${featureIdx}`);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     const containerTop = rect.top + scrollTop;
     const totalScrollable = rect.height - window.innerHeight;
 
-    let targetRatio = 0.05;
-    if (stageIdx === 1) targetRatio = 0.5;
-    if (stageIdx === 2) targetRatio = 0.95;
+    let targetRatio = 0.22;
+    if (featureIdx === 1) targetRatio = 0.47;
+    if (featureIdx === 2) targetRatio = 0.72;
+    if (featureIdx === 3) targetRatio = 0.95;
 
     const targetY = containerTop + targetRatio * totalScrollable;
     window.scrollTo({ top: targetY, behavior: 'smooth' });
   };
 
-  const currentStageData = STAGES[activeStage];
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      navigate('/patient/dashboard');
+    } else {
+      navigate('/signup?role=patient');
+    }
+  };
 
-  // Stage 2 & 3 dynamic interpolations
-  const stage1Opacity = Math.max(0, 1 - scrollProgress * 3.2);
-  const stage2Opacity = scrollProgress >= 0.25 && scrollProgress <= 0.8
-    ? Math.min((scrollProgress - 0.25) * 4, 1, (0.8 - scrollProgress) * 4)
-    : 0;
-  const stage3Opacity = Math.max(0, (scrollProgress - 0.65) * 2.8);
+  const handleExploreDemo = () => {
+    scrollToStage(0);
+  };
 
-  // 3D Exploded Layer separations
-  const explodeZ = Math.min(Math.max((scrollProgress - 0.25) * 120, 0), 75);
-  const explodeScale = 0.95 + scrollProgress * 0.15;
-  const explodeRotate = mouseTilt.y + (scrollProgress - 0.5) * 12;
+  // Helper to compute scene dynamic styles during pinned sequence
+  const getSceneTransformStyles = (index) => {
+    if (isCompact || prefersReducedMotion) {
+      return {
+        opacity: 1,
+        transform: 'none',
+        transition: 'none',
+      };
+    }
+
+    // In intro or complete overview, all 3 are equal
+    if (isOverviewPhase || activeFeatureIndex === -1) {
+      return {
+        opacity: 1,
+        transform: `translateY(0px) scale(1)`,
+        transition: 'all 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+      };
+    }
+
+    // When a specific feature is active:
+    const isActive = activeFeatureIndex === index;
+    if (isActive) {
+      return {
+        opacity: 1,
+        transform: `translateY(-14px) scale(1.035)`,
+        zIndex: 20,
+        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+      };
+    }
+
+    // Inactive scenes stay readable and softly dimmed
+    return {
+      opacity: 0.58,
+      transform: `translateY(4px) scale(0.975)`,
+      zIndex: 10,
+      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+    };
+  };
 
   return (
-    <div
+    <section
       ref={containerRef}
-      className="relative w-full min-h-[220vh] bg-[#FAF6EF] selection:bg-[#F9EBD7] selection:text-[#046A38]"
+      className={`relative w-full bg-[#FAF6EF] text-slate-900 selection:bg-[#F9EBD7] selection:text-[#046A38] ${isCompact || prefersReducedMotion ? 'min-h-0 py-8 sm:py-12' : 'min-h-[260vh]'
+        }`}
+      aria-label="LATROCORE Connected Healthcare Overview"
     >
-      {/* ── STICKY 3D SHOWCASE VIEWPORT ── */}
+      {/* ── ACCESSIBLE SKIP ANIMATION LINK ── */}
+      <a
+        href="#care-continuum"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-24 focus:left-6 z-50 px-4 py-2 bg-[#046A38] text-white font-bold text-xs rounded-xl shadow-lg ring-2 ring-white transition-all outline-hidden"
+      >
+        Skip animation to Care Continuum
+      </a>
+
+      {/* ── PINNED DESKTOP CONTAINER (OR NATURAL FLOW ON MOBILE/REDUCED MOTION) ── */}
       <div
         ref={stickyRef}
-        className="sticky top-20 sm:top-22 h-[calc(100vh-5rem)] sm:h-[calc(100vh-5.5rem)] min-h-[580px] max-h-[820px] w-full flex flex-col justify-between overflow-hidden px-4 sm:px-6 lg:px-8 py-3 sm:py-4 select-none"
+        className={`${isCompact || prefersReducedMotion
+            ? 'w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'
+            : 'sticky top-20 sm:top-22 h-[calc(100vh-5rem)] sm:h-[calc(100vh-5.5rem)] min-h-[580px] max-h-[840px] w-full flex flex-col justify-between overflow-hidden px-4 sm:px-6 lg:px-8 py-3 select-none'
+          }`}
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Background Subtle Gradient & Ambience */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Volumetric Warm Ambient Spotlights */}
-          <div className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-radial from-[#046A38]/12 to-transparent blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 right-1/4 w-96 h-96 rounded-full bg-radial from-[#E34222]/8 to-transparent blur-3xl pointer-events-none" />
-          {/* Fine Grid Background */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#E8DCC8_1px,transparent_1px),linear-gradient(to_bottom,#E8DCC8_1px,transparent_1px)] bg-[size:48px_48px] opacity-40 pointer-events-none" />
+        {/* Subtle Background Ambiance & Warm Glow */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
+          <div className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-[#046A38]/5 blur-3xl" />
+          <div className="absolute bottom-10 right-1/4 w-96 h-96 rounded-full bg-[#E34222]/4 blur-3xl" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#E8DCC8_1px,transparent_1px),linear-gradient(to_bottom,#E8DCC8_1px,transparent_1px)] bg-[size:48px_48px] opacity-25" />
         </div>
 
-        {/* ── TOP CONTROLS & TIMELINE BAR ── */}
-        <div className="relative z-30 max-w-7xl mx-auto w-full flex items-center justify-between gap-3 pt-1">
-          {/* Brand Kicker + 3D Indicator */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-serif font-black tracking-[0.25em] text-[#046A38] uppercase">
-              LATROCORE 3D SPATIAL
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-[#A8D7BD] text-[10px] font-black text-[#046A38] shadow-2xs backdrop-blur-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#046A38] animate-ping" />
-              <span>SCROLL-DRIVEN ARCHITECTURE</span>
-            </span>
-          </div>
-        </div>
+        {/* ── TOP SECTION: COMPACT HEADLINE, SUPPORTING TEXT & CTAS ── */}
+        <div className="relative z-30 max-w-5xl mx-auto w-full text-center flex flex-col items-center pt-1 sm:pt-2">
 
-        {/* ── MAIN STAGE CONTENT (2-COLUMN 3D PERSPECTIVE) ── */}
-        <div className="relative z-20 max-w-7xl mx-auto w-full my-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          
-          {/* ── LEFT: DYNAMIC STORYTELLING TEXT ── */}
-          <div className="lg:col-span-5 flex flex-col justify-center space-y-3.5 pr-2">
-            
-            {/* Stage Pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5EE] border border-[#A8D7BD] text-xs font-black text-[#046A38] w-fit shadow-2xs">
-              <Zap size={13} className="text-[#E34222]" />
-              <span>{currentStageData.kicker}</span>
-            </div>
+          {/* Main Editorial Headline */}
+          <h1 className="font-serif font-black text-3xl sm:text-4xl lg:text-[40px] xl:text-[44px] text-[#093322] tracking-tight leading-[1.12] max-w-3xl">
+            A little help, throughout your day.
+          </h1>
 
-            {/* Headline */}
-            <h1 className="font-serif font-black text-3xl sm:text-4xl lg:text-[44px] leading-[1.08] text-slate-900 tracking-tight transition-all duration-300">
-              {activeStage === 0 && (
-                <>
-                  <span className="text-[#046A38]">Continuous Diabetes</span>
-                  <br />
-                  <span className="text-[#D84315]">Care, Connected.</span>
-                </>
-              )}
-              {activeStage === 1 && (
-                <>
-                  <span className="text-[#046A38]">Exploded Sensor</span>
-                  <br />
-                  <span className="text-[#D84315]">Micro-Architecture.</span>
-                </>
-              )}
-              {activeStage === 2 && (
-                <>
-                  <span className="text-[#046A38]">4-Pillar Clinical</span>
-                  <br />
-                  <span className="text-[#D84315]">Synchrony Loop.</span>
-                </>
-              )}
-            </h1>
+          {/* Supporting Text */}
+          <p className="mt-1.5 text-xs sm:text-sm lg:text-base font-medium text-[#45556C] max-w-2xl leading-relaxed">
+            Your medicines, health questions and progress, thoughtfully connected.
+          </p>
 
-            {/* Subtitle */}
-            <p className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
-              {currentStageData.subtitle}
-            </p>
-
-            {/* Description */}
-            <p className="text-xs sm:text-[13px] font-normal text-slate-600 leading-relaxed max-w-md">
-              {currentStageData.desc}
-            </p>
-
-            {/* Dynamic CTAs based on stage */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              {activeStage === 2 ? (
-                <>
-                  <button
-                    onClick={() => {
-                      if (isAuthenticated) navigate('/patient/dashboard');
-                      else navigate('/signup?role=patient');
-                    }}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#046A38] hover:bg-[#03542C] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
-                  >
-                    <span>Get Started</span>
-                    <ArrowRight size={14} />
-                  </button>
-                  <a
-                    href="#workstations"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-[#F9EBD7] text-slate-900 border border-[#E8DCC8] hover:border-[#046A38] text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-2xs"
-                  >
-                    <span>Explore All Stations</span>
-                  </a>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      if (isAuthenticated) navigate('/dashboard');
-                      else navigate('/login');
-                    }}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#D84315] hover:bg-[#BF360C] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
-                  >
-                    <span>Explore LATROCORE</span>
-                    <ArrowRight size={14} />
-                  </button>
-                  <button
-                    onClick={() => scrollToStage(activeStage + 1)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white hover:bg-[#E8F5EE] text-[#046A38] border border-[#A8D7BD] text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                  >
-                    <span>Next 3D Phase</span>
-                    <ChevronDown size={14} />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Live Telemetry Progress Mini-Stats */}
-            <div className="pt-2 grid grid-cols-3 gap-2 border-t border-[#E8DCC8]/80 max-w-md">
-              <div className="p-2 rounded-xl bg-white/70 border border-[#E8DCC8]">
-                <span className="text-[10px] text-slate-500 font-bold block">Telemetry</span>
-                <span className="text-xs font-black text-[#046A38]">112 mg/dL</span>
-              </div>
-              <div className="p-2 rounded-xl bg-white/70 border border-[#E8DCC8]">
-                <span className="text-[10px] text-slate-500 font-bold block">In-Range</span>
-                <span className="text-xs font-black text-[#046A38]">88% Stable</span>
-              </div>
-              <div className="p-2 rounded-xl bg-white/70 border border-[#E8DCC8]">
-                <span className="text-[10px] text-slate-500 font-bold block">DDI Flags</span>
-                <span className="text-xs font-black text-[#E34222]">0 Detected</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ── RIGHT: 3D SCROLL-DRIVEN VISUAL STAGE ── */}
-          <div className="lg:col-span-7 relative flex items-center justify-center min-h-[320px] sm:min-h-[380px] lg:min-h-[440px] perspective-1200 overflow-visible">
-            
-            {/* 3D Spatial Canvas with dynamic mouse & scroll tilt */}
-            <div
-              className="relative w-full max-w-[500px] h-[320px] sm:h-[380px] lg:h-[420px] flex items-center justify-center preserve-3d"
-              style={{
-                transform: `rotateX(${mouseTilt.x}deg) rotateY(${explodeRotate}deg) scale(${explodeScale})`,
-                transition: isHovered
-                  ? 'transform 0.12s ease-out'
-                  : 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)',
-              }}
+          {/* Action CTAs */}
+          <div className="mt-3.5 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={handleGetStarted}
+              id="hero-get-started-btn"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#046A38] hover:bg-[#03542C] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
             >
-              {/* ── STAGE 1 VISUAL: ASSEMBLED SENSOR (Fades out on scroll) ── */}
-              <div
-                className="absolute inset-0 flex items-center justify-center preserve-3d transition-opacity duration-500 pointer-events-none"
-                style={{
-                  opacity: activeStage === 0 ? 1 : stage1Opacity,
-                  transform: `translateZ(${-explodeZ * 0.5}px)`,
-                }}
-              >
-                {/* Glowing Concentric Radar Rings */}
-                <div className="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full border border-dashed border-[#A8D7BD]/60 animate-spin-slow pointer-events-none">
-                  <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-[#E34222] shadow-[0_0_12px_#E34222]" />
-                </div>
-                <div className="absolute w-48 h-48 sm:w-60 sm:h-60 rounded-full bg-gradient-to-br from-[#093322] to-[#046A38] opacity-90 shadow-2xl pointer-events-none" />
-                
-                {/* Assembled 3D Device */}
-                <img
-                  src={bannerImg1}
-                  alt="3D Assembled Sensor"
-                  className="relative z-10 w-full max-w-[220px] sm:max-w-[270px] h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.25)] animate-float-3d"
-                />
+              <span>Get Started</span>
+              <ArrowRight size={15} />
+            </button>
 
-                {/* Floating Telemetry Tag (Stage 1) */}
+            <button
+              onClick={handleExploreDemo}
+              id="hero-explore-demo-btn"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-[#F9EBD7]/60 text-[#093322] border border-[#E8DCC8] hover:border-[#046A38] text-xs sm:text-sm font-semibold transition-all shadow-2xs cursor-pointer active:scale-95"
+            >
+              <span>Explore Demo</span>
+              <ChevronDown size={14} className="text-[#046A38]" />
+            </button>
+          </div>
+        </div>
+
+        {/* ── 3 SEPARATE FEATURE SCENES (BALANCED COMPOSITION) ── */}
+        <div className="relative z-20 max-w-7xl mx-auto w-full my-auto py-1">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+
+            {/* ══════════════════════════════════════════════════════════
+                SCENE 1: MEDICINE REMINDERS
+                ══════════════════════════════════════════════════════════ */}
+            <div
+              id="feature-card-0"
+              style={getSceneTransformStyles(0)}
+              className={`relative rounded-3xl bg-white border transition-all duration-300 p-5 pt-3 sm:pt-4 flex flex-col justify-between overflow-visible shadow-xs ${activeFeatureIndex === 0
+                  ? 'border-[#046A38] ring-2 ring-[#046A38]/15 shadow-xl bg-gradient-to-b from-white to-[#FAF6EF]/60'
+                  : 'border-[#E8DCC8] hover:border-[#046A38]/50'
+                }`}
+            >
+
+              {/* 2.5D Illustration Stage with Reserved Height */}
+              <div className="relative w-full h-[215px] sm:h-[230px] xl:h-[245px] flex items-center justify-center overflow-visible mt-1 mb-2">
+
+                {/* Independent 2.5D Parallax for Illustration */}
                 <div
-                  className="absolute -top-2 left-4 z-20 flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#E8DCC8] shadow-lg animate-float-3d whitespace-nowrap"
-                  style={{ transform: 'translateZ(50px)' }}
+                  className="w-full h-full flex items-center justify-center transition-transform duration-300"
+                  style={{
+                    transform: isHovered && activeFeatureIndex === 0
+                      ? `translate(${mouseTilt.y * 0.8}px, ${mouseTilt.x * 0.8}px)`
+                      : 'none',
+                  }}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-[#E8F5EE] text-[#046A38] flex items-center justify-center">
-                    <Activity size={16} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-black text-slate-900 leading-tight block">112 mg/dL</span>
-                    <span className="text-[10px] text-slate-500 font-semibold">Continuous Telemetry</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── STAGE 2 VISUAL: EXPLODED 3D SPATIAL ARCHITECTURE ── */}
-              <div
-                className="absolute inset-0 flex items-center justify-center preserve-3d transition-opacity duration-500 pointer-events-none"
-                style={{
-                  opacity: activeStage === 1 ? 1 : stage2Opacity,
-                  transform: `translateZ(${explodeZ}px)`,
-                }}
-              >
-                {/* Exploded 3D High-Res Concept Artwork */}
-                <div className="relative w-full max-w-[420px] sm:max-w-[480px] rounded-3xl overflow-hidden border-2 border-[#E8DCC8] shadow-2xl bg-white/40 backdrop-blur-sm">
                   <img
-                    src={hero3dExploded}
-                    alt="Exploded 3D CGM Sensor Micro-Architecture"
-                    className="w-full h-auto object-cover transform hover:scale-102 transition-transform duration-500"
+                    src={FEATURES[0].image}
+                    alt={FEATURES[0].imageAlt}
+                    width={320}
+                    height={320}
+                    loading="eager"
+                    className="max-h-[205px] sm:max-h-[220px] xl:max-h-[235px] w-auto max-w-full object-contain drop-shadow-[0_14px_24px_rgba(4,106,56,0.10)]"
                   />
-                  
-                  {/* Subtle Scanline Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#046A38]/15 via-transparent to-transparent pointer-events-none" />
                 </div>
 
-                {/* Floating 3D HUD Badge 1: Glucose Target (High Z-elevation) */}
+                {/* Separate HTML Reminder Card (Revealed on active stage or mobile) */}
                 <div
-                  className="absolute -top-3 -left-3 sm:-left-6 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#A8D7BD] shadow-xl animate-float-3d whitespace-nowrap"
+                  className={`absolute -top-1 -right-1 sm:-right-3 z-30 max-w-[210px] p-2.5 rounded-2xl bg-white/95 backdrop-blur-md border border-[#A8D7BD] shadow-lg transition-all duration-300 pointer-events-none ${activeFeatureIndex === 0 || isCompact || prefersReducedMotion
+                      ? 'opacity-100 translate-y-0 scale-100'
+                      : 'opacity-0 translate-y-2 scale-95'
+                    }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#E8F5EE] text-[#046A38] flex items-center justify-center shrink-0 mt-0.5">
+                      <Bell
+                        size={15}
+                        className={activeFeatureIndex === 0 ? 'rotate-12 transition-transform duration-500' : ''}
+                      />
+                    </div>
+                    <div className="leading-tight">
+                      <div className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#046A38]" />
+                        <span className="text-[11px] font-black text-slate-900">
+                          Time for your prescribed medicine
+                        </span>
+                      </div>
+                      <span className="text-[9.5px] font-bold text-slate-500 mt-0.5 block">
+                        9:00 AM • Morning Routine
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Real HTML Content Details */}
+              <div className="pt-3.5 border-t border-[#E8DCC8]/70 mt-auto flex flex-col">
+                <h2 className="font-serif font-bold text-xl sm:text-[22px] text-[#093322] tracking-tight leading-snug">
+                  {FEATURES[0].title}
+                </h2>
+                <p className="text-xs sm:text-[13px] font-bold text-[#046A38] mt-1 leading-snug">
+                  {FEATURES[0].subtitle}
+                </p>
+                <p className="text-xs text-[#45556C] font-normal leading-relaxed mt-1.5">
+                  {FEATURES[0].description}
+                </p>
+              </div>
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════
+                SCENE 2: AI HEALTH SUPPORT
+                ══════════════════════════════════════════════════════════ */}
+            <div
+              id="feature-card-1"
+              style={getSceneTransformStyles(1)}
+              className={`relative rounded-3xl bg-white border transition-all duration-300 p-5 pt-3 sm:pt-4 flex flex-col justify-between overflow-visible shadow-xs ${activeFeatureIndex === 1
+                  ? 'border-[#046A38] ring-2 ring-[#046A38]/15 shadow-xl bg-gradient-to-b from-white to-[#FAF6EF]/60'
+                  : 'border-[#E8DCC8] hover:border-[#046A38]/50'
+                }`}
+            >
+
+              {/* 2.5D Illustration Stage with Reserved Height */}
+              <div className="relative w-full h-[215px] sm:h-[230px] xl:h-[245px] flex items-center justify-center overflow-visible mt-1 mb-2">
+
+                {/* Independent 2.5D Parallax for Illustration */}
+                <div
+                  className="w-full h-full flex items-center justify-center transition-transform duration-300"
                   style={{
-                    transform: `translateZ(85px) translateX(${mouseTilt.y * 1.5}px)`,
+                    transform: isHovered && activeFeatureIndex === 1
+                      ? `translate(${mouseTilt.y * 0.8}px, ${mouseTilt.x * 0.8}px)`
+                      : 'none',
                   }}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-[#E8F5EE] text-[#046A38] flex items-center justify-center font-black">
-                    <Activity size={16} />
+                  <img
+                    src={FEATURES[1].image}
+                    alt={FEATURES[1].imageAlt}
+                    width={320}
+                    height={320}
+                    loading="eager"
+                    className="max-h-[205px] sm:max-h-[220px] xl:max-h-[235px] w-auto max-w-full object-contain drop-shadow-[0_14px_24px_rgba(4,106,56,0.10)]"
+                  />
+                </div>
+
+                {/* Separate HTML Chat Bubble & Educational Guidance Tag */}
+                <div
+                  className={`absolute -top-1 -left-1 sm:-left-3 z-30 max-w-[215px] p-2.5 rounded-2xl bg-white/95 backdrop-blur-md border border-[#A8D7BD] shadow-lg transition-all duration-300 pointer-events-none ${activeFeatureIndex === 1 || isCompact || prefersReducedMotion
+                      ? 'opacity-100 translate-y-0 scale-100'
+                      : 'opacity-0 translate-y-2 scale-95'
+                    }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#E8F5EE] text-[#046A38] flex items-center justify-center shrink-0 mt-0.5">
+                      <Sparkles size={15} />
+                    </div>
+                    <div className="leading-tight">
+                      <p className="text-[11px] font-black text-slate-900">
+                        “What does HbA1c mean?”
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-[#FAF6EF] border border-[#E8DCC8] text-[9px] font-black text-[#046A38] uppercase">
+                          Educational guidance
+                        </span>
+                        {/* Subtle typing pulse indicator */}
+                        <span className="flex items-center gap-0.5">
+                          <span className="w-1 h-1 rounded-full bg-[#046A38] animate-pulse" />
+                          <span className="w-1 h-1 rounded-full bg-[#046A38] animate-pulse delay-100" />
+                          <span className="w-1 h-1 rounded-full bg-[#046A38] animate-pulse delay-200" />
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
+                </div>
+
+              </div>
+
+              {/* Real HTML Content Details */}
+              <div className="pt-3.5 border-t border-[#E8DCC8]/70 mt-auto flex flex-col">
+                <h2 className="font-serif font-bold text-xl sm:text-[22px] text-[#093322] tracking-tight leading-snug">
+                  {FEATURES[1].title}
+                </h2>
+                <p className="text-xs sm:text-[13px] font-bold text-[#046A38] mt-1 leading-snug">
+                  {FEATURES[1].subtitle}
+                </p>
+                <p className="text-xs text-[#45556C] font-normal leading-relaxed mt-1.5">
+                  {FEATURES[1].description}
+                </p>
+              </div>
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════
+                SCENE 3: PATIENT-PROGRESS TRACKING
+                ══════════════════════════════════════════════════════════ */}
+            <div
+              id="feature-card-2"
+              style={getSceneTransformStyles(2)}
+              className={`relative rounded-3xl bg-white border transition-all duration-300 p-5 pt-3 sm:pt-4 flex flex-col justify-between overflow-visible shadow-xs ${activeFeatureIndex === 2
+                  ? 'border-[#046A38] ring-2 ring-[#046A38]/15 shadow-xl bg-gradient-to-b from-white to-[#FAF6EF]/60'
+                  : 'border-[#E8DCC8] hover:border-[#046A38]/50'
+                }`}
+            >
+
+              {/* 2.5D Illustration Stage with Reserved Height */}
+              <div className="relative w-full h-[215px] sm:h-[230px] xl:h-[245px] flex items-center justify-center overflow-visible mt-1 mb-2">
+
+                {/* Independent 2.5D Parallax for Illustration */}
+                <div
+                  className="w-full h-full flex items-center justify-center transition-transform duration-300"
+                  style={{
+                    transform: isHovered && activeFeatureIndex === 2
+                      ? `translate(${mouseTilt.y * 0.8}px, ${mouseTilt.x * 0.8}px)`
+                      : 'none',
+                  }}
+                >
+                  <img
+                    src={FEATURES[2].image}
+                    alt={FEATURES[2].imageAlt}
+                    width={320}
+                    height={320}
+                    loading="eager"
+                    className="max-h-[205px] sm:max-h-[220px] xl:max-h-[235px] w-auto max-w-full object-contain drop-shadow-[0_14px_24px_rgba(4,106,56,0.10)]"
+                  />
+                </div>
+
+                {/* Complementary Separate SVG Trend Card (Demo) */}
+                <div
+                  className={`absolute -top-1 -right-1 sm:-right-3 z-30 max-w-[215px] p-2.5 rounded-2xl bg-white/95 backdrop-blur-md border border-[#A8D7BD] shadow-lg transition-all duration-300 pointer-events-none ${activeFeatureIndex === 2 || isCompact || prefersReducedMotion
+                      ? 'opacity-100 translate-y-0 scale-100'
+                      : 'opacity-0 translate-y-2 scale-95'
+                    }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-slate-900">112 mg/dL</span>
-                      <span className="w-2 h-2 rounded-full bg-[#046A38] animate-ping" />
+                      <TrendingUp size={13} className="text-[#046A38]" />
+                      <span className="text-[11px] font-black text-slate-900">
+                        Glucose Trends
+                      </span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-semibold">Normal Glycemic Target</span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-[#FAF6EF] border border-[#E8DCC8] text-[9px] font-black text-slate-600 uppercase">
+                      Demo
+                    </span>
+                  </div>
+
+                  {/* Complementary Clean SVG Line Chart */}
+                  <div className="w-full h-9 bg-[#E8F5EE]/50 rounded-lg p-1 flex items-center">
+                    <svg viewBox="0 0 100 24" className="w-full h-full overflow-visible">
+                      <defs>
+                        <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#046A38" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#046A38" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        d="M 0 16 Q 18 10, 35 14 T 70 8 T 100 6"
+                        fill="none"
+                        stroke="#046A38"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <circle cx="100" cy="6" r="2.5" fill="#046A38" />
+                    </svg>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[9.5px] font-bold text-slate-600 mt-1.5">
+                    <span>Target 70–180 mg/dL</span>
+                    <span className="text-[#046A38] font-black">88% in range</span>
                   </div>
                 </div>
 
-                {/* Floating 3D HUD Badge 2: Time in Range */}
+              </div>
+
+              {/* Real HTML Content Details */}
+              <div className="pt-3.5 border-t border-[#E8DCC8]/70 mt-auto flex flex-col">
+                <h2 className="font-serif font-bold text-xl sm:text-[22px] text-[#093322] tracking-tight leading-snug">
+                  {FEATURES[2].title}
+                </h2>
+                <p className="text-xs sm:text-[13px] font-bold text-[#046A38] mt-1 leading-snug">
+                  {FEATURES[2].subtitle}
+                </p>
+                <p className="text-xs text-[#45556C] font-normal leading-relaxed mt-1.5">
+                  {FEATURES[2].description}
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── BOTTOM VIEWPORT BAR: INTERACTION CUE & PROGRESS BAR ── */}
+        {!isCompact && !prefersReducedMotion && (
+          <div className="relative z-30 max-w-7xl mx-auto w-full flex items-center justify-between pb-1 border-t border-[#E8DCC8]/70 pt-2 text-[11px] font-bold text-slate-600">
+            {/* Scroll Direction / Status Hint */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-4 h-6 rounded-full border-2 border-[#046A38] flex items-start justify-center p-0.5">
+                <div className="w-1 h-1.5 rounded-full bg-[#046A38] animate-bounce" />
+              </div>
+              <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-700">
+                {activeFeatureIndex === -1 && scrollProgress < 0.1
+                  ? 'Scroll down to explore features'
+                  : activeFeatureIndex === 0
+                    ? 'Medicine Reminders'
+                    : activeFeatureIndex === 1
+                      ? 'AI Health Support'
+                      : activeFeatureIndex === 2
+                        ? 'Progress Tracking'
+                        : 'Continue scrolling for Care Continuum'}
+              </span>
+            </div>
+
+            {/* Visual Scrubbed Scroll Meter */}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black text-[#046A38] tracking-wider uppercase">
+                {Math.round(scrollProgress * 100)}% EXPLORED
+              </span>
+              <div className="w-28 sm:w-36 h-1.5 rounded-full bg-[#E8DCC8] overflow-hidden">
                 <div
-                  className="absolute -bottom-3 -right-3 sm:-right-6 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#E8DCC8] shadow-xl animate-float-3d-reverse whitespace-nowrap"
-                  style={{
-                    transform: `translateZ(95px) translateX(${mouseTilt.y * -1.8}px)`,
-                  }}
-                >
-                  <div className="w-8 h-8 rounded-xl bg-[#FDECE8] text-[#E34222] flex items-center justify-center font-black">
-                    <Sparkles size={16} />
-                  </div>
-                  <div>
-                    <span className="text-xs font-black text-slate-900 block">88% In Range</span>
-                    <span className="text-[10px] text-slate-500 font-semibold">Goal &gt; 70% • Zero Hypo</span>
-                  </div>
-                </div>
+                  className="h-full bg-[#046A38] transition-all duration-150 rounded-full"
+                  style={{ width: `${Math.max(scrollProgress * 100, 5)}%` }}
+                />
               </div>
-
-              {/* ── STAGE 3 VISUAL: 4-PILLAR CLINICAL SYNCHRONY STATIONS ── */}
-              <div
-                className="absolute inset-0 flex items-center justify-center preserve-3d transition-opacity duration-500"
-                style={{
-                  opacity: activeStage === 2 ? 1 : stage3Opacity,
-                  pointerEvents: activeStage === 2 ? 'auto' : 'none',
-                  transform: `translateZ(${activeStage === 2 ? 40 : -20}px)`,
-                }}
-              >
-                {/* 4-Pillar Orbital Arc */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-[420px] p-2">
-                  
-                  {/* Station 1: Patient */}
-                  <div
-                    onClick={() => navigate('/patient/dashboard')}
-                    className="p-3 sm:p-3.5 rounded-2xl bg-white/95 hover:bg-white border border-[#E8DCC8] hover:border-[#046A38] shadow-md hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <img src={patientImg} alt="Patient" className="w-7 h-7 rounded-lg object-contain bg-[#E8F5EE] p-0.5" />
-                      <span className="text-xs font-black text-slate-900 group-hover:text-[#046A38]">Patient Station</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium leading-tight">
-                      CGM telemetry curves &amp; personalized diet adherence
-                    </p>
-                  </div>
-
-                  {/* Station 2: Doctor */}
-                  <div
-                    onClick={() => navigate('/doctor/dashboard')}
-                    className="p-3 sm:p-3.5 rounded-2xl bg-white/95 hover:bg-white border border-[#E8DCC8] hover:border-[#046A38] shadow-md hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <img src={doctorImg} alt="Doctor" className="w-7 h-7 rounded-lg object-contain bg-[#E8F5EE] p-0.5" />
-                      <span className="text-xs font-black text-slate-900 group-hover:text-[#046A38]">Doctor Station</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium leading-tight">
-                      Glycemic cohort surveillance &amp; digital prescriptions
-                    </p>
-                  </div>
-
-                  {/* Station 3: Pharmacist */}
-                  <div
-                    onClick={() => navigate('/pharmacist/dashboard')}
-                    className="p-3 sm:p-3.5 rounded-2xl bg-white/95 hover:bg-white border border-[#E8DCC8] hover:border-[#046A38] shadow-md hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <img src={pharmacistImg} alt="Pharmacist" className="w-7 h-7 rounded-lg object-contain bg-[#FDECE8] p-0.5" />
-                      <span className="text-xs font-black text-slate-900 group-hover:text-[#046A38]">Pharmacist Console</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium leading-tight">
-                      Prescription reconciliation &amp; DDI contraindication screening
-                    </p>
-                  </div>
-
-                  {/* Station 4: Admin */}
-                  <div
-                    onClick={() => navigate('/admin/dashboard')}
-                    className="p-3 sm:p-3.5 rounded-2xl bg-white/95 hover:bg-white border border-[#E8DCC8] hover:border-[#046A38] shadow-md hover:shadow-xl transition-all cursor-pointer group hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <img src={adminImg} alt="Admin" className="w-7 h-7 rounded-lg object-contain bg-[#E8F5EE] p-0.5" />
-                      <span className="text-xs font-black text-slate-900 group-hover:text-[#046A38]">Admin Console</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium leading-tight">
-                      HIPAA compliance logs, security &amp; system users
-                    </p>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
-        </div>
-
-        {/* ── BOTTOM PROGRESS & SCROLL CUE ── */}
-        <div className="relative z-30 max-w-7xl mx-auto w-full flex items-center justify-between pb-1 border-t border-[#E8DCC8]/60 pt-2 text-[11px] font-bold text-slate-600">
-          
-          {/* Scroll Down Hint with Animated Mouse */}
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-7 rounded-full border-2 border-[#046A38] flex items-start justify-center p-1">
-              <div className="w-1 h-2 rounded-full bg-[#E34222] animate-bounce" />
-            </div>
-            <span className="text-[10px] uppercase tracking-wider text-slate-700">
-              {activeStage < 2 ? 'Scroll Down to Dissect 3D Architecture' : 'Scroll Down to Care Continuum'}
-            </span>
-          </div>
-
-          {/* Continuous Progress Bar */}
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black text-[#046A38]">
-              {Math.round(scrollProgress * 100)}% COMPLETE
-            </span>
-            <div className="w-28 sm:w-36 h-2 rounded-full bg-[#E8DCC8] overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[#046A38] via-[#1D8252] to-[#E34222] transition-all duration-150 rounded-full"
-                style={{ width: `${Math.max(scrollProgress * 100, 6)}%` }}
-              />
-            </div>
-          </div>
-        </div>
+        )}
 
       </div>
-    </div>
+    </section>
   );
 }

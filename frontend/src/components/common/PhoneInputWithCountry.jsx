@@ -89,12 +89,12 @@ export default function PhoneInputWithCountry({
   return (
     <div className={`relative ${className}`} ref={containerRef} onKeyDown={handleKeyDown}>
       {/* Label */}
-      <div className="flex items-center justify-between mb-1.5">
-        <label className="block text-xs font-semibold text-stone-700">
+      <div className="flex items-center justify-between mb-1.5 gap-2">
+        <label className="block text-sm font-semibold text-stone-700 shrink-0">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
-        <span className="text-[10px] text-stone-400 font-normal">
-          Dialing code: {selectedCountry.code}
+        <span className="text-xs text-stone-400 font-normal truncate">
+          Code: {selectedCountry.code}
         </span>
       </div>
 
@@ -111,7 +111,7 @@ export default function PhoneInputWithCountry({
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen((prev) => !prev)}
-          className="h-full py-3.5 pl-3.5 pr-2.5 flex items-center gap-1.5 hover:bg-stone-100/70 active:bg-stone-200/50 rounded-l-xl transition-colors cursor-pointer shrink-0 border-r border-stone-200/80 group"
+          className="h-full py-3 pl-3 pr-2 flex items-center gap-1.5 hover:bg-stone-100/70 active:bg-stone-200/50 rounded-l-xl transition-colors cursor-pointer shrink-0 border-r border-stone-200/80 group"
           title={`Selected: ${selectedCountry.name} (${selectedCountry.code}). Click to choose country.`}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
@@ -139,7 +139,7 @@ export default function PhoneInputWithCountry({
           onChange={onChange}
           onBlur={onBlur}
           placeholder={selectedCountry.placeholder || '234 567 8900'}
-          className="flex-1 min-w-0 px-3.5 py-3.5 text-sm text-stone-900 bg-transparent placeholder:text-stone-400 focus:outline-none"
+          className="flex-1 min-w-0 px-3.5 py-3 text-sm text-stone-900 bg-transparent placeholder:text-stone-400 focus:outline-none"
         />
       </div>
 
@@ -230,12 +230,12 @@ export default function PhoneInputWithCountry({
 
       {/* Error or Hint Message */}
       {error ? (
-        <p className="text-[11px] text-[#E34222] font-semibold mt-1 flex items-center gap-1">
+        <p className="text-xs text-[#E34222] font-semibold mt-1 flex items-center gap-1">
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
           <span>{error}</span>
         </p>
       ) : (
-        <p className="text-[11px] text-stone-400 mt-1">
+        <p className="text-xs text-stone-400 mt-1">
           Format: {selectedCountry.hint || 'Enter valid mobile number'}.
         </p>
       )}

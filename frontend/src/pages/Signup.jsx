@@ -26,6 +26,7 @@ import {
   X,
   Check,
   Copy,
+  Clipboard,
   Ruler,
   Weight as WeightIcon,
   ChevronRight
@@ -312,10 +313,8 @@ export default function Signup() {
 
       if (res?.devOtp) {
         setDevOtpCode(res.devOtp);
-        setOtpSuccessMessage(`Code dispatched! Local Dev Code: [ ${res.devOtp} ] (Also logged to backend terminal).`);
-      } else {
-        setOtpSuccessMessage(`A 6-digit verification code has been dispatched to ${email.trim()}.`);
       }
+      setOtpSuccessMessage(`Code sent to ${email.trim()}`);
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
     } catch (err) {
       setOtpError(err.message || 'Failed to send verification code. Please check your email.');
@@ -325,23 +324,55 @@ export default function Signup() {
   };
 
   // ── OTP Inputs & Paste ─────────────────────────────────────────────
+  const applyPastedCode = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 6).split('');
+    if (!digits.length) return false;
+
+    const newOtp = ['', '', '', '', '', ''];
+    digits.forEach((d, i) => {
+      newOtp[i] = d;
+    });
+    setOtpCode(newOtp);
+    setOtpError('');
+
+    const nextIndex = Math.min(digits.length, 5);
+    otpInputRefs.current[nextIndex]?.focus();
+    return true;
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData?.getData('text') || '';
+    applyPastedCode(pasted);
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        const success = applyPastedCode(text);
+        if (!success) {
+          setOtpError('Clipboard does not contain a numeric code.');
+        }
+      } else {
+        otpInputRefs.current[0]?.focus();
+      }
+    } catch {
+      // Permission denied or browser restriction - focus box 0 for Ctrl+V
+      otpInputRefs.current[0]?.focus();
+      setOtpError('Clipboard access blocked. Please press Ctrl+V inside the box.');
+    }
+  };
+
   const handleOtpDigitChange = (index, value) => {
     const cleaned = value.replace(/\D/g, '');
-    const newOtp = [...otpCode];
-
     if (cleaned.length > 1) {
-      // Pasted a full code
-      const digits = cleaned.slice(0, 6).split('');
-      digits.forEach((d, i) => {
-        if (i < 6) newOtp[i] = d;
-      });
-      setOtpCode(newOtp);
-      const nextIndex = Math.min(digits.length, 5);
-      otpInputRefs.current[nextIndex]?.focus();
+      applyPastedCode(cleaned);
       return;
     }
 
-    newOtp[index] = cleaned;
+    const newOtp = [...otpCode];
+    newOtp[index] = cleaned.slice(-1);
     setOtpCode(newOtp);
 
     if (cleaned && index < 5) {
@@ -898,7 +929,7 @@ export default function Signup() {
                     ? 'Doctor Onboarding'
                     : 'Pharmacist Registration'}
                 </h2>
-                <span className="text-[11px] text-stone-500 truncate block">
+                <span className="text-xs sm:text-sm text-stone-500 truncate block">
                   {accountType === 'patient'
                     ? 'Personalized diabetes care & continuous telemetry'
                     : accountType === 'doctor'
@@ -911,7 +942,7 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => setShowRoleSelection(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shrink-0"
             >
               <span>Change</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -924,10 +955,10 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="flex items-center gap-2 cursor-pointer focus:outline-none group text-left"
+              className="flex items-center gap-2.5 cursor-pointer focus:outline-none group text-left"
             >
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
                   isEmailVerified
                     ? 'bg-[#046A38] text-white shadow-2xs'
                     : currentStep === 1
@@ -935,10 +966,10 @@ export default function Signup() {
                     : 'bg-stone-200 text-stone-600'
                 }`}
               >
-                {isEmailVerified ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '1'}
+                {isEmailVerified ? <Check className="w-4 h-4 stroke-[3]" /> : '1'}
               </div>
               <span
-                className={`text-xs font-medium transition-colors ${
+                className={`text-sm font-semibold transition-colors ${
                   currentStep === 1
                     ? 'text-[#046A38] font-bold'
                     : isEmailVerified
@@ -966,12 +997,12 @@ export default function Signup() {
                 if (isEmailVerified) setCurrentStep(2);
               }}
               disabled={!isEmailVerified}
-              className={`flex items-center gap-2 focus:outline-none text-left ${
+              className={`flex items-center gap-2.5 focus:outline-none text-left ${
                 !isEmailVerified ? 'cursor-not-allowed opacity-50' : 'cursor-pointer group'
               }`}
             >
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all shrink-0 ${
                   currentStep === 2
                     ? 'bg-[#046A38] text-white ring-2 ring-[#046A38]/20 shadow-2xs'
                     : 'bg-stone-200 text-stone-600'
@@ -980,7 +1011,7 @@ export default function Signup() {
                 2
               </div>
               <span
-                className={`text-xs font-medium transition-colors ${
+                className={`text-sm font-semibold transition-colors ${
                   currentStep === 2 ? 'text-[#046A38] font-bold' : 'text-stone-500'
                 }`}
               >
@@ -1011,7 +1042,7 @@ export default function Signup() {
             <div className="space-y-4 animate-fade-in">
               {/* ── ROW 1: Full Name (Row 1) ── */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1026,7 +1057,7 @@ export default function Signup() {
                       ? 'Pharm. Rajesh Kumar'
                       : 'Priya Sharma'
                   }
-                  className="w-full px-3.5 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                  className="w-full px-3.5 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                 />
               </div>
 
@@ -1053,7 +1084,7 @@ export default function Signup() {
               {accountType === 'patient' && (
                 <div className="grid grid-cols-3 gap-2.5">
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 truncate">
+                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 truncate">
                       Age (0–120) <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1064,13 +1095,13 @@ export default function Signup() {
                       value={age}
                       onChange={(e) => setAge(e.target.value)}
                       placeholder="e.g. 42"
-                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1 truncate">
-                      <Ruler className="w-3.5 h-3.5 text-[#046A38] shrink-0" />
+                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5 truncate">
+                      <Ruler className="w-4 h-4 text-[#046A38] shrink-0" />
                       <span className="truncate">Height (cm)</span>
                     </label>
                     <input
@@ -1081,13 +1112,13 @@ export default function Signup() {
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
                       placeholder="172"
-                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1 truncate">
-                      <WeightIcon className="w-3.5 h-3.5 text-[#046A38] shrink-0" />
+                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5 truncate">
+                      <WeightIcon className="w-4 h-4 text-[#046A38] shrink-0" />
                       <span className="truncate">Weight (kg)</span>
                     </label>
                     <input
@@ -1098,7 +1129,7 @@ export default function Signup() {
                       value={weight}
                       onChange={(e) => setWeight(e.target.value)}
                       placeholder="68.5"
-                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                     />
                   </div>
                 </div>
@@ -1107,14 +1138,14 @@ export default function Signup() {
               {/* ── ROW 2: Email Address & Verification (1 Row) ── */}
               <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF6EF]/75 border border-[#E8DCC8] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-stone-800 flex items-center gap-1.5">
                     <Mail className="w-4 h-4 text-[#046A38]" />
                     <span>Email &amp; Verification</span>
                     <span className="text-red-500">*</span>
                   </span>
 
                   {isEmailVerified && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#046A38] bg-emerald-100/90 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-[#046A38] bg-emerald-100/90 px-2.5 py-0.5 rounded-full shadow-2xs">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Verified
                     </span>
@@ -1129,14 +1160,14 @@ export default function Signup() {
                     value={email}
                     onChange={handleEmailChange}
                     placeholder="name@latrocore.com"
-                    className="flex-1 px-3.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed transition-all"
+                    className="flex-1 px-3.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed transition-all"
                   />
                   {!isEmailVerified && (
                     <button
                       type="button"
                       disabled={sendingOtp || cooldown > 0 || !isValidEmail(email)}
                       onClick={handleSendOtp}
-                      className="px-4 py-3 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                      className="px-4 py-3 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer whitespace-nowrap"
                     >
                       {sendingOtp ? 'Sending...' : cooldown > 0 ? `Resend (${cooldown}s)` : otpSent ? 'Resend Code' : 'Send Code'}
                     </button>
@@ -1144,15 +1175,15 @@ export default function Signup() {
                 </div>
 
                 {otpSuccessMessage && (
-                  <p className="text-xs text-[#046A38] font-medium flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>{otpSuccessMessage}</span>
+                  <p className="text-xs sm:text-sm text-[#046A38] font-medium flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[#046A38]" />
+                    <span className="truncate">{otpSuccessMessage}</span>
                   </p>
                 )}
 
                 {otpError && (
-                  <p className="text-xs text-[#E34222] font-semibold flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <p className="text-xs sm:text-sm text-[#E34222] font-semibold flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{otpError}</span>
                   </p>
                 )}
@@ -1161,10 +1192,21 @@ export default function Signup() {
                 {otpSent && !isEmailVerified && (
                   <div className="pt-2 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-stone-600">
+                      <span className="text-sm font-medium text-stone-700">
                         Enter 6-digit verification code:
                       </span>
-                      <span className="text-[10px] text-stone-400">Expires in 5 min</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handlePasteFromClipboard}
+                          title="Paste 6-digit code from clipboard"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shadow-2xs active:scale-95"
+                        >
+                          <Clipboard className="w-3.5 h-3.5" />
+                          <span>Paste Code</span>
+                        </button>
+                        <span className="text-xs text-stone-400">Expires in 5 min</span>
+                      </div>
                     </div>
 
                     <div className="flex justify-center gap-1.5 sm:gap-2">
@@ -1174,10 +1216,11 @@ export default function Signup() {
                           ref={(el) => (otpInputRefs.current[idx] = el)}
                           type="text"
                           inputMode="numeric"
-                          maxLength={1}
+                          maxLength={6}
                           value={digit}
                           onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                          onPaste={handleOtpPaste}
                           className="w-10 h-11 sm:w-11 sm:h-12 text-center text-lg font-mono font-bold rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] shadow-2xs"
                         />
                       ))}
@@ -1191,18 +1234,18 @@ export default function Signup() {
                             setOtpCode(devOtpCode.split(''));
                             setOtpError('');
                           }}
-                          className="text-[11px] font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] px-2.5 py-1.5 rounded-lg border border-emerald-200 transition-all cursor-pointer"
+                          className="text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] px-2.5 py-1.5 rounded-lg border border-emerald-200 transition-all cursor-pointer"
                         >
                           Auto-fill Dev Code ({devOtpCode})
                         </button>
                       ) : (
-                        <span className="text-[11px] text-stone-400">Max 5 attempts</span>
+                        <span className="text-xs text-stone-400">Max 5 attempts</span>
                       )}
                       <button
                         type="button"
                         disabled={verifyingOtp || otpCode.join('').length !== 6}
                         onClick={handleVerifyOtp}
-                        className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
+                        className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
                       >
                         {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
                       </button>
@@ -1213,14 +1256,14 @@ export default function Signup() {
                 {/* ── SMALL NEXT BUTTON REVEALED AFTER OTP VERIFICATION ── */}
                 {isEmailVerified && (
                   <div className="pt-2.5 border-t border-[#E8DCC8] flex items-center justify-between gap-2 animate-fade-in">
-                    <div className="flex items-center gap-1.5 text-xs text-[#046A38] font-bold">
+                    <div className="flex items-center gap-1.5 text-sm text-[#046A38] font-bold">
                       <CheckCircle2 className="w-4 h-4 text-[#046A38]" />
                       <span>Email verified!</span>
                     </div>
                     <button
                       type="button"
                       onClick={handleProceedToStep2}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] hover:bg-[#03542C] shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
                     >
                       <span>Next</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1231,9 +1274,9 @@ export default function Signup() {
 
               {/* Bottom State: Only shown if email is NOT yet verified */}
               {!isEmailVerified && (
-                <div className="pt-1 text-center text-xs text-stone-500 font-medium">
+                <div className="pt-1 text-center text-xs sm:text-sm text-stone-600 font-medium">
                   {otpSent ? (
-                    <span className="text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 text-[11px]">
+                    <span className="text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 text-xs">
                       Enter your 6-digit OTP code and click <strong>Verify OTP</strong> to proceed.
                     </span>
                   ) : (
@@ -1253,13 +1296,13 @@ export default function Signup() {
             <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
               {/* Back to Step 1 Banner */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#FAF6EF] border border-[#E8DCC8]">
-                <div className="text-xs text-stone-700">
+                <div className="text-sm text-stone-700">
                   Registering as <strong className="text-stone-900">{name}</strong> ({email})
                 </div>
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#046A38] hover:text-[#03542C] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#046A38] hover:text-[#03542C] hover:underline cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Edit Step 1</span>
@@ -1271,10 +1314,10 @@ export default function Signup() {
                 <div className="space-y-6">
                   {/* Medical Conditions Selector */}
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    <label className="block text-sm font-semibold text-stone-700 mb-1">
                       Chronic / Medical Conditions <span className="text-red-500">*</span>
                     </label>
-                    <p className="text-[11px] text-stone-500 mb-3">
+                    <p className="text-xs sm:text-sm text-stone-500 mb-3">
                       Select all relevant diagnoses to help configure your glycemic target curves.
                     </p>
 
@@ -1286,13 +1329,13 @@ export default function Signup() {
                             key={cond}
                             type="button"
                             onClick={() => toggleCondition(cond)}
-                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                               isSelected
                                 ? 'bg-[#046A38] text-white shadow-2xs border border-[#046A38]'
                                 : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
                             }`}
                           >
-                            {isSelected && <Check className="w-3 h-3 inline mr-1.5" />}
+                            {isSelected && <Check className="w-3.5 h-3.5 inline mr-1.5" />}
                             <span>{cond}</span>
                           </button>
                         );
@@ -1301,13 +1344,13 @@ export default function Signup() {
                       <button
                         type="button"
                         onClick={toggleOtherCondition}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                           showOtherCondition
                             ? 'bg-[#046A38] text-white shadow-2xs border border-[#046A38]'
                             : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
                         }`}
                       >
-                        {showOtherCondition && <Check className="w-3 h-3 inline mr-1.5" />}
+                        {showOtherCondition && <Check className="w-3.5 h-3.5 inline mr-1.5" />}
                         <span>Other Condition...</span>
                       </button>
                     </div>
@@ -1319,7 +1362,7 @@ export default function Signup() {
                           value={otherCondition}
                           onChange={(e) => setOtherCondition(e.target.value)}
                           placeholder="Specify condition (e.g. Hashimoto's Thyroiditis, PCOS)"
-                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                         />
                       </div>
                     )}
@@ -1328,12 +1371,12 @@ export default function Signup() {
                   {/* Prescription Upload Dropzone */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-semibold text-stone-700 flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5 text-[#046A38]" />
+                      <label className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-[#046A38]" />
                         <span>Recent Medical Prescription</span>
                         <span className="text-stone-400 font-normal">(Optional)</span>
                       </label>
-                      <span className="text-[11px] text-stone-400 font-medium">
+                      <span className="text-xs text-stone-400 font-medium">
                         PDF, WEBP, PNG, JPG, JPEG &lt; 10 MB
                       </span>
                     </div>
@@ -1343,10 +1386,10 @@ export default function Signup() {
                         <div className="w-12 h-12 rounded-xl bg-white border border-[#E8DCC8] flex items-center justify-center text-[#046A38] group-hover:scale-105 transition-transform mb-2 shadow-2xs">
                           <UploadCloud className="w-6 h-6 text-[#046A38]" />
                         </div>
-                        <span className="text-xs font-bold text-stone-800">
+                        <span className="text-sm sm:text-base font-bold text-stone-800">
                           Click to upload or drag & drop prescription
                         </span>
-                        <span className="text-[11px] text-stone-400 mt-1">
+                        <span className="text-xs text-stone-500 mt-1">
                           Our clinical OCR will extract your insulin dosage and current medications
                         </span>
                         <input
@@ -1371,10 +1414,10 @@ export default function Signup() {
                             </div>
                           )}
                           <div className="overflow-hidden">
-                            <span className="text-xs font-bold text-stone-900 truncate block">
+                            <span className="text-sm font-bold text-stone-900 truncate block">
                               {prescriptionFile.name}
                             </span>
-                            <span className="text-[11px] text-stone-400">
+                            <span className="text-xs text-stone-400">
                               {(prescriptionFile.size / (1024 * 1024)).toFixed(2)} MB •{' '}
                               {uploadingPrescription ? 'Uploading securely...' : 'Uploaded'}
                             </span>
@@ -1382,7 +1425,7 @@ export default function Signup() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <label className="text-xs font-semibold text-[#046A38] hover:underline cursor-pointer">
+                          <label className="text-xs sm:text-sm font-semibold text-[#046A38] hover:underline cursor-pointer">
                             Replace
                             <input
                               type="file"
@@ -1410,7 +1453,7 @@ export default function Signup() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         Medical License Number <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1419,12 +1462,12 @@ export default function Signup() {
                         value={licenseNumber}
                         onChange={(e) => setLicenseNumber(e.target.value)}
                         placeholder="e.g. MCI-2018-84729"
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         State Medical Council / Authority <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1433,20 +1476,20 @@ export default function Signup() {
                         value={council}
                         onChange={(e) => setCouncil(e.target.value)}
                         placeholder="e.g. Delhi Medical Council"
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         Primary Specialization <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={specialization}
                         onChange={(e) => setSpecialization(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer"
                       >
                         {DOCTOR_SPECIALIZATIONS.map((spec) => (
                           <option key={spec} value={spec}>
@@ -1461,13 +1504,13 @@ export default function Signup() {
                           value={otherSpecialization}
                           onChange={(e) => setOtherSpecialization(e.target.value)}
                           placeholder="Specify specialization"
-                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] mt-2"
+                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] mt-2"
                         />
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         Hospital / Clinic Affiliation
                       </label>
                       <input
@@ -1475,7 +1518,7 @@ export default function Signup() {
                         value={hospitalClinic}
                         onChange={(e) => setHospitalClinic(e.target.value)}
                         placeholder="e.g. Apollo Diabetes Centre"
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                       />
                     </div>
                   </div>
@@ -1487,7 +1530,7 @@ export default function Signup() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         Pharmacy Registration Number <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1496,12 +1539,12 @@ export default function Signup() {
                         value={licenseNumber}
                         onChange={(e) => setLicenseNumber(e.target.value)}
                         placeholder="e.g. PCI-REG-2022-77192"
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         State Pharmacy Council / Authority <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1510,20 +1553,20 @@ export default function Signup() {
                         value={council}
                         onChange={(e) => setCouncil(e.target.value)}
                         placeholder="e.g. Karnataka State Pharmacy Council"
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         Practice Area <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={specialization}
                         onChange={(e) => setSpecialization(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] cursor-pointer"
                       >
                         {PHARMACIST_SPECIALIZATIONS.map((spec) => (
                           <option key={spec} value={spec}>
@@ -1538,13 +1581,13 @@ export default function Signup() {
                           value={otherSpecialization}
                           onChange={(e) => setOtherSpecialization(e.target.value)}
                           placeholder="Specify practice area"
-                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] mt-2"
+                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] mt-2"
                         />
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                         Pharmacy / Hospital Affiliation
                       </label>
                       <input
@@ -1552,7 +1595,7 @@ export default function Signup() {
                         value={hospitalClinic}
                         onChange={(e) => setHospitalClinic(e.target.value)}
                         placeholder="e.g. Fortis Hospital Pharmacy / MedPlus"
-                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                       />
                     </div>
                   </div>
@@ -1562,7 +1605,7 @@ export default function Signup() {
               {/* Password Fields (12-128 chars, Argon2id) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                     Password (min. 12 chars) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -1574,7 +1617,7 @@ export default function Signup() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
+                      className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
                     />
                     <button
                       type="button"
@@ -1584,13 +1627,13 @@ export default function Signup() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  <span className="text-[10px] text-stone-400 mt-1 block">
+                  <span className="text-xs text-stone-400 mt-1 block">
                     Letters, numbers, and symbols.
                   </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                     Confirm Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -1602,7 +1645,7 @@ export default function Signup() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
+                      className="w-full pl-3.5 pr-10 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all font-mono"
                     />
                     <button
                       type="button"
@@ -1613,7 +1656,7 @@ export default function Signup() {
                     </button>
                   </div>
                   {confirmPassword && password !== confirmPassword && (
-                    <span className="text-[11px] text-[#E34222] font-semibold mt-1 block">
+                    <span className="text-xs text-[#E34222] font-semibold mt-1 block">
                       Passwords do not match.
                     </span>
                   )}
@@ -1630,7 +1673,7 @@ export default function Signup() {
                       onChange={(e) => setConsentHealthData(e.target.checked)}
                       className="mt-1 w-4 h-4 text-[#046A38] rounded border-stone-300 focus:ring-[#046A38]"
                     />
-                    <span className="text-xs text-stone-600 leading-relaxed">
+                    <span className="text-xs sm:text-sm text-stone-600 leading-relaxed">
                       I give my explicit consent to store, analyze, and process my continuous glucose telemetry, medical conditions, and uploaded prescriptions under encrypted healthcare storage protocols.
                     </span>
                   </label>
@@ -1643,7 +1686,7 @@ export default function Signup() {
                     onChange={(e) => setAcceptTerms(e.target.checked)}
                     className="mt-1 w-4 h-4 text-[#046A38] rounded border-stone-300 focus:ring-[#046A38]"
                   />
-                  <span className="text-xs text-stone-600 leading-relaxed">
+                  <span className="text-xs sm:text-sm text-stone-600 leading-relaxed">
                     I agree to the{' '}
                     <a href="#terms" className="font-semibold text-[#046A38] hover:underline">
                       Terms of Service
@@ -1662,28 +1705,22 @@ export default function Signup() {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="py-3.5 px-6 rounded-xl font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="py-3.5 px-6 rounded-xl font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base whitespace-nowrap"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back to Step 1</span>
+                  <span>Back</span>
                 </button>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-3.5 px-6 rounded-xl font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-base"
+                  className="flex-1 py-3.5 px-6 rounded-xl font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base whitespace-nowrap"
                 >
                   {submitting ? (
-                    <span>Registering Account...</span>
+                    <span>{accountType === 'patient' ? 'Registering...' : 'Submitting...'}</span>
                   ) : (
                     <>
-                      <span>
-                        {accountType === 'patient'
-                          ? 'Complete Patient Registration'
-                          : accountType === 'doctor'
-                          ? 'Submit for Doctor Verification'
-                          : 'Submit for Pharmacist Verification'}
-                      </span>
+                      <span>{accountType === 'patient' ? 'Register' : 'Submit'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -1695,7 +1732,7 @@ export default function Signup() {
       )}
 
       {/* Footer */}
-      <footer className="w-full text-center text-xs text-stone-400 py-4 mt-6">
+      <footer className="w-full text-center text-xs sm:text-sm text-stone-400 py-4 mt-6">
         © 2026 LATROCORE Systems Inc. Clinical precision & data privacy reserved.
       </footer>
     </div>
