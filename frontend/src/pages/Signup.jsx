@@ -922,20 +922,20 @@ export default function Signup() {
                 )}
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-xl font-extrabold text-[#112228] tracking-tight truncate">
+                <h2 className="text-lg sm:text-xl font-extrabold text-[#112228] tracking-tight">
                   {accountType === 'patient'
                     ? 'Patient Registration'
                     : accountType === 'doctor'
                     ? 'Doctor Onboarding'
                     : 'Pharmacist Registration'}
                 </h2>
-                <span className="text-xs sm:text-sm text-stone-500 truncate block">
+                <p className="text-xs sm:text-sm text-stone-500 font-medium mt-0.5 whitespace-nowrap">
                   {accountType === 'patient'
-                    ? 'Personalized diabetes care & continuous telemetry'
+                    ? 'Personalized diabetes care'
                     : accountType === 'doctor'
-                    ? 'Cohort surveillance & e-prescriptions'
-                    : 'Medication reconciliation & safety'}
-                </span>
+                    ? 'Clinical care portal'
+                    : 'Pharmacy care portal'}
+                </p>
               </div>
             </div>
 
