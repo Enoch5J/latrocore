@@ -43,7 +43,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
-    phone = Column(String(20), nullable=True)
+    phone = Column(String(20), nullable=True, index=True)
     role = Column(Enum("patient", "doctor", "pharmacist", "care_team", "admin", name="user_role"), nullable=False)
     status = Column(Enum("active", "pending", "suspended", name="user_status"), default="active")
     verified = Column(Boolean, default=False)

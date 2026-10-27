@@ -404,3 +404,86 @@ def test_pharmacist_signup_pending_approval():
     finally:
         db.close()
 
+
+def test_login_with_phone_number_and_email():
+    """Verify login works seamlessly with 10-digit mobile number, formatted mobile number, and email."""
+    from app.core.security import hash_password
+    test_phone = "+91-9876500001"
+    test_email = "phone.user@latrocore.internal"
+    test_pass = "SecurePass1234#!"
+    
+    db = SessionLocal()
+    try:
+        # Clean up prior test user
+        existing = db.query(User).filter((User.email == test_email) | (User.phone == test_phone)).first()
+        if existing:
+            db.query(UserSession).filter(UserSession.user_id == existing.id).delete()
+            db.delete(existing)
+            db.commit()
+
+        user = User(
+            email=test_email,
+            password_hash=hash_password(test_pass),
+            name="Phone Test User",
+            phone=test_phone,
+            role="patient",
+            status="active",
+            verified=True
+        )
+        db.add(user)
+        db.commit()
+
+        # 1. Login with raw 10-digit phone number (without country code)
+        res_raw_phone = client.post(
+            "/auth/login",
+            json={"identifier": "9876500001", "password": test_pass},
+            headers=CUSTOM_HEADERS
+        )
+        assert res_raw_phone.status_code == 200, res_raw_phone.text
+        assert res_raw_phone.json()["user"]["email"] == test_email
+
+        # 2. Login with formatted phone number with spaces
+        res_formatted = client.post(
+            "/auth/login",
+            json={"identifier": "+91 98765 00001", "password": test_pass},
+            headers=CUSTOM_HEADERS
+        )
+        assert res_formatted.status_code == 200
+        assert res_formatted.json()["user"]["email"] == test_email
+
+        # 3. Login with email in "identifier" field
+        res_email_id = client.post(
+            "/auth/login",
+            json={"identifier": test_email, "password": test_pass},
+            headers=CUSTOM_HEADERS
+        )
+        assert res_email_id.status_code == 200
+        assert res_email_id.json()["user"]["email"] == test_email
+
+        # 4. Backward compatibility: Login with email in legacy "email" field
+        res_legacy = client.post(
+            "/auth/login",
+            json={"email": test_email, "password": test_pass},
+            headers=CUSTOM_HEADERS
+        )
+        assert res_legacy.status_code == 200
+
+        # 5. Wrong password with phone number returns 401
+        res_bad_pw = client.post(
+            "/auth/login",
+            json={"identifier": "9876500001", "password": "WrongPassword!"},
+            headers=CUSTOM_HEADERS
+        )
+        assert res_bad_pw.status_code == 401
+
+        # 6. Non-existent phone number returns 401
+        res_not_found = client.post(
+            "/auth/login",
+            json={"identifier": "9000000000", "password": test_pass},
+            headers=CUSTOM_HEADERS
+        )
+        assert res_not_found.status_code == 401
+    finally:
+        db.close()
+
+

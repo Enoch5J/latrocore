@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import latrocoreLogo from '../assets/Latrocore Medical Monogram Logo.png';
 import {
   Mail,
+  Phone,
   Lock,
   Eye,
   EyeOff,
@@ -14,13 +15,18 @@ import {
   Clock
 } from 'lucide-react';
 
+const isPhoneInput = (val) => {
+  const trimmed = (val || '').trim();
+  return /^[+]?[\d\s\-()]+$/.test(trimmed) && trimmed.replace(/\D/g, '').length >= 3;
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, sessionExpired, clearSessionExpired } = useAuth();
   const { setUser } = useApp();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -37,14 +43,14 @@ export default function Login() {
       clearSessionExpired();
     }
 
-    if (!email.trim() || !password) {
-      setErrorMessage('Please enter both your email and password.');
+    if (!identifier.trim() || !password) {
+      setErrorMessage('Please enter your email or phone number and password.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const userData = await login(email.trim(), password);
+      const userData = await login(identifier.trim(), password);
       if (setUser && userData) setUser(userData);
       if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard') {
         navigate(fromPath, { replace: true });
@@ -64,7 +70,7 @@ export default function Login() {
       if (err?.response?.status === 429) {
         setErrorMessage(detail || 'Too many attempts. Please wait before retrying.');
       } else if (err?.response?.status === 401) {
-        setErrorMessage('Invalid email or password. Please verify your credentials.');
+        setErrorMessage('Invalid email, phone number, or password. Please verify your credentials.');
       } else if (err?.response?.status === 403) {
         setErrorMessage(detail || 'Account suspended or access restricted.');
       } else {
@@ -159,28 +165,32 @@ export default function Login() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} noValidate className="space-y-4 sm:space-y-5">
-          {/* Email Field */}
+          {/* Email or Phone Number Field */}
           <div>
             <label
-              htmlFor="email-input"
+              htmlFor="identifier-input"
               className="block text-xs font-extrabold text-black uppercase tracking-wider mb-2"
             >
-              Email
+              Email or Phone Number
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
-                <Mail className="w-5 h-5" />
+                {isPhoneInput(identifier) ? (
+                  <Phone className="w-5 h-5 text-[#046A38] transition-colors" />
+                ) : (
+                  <Mail className="w-5 h-5" />
+                )}
               </div>
               <input
-                id="email-input"
-                type="email"
-                name="email"
-                autoComplete="email"
+                id="identifier-input"
+                type="text"
+                name="identifier"
+                autoComplete="username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 disabled={submitting}
-                placeholder="doctor@latrocore.com"
+                placeholder="doctor@latrocore.com or +91 98765 43210"
                 className="w-full pl-11 pr-4 py-3 rounded-lg border border-stone-300 bg-white text-black font-semibold text-base placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] transition-all disabled:opacity-60 shadow-2xs"
               />
             </div>

@@ -59,12 +59,17 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     setSessionExpired(false);
     setLogoutError(null);
     setLoggingOutFlag(false);
 
-    const response = await authClient.post('/auth/login', { email, password });
+    const cleanId = (identifier || '').trim();
+    const response = await authClient.post('/auth/login', {
+      identifier: cleanId,
+      email: cleanId,
+      password
+    });
     const { accessToken, user: userData } = response.data;
 
     // Secure token storage: strictly in memory

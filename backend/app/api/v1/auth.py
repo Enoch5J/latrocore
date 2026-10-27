@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, UploadFile, File
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
@@ -58,7 +59,8 @@ MAX_PRESCRIPTION_SIZE = 10 * 1024 * 1024  # 10 MB
 # ── Schemas ──────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    identifier: Optional[str] = None
+    email: Optional[str] = None
     password: str
 
 
@@ -283,6 +285,63 @@ def validate_age(age: int) -> int:
             detail="Age must be an integer between 0 and 120."
         )
     return age
+
+
+def find_user_by_identifier(db: Session, raw_identifier: str) -> Optional[User]:
+    """
+    Look up user by email or phone number.
+    Supports:
+    - Standard email: "doctor@latrocore.com"
+    - Raw phone digits: "9876543210"
+    - Formatted phone: "+91 9876543210", "+91-9876543210", "+919876543210"
+    - 10-digit Indian numbers with or without country code prefix
+    - Suffix matching for numbers stored with separators or prefixes
+    """
+    clean = raw_identifier.strip()
+    if not clean:
+        return None
+
+    # 1. If it contains '@', prioritize email match
+    if "@" in clean:
+        return db.query(User).filter(func.lower(User.email) == clean.lower()).first()
+
+    # 2. Phone number candidate matching
+    clean_digits = re.sub(r'\D', '', clean)
+    if clean_digits:
+        candidates = [
+            clean,
+            f"+{clean_digits}",
+            clean_digits,
+        ]
+        if len(clean_digits) == 10:
+            candidates.extend([
+                f"+91{clean_digits}",
+                f"+91-{clean_digits}",
+                f"+91 {clean_digits}"
+            ])
+        elif len(clean_digits) == 12 and clean_digits.startswith("91"):
+            last_10 = clean_digits[-10:]
+            candidates.extend([
+                last_10,
+                f"+{clean_digits}",
+                f"+91-{last_10}",
+                f"+91 {last_10}"
+            ])
+
+        user = db.query(User).filter(User.phone.in_(candidates)).first()
+        if user:
+            return user
+
+        # Suffix matching: match last 10 digits against stored phone
+        if len(clean_digits) >= 7:
+            suffix = clean_digits[-10:] if len(clean_digits) >= 10 else clean_digits
+            user = db.query(User).filter(User.phone.like(f"%{suffix}")).first()
+            if user:
+                return user
+
+    # 3. Fallback: email match (e.g. usernames or atypical email)
+    return db.query(User).filter(func.lower(User.email) == clean.lower()).first()
+
 
 
 def create_user_auth_session(user: User, request: Request, response: Response, db: Session) -> TokenResponse:
@@ -973,9 +1032,20 @@ def login(
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     response.headers["Pragma"] = "no-cache"
 
-    # 1. Rate Limiting by IP and Account
+    identifier = (req.identifier or req.email or "").strip()
+    if not identifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please enter your email or phone number."
+        )
+
+    # 1. Resolve user by email or phone number
+    user = find_user_by_identifier(db, identifier)
+    rate_limit_target = user.email if user else identifier.lower()
+
+    # 2. Rate Limiting by IP and Account
     client_ip = request.client.host if request.client else "127.0.0.1"
-    is_limited, retry_after = check_login_rate_limit(db, client_ip, req.email)
+    is_limited, retry_after = check_login_rate_limit(db, client_ip, rate_limit_target)
     if is_limited:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -983,10 +1053,9 @@ def login(
             headers={"Retry-After": str(retry_after)}
         )
 
-    # 2. Look up user and verify Argon2id password hash
-    user = db.query(User).filter(User.email == req.email.lower().strip()).first()
+    # 3. Verify Argon2id password hash
     if not user or not verify_password(req.password, user.password_hash):
-        record_login_failure(db, client_ip, req.email)
+        record_login_failure(db, client_ip, rate_limit_target)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
@@ -1007,7 +1076,7 @@ def login(
         )
 
     # Reset failure counter on success
-    record_login_success(db, client_ip, req.email)
+    record_login_success(db, client_ip, user.email)
 
     return create_user_auth_session(user, request, response, db)
 

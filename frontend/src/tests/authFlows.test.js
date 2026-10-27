@@ -141,4 +141,44 @@ describe('Auth & Registration API client tests', () => {
     const approval = await api.approveDoctor('doc-prof-1');
     expect(approval.status).toBe('approved');
   });
+
+  it('submits login with email or phone number in payload', async () => {
+    globalThis.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        accessToken: 'mock-jwt-token',
+        user: { id: 'u1', email: 'doctor@latrocore.com' },
+      }),
+    });
+
+    // 1. Login with phone number
+    await api.login('9876543210', 'SecretPass123!');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/login'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          identifier: '9876543210',
+          email: '9876543210',
+          password: 'SecretPass123!',
+        }),
+      })
+    );
+
+    // 2. Login with email
+    await api.login('doctor@latrocore.com', 'SecretPass123!');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/login'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          identifier: 'doctor@latrocore.com',
+          email: 'doctor@latrocore.com',
+          password: 'SecretPass123!',
+        }),
+      })
+    );
+  });
 });
+

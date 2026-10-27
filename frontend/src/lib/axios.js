@@ -48,7 +48,7 @@ const processQueue = (error, token = null) => {
 };
 
 // Base URL configuration (relative when proxied by Vite, or explicit env var)
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || '';
 
 // ── Raw Auth Client (without automatic 401 refresh interceptor) ──────
 export const authClient = axios.create({

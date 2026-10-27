@@ -3,7 +3,23 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
-      "source": "/((?!api/).*)",
+      "source": "/auth/:path*",
+      "destination": "https://latrocore.onrender.com/auth/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://latrocore.onrender.com/api/:path*"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "https://latrocore.onrender.com/dashboard"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://latrocore.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/((?!auth|api|dashboard|uploads).*)",
       "destination": "/index.html"
     }
   ]

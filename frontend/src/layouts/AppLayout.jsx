@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
   Bot, Heart, Users, Settings, AlertTriangle, ChevronDown, ChevronRight,
-  Home, BarChart3, BellRing, Utensils, Video, ClipboardCheck, Package
+  Home, BarChart3, ClipboardCheck, Package
 } from 'lucide-react';
 
 const ROLE_NAV = {
@@ -16,11 +16,7 @@ const ROLE_NAV = {
     { to: '/patient/medications', icon: Pill, label: 'Medications' },
     { to: '/patient/lifestyle', icon: Salad, label: 'Lifestyle' },
     { to: '/patient/glucose', icon: Activity, label: 'Glucose Monitor' },
-    { to: '/patient/dashboard#scheduler', icon: BellRing, label: 'Tablet Scheduler' },
-    { to: '/patient/test-reminders', icon: ClipboardList, label: 'Patient Test Reminder' },
     { to: '/patient/checklist', icon: ClipboardCheck, label: 'Care Checklist' },
-    { to: '/patient/dashboard#diet-plan', icon: Utensils, label: 'Diabetic Diet Plan' },
-    { to: '/patient/dashboard#consulting', icon: Video, label: 'Doctor Consulting' },
     { to: '/patient/investigations', icon: FileText, label: 'Investigations' },
     { to: '/patient/screening', icon: ClipboardList, label: 'Screening' },
     { to: '/patient/safety', icon: AlertTriangle, label: 'Safety Alerts' },

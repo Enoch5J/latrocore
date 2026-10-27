@@ -147,10 +147,39 @@ export default function Signup() {
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
-  // ── Patient Metrics in Section 1 (Height & Weight) ─────────────────
+  // ── Patient Metrics in Section 1 (Height in cm & inches, Weight) ───
   const [age, setAge] = useState('');
   const [height, setHeight] = useState(''); // in cm
+  const [heightInches, setHeightInches] = useState(''); // in inches
   const [weight, setWeight] = useState(''); // in kg
+
+  const handleHeightCmChange = (val) => {
+    setHeight(val);
+    if (!val || isNaN(val)) {
+      setHeightInches('');
+      return;
+    }
+    const num = parseFloat(val);
+    if (!isNaN(num) && num > 0) {
+      setHeightInches((num / 2.54).toFixed(1));
+    } else {
+      setHeightInches('');
+    }
+  };
+
+  const handleHeightInchesChange = (val) => {
+    setHeightInches(val);
+    if (!val || isNaN(val)) {
+      setHeight('');
+      return;
+    }
+    const num = parseFloat(val);
+    if (!isNaN(num) && num > 0) {
+      setHeight((num * 2.54).toFixed(1));
+    } else {
+      setHeight('');
+    }
+  };
 
   // ── OTP State (Section 1) ──────────────────────────────────────────
   const [otpSent, setOtpSent] = useState(false);
@@ -579,7 +608,11 @@ export default function Signup() {
           phone: phone.trim(),
           countryCode,
           age: parseInt(age, 10),
-          height: height ? parseFloat(height) : null,
+          height: height
+            ? parseFloat(height)
+            : heightInches
+            ? parseFloat((parseFloat(heightInches) * 2.54).toFixed(1))
+            : null,
           weight: weight ? parseFloat(weight) : null,
           conditions: selectedConditions,
           otherCondition: otherCondition.trim() || null,
@@ -1080,57 +1113,80 @@ export default function Signup() {
                 />
               </div>
 
-              {/* Patient-Only Biometrics (Age, Height, Weight) */}
+              {/* Patient-Only Biometrics: Row 1 (Age & Weight), Row 2 (Height in cm & inches) */}
               {accountType === 'patient' && (
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div>
-                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 truncate">
-                      Age (0–120) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      max="120"
-                      value={age}
-                      onChange={(e) => setAge(e.target.value)}
-                      placeholder="e.g. 42"
-                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
-                    />
+                <div className="space-y-3">
+                  {/* Row 1: Age and Weight */}
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5 truncate">
+                        Age (0–120) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        max="120"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        placeholder="e.g. 42"
+                        className="w-full px-3.5 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5 truncate">
+                        <WeightIcon className="w-4 h-4 text-[#046A38] shrink-0" />
+                        <span className="truncate">Weight (kg)</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="2"
+                        max="350"
+                        value={weight}
+                        onChange={(e) => setWeight(e.target.value)}
+                        placeholder="e.g. 68.5"
+                        className="w-full px-3.5 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5 truncate">
-                      <Ruler className="w-4 h-4 text-[#046A38] shrink-0" />
-                      <span className="truncate">Height (cm)</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="30"
-                      max="260"
-                      value={height}
-                      onChange={(e) => setHeight(e.target.value)}
-                      placeholder="172"
-                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
-                    />
-                  </div>
+                  {/* Row 2: Height in cm and Height in inches (two-way synced) */}
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5 truncate">
+                        <Ruler className="w-4 h-4 text-[#046A38] shrink-0" />
+                        <span className="truncate">Height (cm)</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="30"
+                        max="260"
+                        value={height}
+                        onChange={(e) => handleHeightCmChange(e.target.value)}
+                        placeholder="e.g. 172"
+                        className="w-full px-3.5 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5 truncate">
-                      <WeightIcon className="w-4 h-4 text-[#046A38] shrink-0" />
-                      <span className="truncate">Weight (kg)</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="2"
-                      max="350"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                      placeholder="68.5"
-                      className="w-full px-3 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
-                    />
+                    <div>
+                      <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5 truncate">
+                        <Ruler className="w-4 h-4 text-[#046A38] shrink-0" />
+                        <span className="truncate">Height (inches)</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="12"
+                        max="102"
+                        value={heightInches}
+                        onChange={(e) => handleHeightInchesChange(e.target.value)}
+                        placeholder="e.g. 67.7"
+                        className="w-full px-3.5 py-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
