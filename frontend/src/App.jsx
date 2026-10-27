@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Welcome from './pages/Welcome';
@@ -76,11 +76,15 @@ function RoleDashboardRedirect() {
 
 function AppRoutes() {
   const { toasts, removeToast } = useApp();
+  const location = useLocation();
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify'].some(
+    (path) => location.pathname.toLowerCase().startsWith(path)
+  );
 
   return (
     <>
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <FloatingAIAssistant />
+      {!isAuthPage && <FloatingAIAssistant />}
 
       <Routes>
         {/* Public Landing Route (Default Home) */}

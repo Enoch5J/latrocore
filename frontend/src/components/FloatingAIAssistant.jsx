@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Bot, Send, X, Sparkles, Volume2, VolumeX, Mic, MicOff,
   Shield, RefreshCw, ChevronDown, Check, Globe
 } from 'lucide-react';
 import { getAssistantResponse, getSuggestedQuestions, SUPPORTED_LANGUAGES } from '../services/assistantEngine';
 import { useApp } from '../context/AppContext';
+
+const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify'];
 
 const LANGUAGES = [
   { code: 'en', label: 'English', short: 'EN', sub: 'English' },
@@ -131,6 +134,10 @@ export function AIFaceAvatar({ size = 36, className = "" }) {
 }
 
 export default function FloatingAIAssistant() {
+  const location = useLocation();
+  const isAuthPage = AUTH_PATHS.some((path) =>
+    location.pathname.toLowerCase().startsWith(path)
+  );
   const { currentUser } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [lang, setLang] = useState('en');
@@ -294,6 +301,10 @@ export default function FloatingAIAssistant() {
 
   const currentLangObj = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
   const suggestions = getSuggestedQuestions(lang).slice(0, 3);
+
+  if (isAuthPage) {
+    return null;
+  }
 
   return (
     <>
