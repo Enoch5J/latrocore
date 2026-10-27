@@ -198,18 +198,18 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col justify-between p-4 sm:p-6 lg:p-8 font-sans selection:bg-[#046A38] selection:text-white">
       {/* Top Navigation Bar */}
-      <div className="w-full max-w-lg mx-auto flex items-center justify-between py-2">
+      <div className="w-full max-w-lg mx-auto flex items-center justify-between gap-3 py-2 shrink-0">
         <button
           type="button"
           onClick={() => navigate('/login')}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Sign In</span>
         </button>
 
-        <div className="text-xs font-semibold text-black/80">
-          Remember password?{' '}
+        <div className="text-xs font-semibold text-black/80 text-right">
+          <span className="hidden sm:inline">Remember password? </span>
           <Link
             to="/login"
             className="font-extrabold text-[#046A38] hover:text-[#03542C] hover:underline transition-colors ml-1"
@@ -219,22 +219,24 @@ export default function ForgotPassword() {
         </div>
       </div>
 
-      {/* ── Centered LATROCORE Brand Header ── */}
-      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center text-center my-3">
-        <Link
-          to="/"
-          className="inline-flex flex-col items-center justify-center group focus:outline-none"
-        >
-          <img
-            src={latrocoreLogo}
-            alt="LATROCORE Medical Monogram Logo"
-            className="h-22 sm:h-26 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
-          />
-        </Link>
-      </div>
+      {/* ── Center Content Wrapper ── */}
+      <div className="w-full max-w-lg mx-auto flex-1 flex flex-col justify-center py-4 sm:py-6">
+        {/* ── Centered LATROCORE Brand Header ── */}
+        <div className="flex flex-col items-center justify-center text-center mb-3 sm:mb-4">
+          <Link
+            to="/"
+            className="inline-flex flex-col items-center justify-center group focus:outline-none"
+          >
+            <img
+              src={latrocoreLogo}
+              alt="LATROCORE Medical Monogram Logo"
+              className="h-16 sm:h-22 md:h-24 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
+            />
+          </Link>
+        </div>
 
-      {/* Main Authentication Card */}
-      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
+        {/* Main Authentication Card */}
+        <div className="bg-white rounded-2xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-5 sm:p-8 md:p-10 transition-all">
         {/* Card Header */}
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-[#E8F5EE] border border-[#A8D7BD] text-[#046A38] flex items-center justify-center mx-auto mb-3 shadow-2xs">
@@ -356,7 +358,7 @@ export default function ForgotPassword() {
               </button>
             </div>
 
-            <div className="flex justify-center gap-2 sm:gap-2.5" onPaste={handleOtpPaste}>
+            <div className="flex justify-center gap-1.5 sm:gap-2.5" onPaste={handleOtpPaste}>
               {otpCode.map((digit, i) => (
                 <input
                   key={i}
@@ -367,7 +369,7 @@ export default function ForgotPassword() {
                   value={digit}
                   onChange={(e) => handleOtpDigitChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="w-11 h-12 sm:w-12 sm:h-13 text-center text-xl font-mono font-bold rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] shadow-2xs transition-all"
+                  className="w-9 h-11 sm:w-11 sm:h-12 md:w-12 md:h-13 text-center text-lg sm:text-xl font-mono font-bold rounded-xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#046A38] focus:border-[#046A38] shadow-2xs transition-all"
                 />
               ))}
             </div>
@@ -540,6 +542,7 @@ export default function ForgotPassword() {
             </button>
           </div>
         )}
+        </div>
       </div>
 
       {/* Footer */}

@@ -57,7 +57,7 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "signup") -> bool:
     """
     Dispatch a 6-digit verification OTP.
     """
-    if purpose == "signup":
+    if "signup" in purpose or purpose == "register":
         subject = f"{otp} is your LATROCORE Verification Code"
         title = "Verify Your Email Address"
         desc = "Thank you for creating an account with LATROCORE. Use the 6-digit verification code below to verify your email address:"

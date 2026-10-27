@@ -84,18 +84,18 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col justify-between p-4 sm:p-6 lg:p-8 font-sans selection:bg-[#046A38] selection:text-white">
       {/* Top Navigation Bar */}
-      <div className="w-full max-w-lg mx-auto flex items-center justify-between py-2">
+      <div className="w-full max-w-lg mx-auto flex items-center justify-between gap-3 py-2">
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Home</span>
         </button>
 
-        <div className="text-xs font-semibold text-black/80">
-          Need an account?{' '}
+        <div className="text-xs font-semibold text-black/80 text-right">
+          <span className="hidden sm:inline">Need an account? </span>
           <Link
             to="/signup"
             className="font-extrabold text-[#046A38] hover:text-[#03542C] hover:underline transition-colors ml-1"
@@ -105,31 +105,33 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ── Centered LATROCORE Brand Header ── */}
-      <div className="w-full max-w-lg mx-auto flex flex-col items-center justify-center text-center my-3">
-        <Link
-          to="/"
-          className="inline-flex flex-col items-center justify-center group focus:outline-none"
-        >
-          <img
-            src={latrocoreLogo}
-            alt="LATROCORE Medical Monogram Logo"
-            className="h-22 sm:h-26 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
-          />
-        </Link>
-      </div>
-
-      {/* Main Authentication Card */}
-      <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-7 sm:p-10 transition-all">
-        {/* Card Title */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-[26px] font-extrabold tracking-tight text-[#112228]">
-            Welcome back
-          </h1>
-          <p className="text-stone-500 text-sm font-medium mt-1.5">
-            Enter your credentials to access your portal.
-          </p>
+      {/* Main Authentication Flow: Centered on larger viewports, smooth scrolling on mobile */}
+      <div className="w-full max-w-lg mx-auto flex-1 flex flex-col justify-center py-4 sm:py-6">
+        {/* ── Centered LATROCORE Brand Header ── */}
+        <div className="flex flex-col items-center justify-center text-center mb-3 sm:mb-4">
+          <Link
+            to="/"
+            className="inline-flex flex-col items-center justify-center group focus:outline-none"
+          >
+            <img
+              src={latrocoreLogo}
+              alt="LATROCORE Medical Monogram Logo"
+              className="h-16 sm:h-22 md:h-24 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
+            />
+          </Link>
         </div>
+
+        {/* Main Authentication Card */}
+        <div className="w-full bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-5 sm:p-8 md:p-10 transition-all">
+          {/* Card Title */}
+          <div className="text-center mb-5 sm:mb-6">
+            <h1 className="text-2xl sm:text-[26px] font-extrabold tracking-tight text-[#112228]">
+              Welcome back
+            </h1>
+            <p className="text-stone-500 text-xs sm:text-sm font-medium mt-1.5">
+              Enter your credentials to access your portal.
+            </p>
+          </div>
 
         {/* Session Expired Banner */}
         {sessionExpired && (
@@ -276,6 +278,7 @@ export default function Login() {
           </p>
         </div>
       </div>
+    </div>
 
       {/* Subtle Copyright / Legal Footer */}
       <div className="w-full max-w-lg mx-auto text-center py-3 text-xs font-medium text-black/60">

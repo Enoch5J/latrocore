@@ -834,7 +834,7 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col justify-between p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#046A38] selection:text-white">
       {/* Top Navigation Bar */}
-      <div className={`w-full ${showRoleSelection ? 'max-w-md md:max-w-5xl' : 'max-w-lg'} mx-auto flex items-center justify-between py-2 mb-2`}>
+      <div className={`w-full ${showRoleSelection ? 'max-w-md md:max-w-5xl' : 'max-w-lg'} mx-auto flex items-center justify-between gap-3 py-2 mb-2 shrink-0`}>
         <button
           type="button"
           onClick={() => {
@@ -844,14 +844,14 @@ export default function Signup() {
               navigate('/');
             }
           }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer shrink-0"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>{!showRoleSelection && !roleParam ? 'Change Workstation' : 'Back to Home'}</span>
         </button>
 
-        <div className="text-xs font-semibold text-black/80">
-          Already have an account?{' '}
+        <div className="text-xs font-semibold text-black/80 text-right">
+          <span className="hidden sm:inline">Already have an account? </span>
           <Link
             to="/login"
             className="font-extrabold text-[#046A38] hover:text-[#03542C] hover:underline transition-colors ml-1"
@@ -870,7 +870,7 @@ export default function Signup() {
           <img
             src={latrocoreLogo}
             alt="LATROCORE Medical Monogram Logo"
-            className="h-20 sm:h-24 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
+            className="h-16 sm:h-22 md:h-24 w-auto object-contain mix-blend-multiply group-hover:scale-105 transition-transform drop-shadow-xs"
           />
         </Link>
       </div>
@@ -900,7 +900,7 @@ export default function Signup() {
               <div
                 key={station.role}
                 onClick={() => handleSelectRole(station.role)}
-                className="group bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border border-[#E8DCC8] hover:border-[#046A38] shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between items-center text-center relative overflow-hidden w-full max-w-[340px] sm:max-w-[380px] md:max-w-none mx-auto"
+                className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-7 border border-[#E8DCC8] hover:border-[#046A38] shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between items-center text-center relative overflow-hidden w-full max-w-[340px] sm:max-w-[380px] md:max-w-none mx-auto"
               >
                 <div className="w-full flex flex-col items-center">
                   {/* 3D Illustration */}
@@ -940,29 +940,29 @@ export default function Signup() {
         /* ══════════════════════════════════════════════════════════════════
             VIEW 2: REGISTRATION FORM (CLEAN, SPACIOUS, NO LEFT GREEN PANEL)
            ══════════════════════════════════════════════════════════════════ */
-        <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-6 sm:p-8 animate-fade-in">
+        <div className="w-full max-w-lg mx-auto my-auto bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-stone-900/5 border border-[#E8DCC8] p-4 sm:p-7 md:p-8 animate-fade-in">
           
           {/* Header Row: Title & Change Workstation link */}
-          <div className="flex items-center justify-between pb-4 border-b border-[#E8DCC8] gap-3 mb-5">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] border border-[#A8D7BD] flex items-center justify-center text-[#046A38] shadow-2xs shrink-0">
+          <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-[#E8DCC8] gap-2.5 mb-4 sm:mb-5">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#E8F5EE] border border-[#A8D7BD] flex items-center justify-center text-[#046A38] shadow-2xs shrink-0">
                 {accountType === 'patient' ? (
-                  <User className="w-5 h-5 text-[#046A38]" />
+                  <User className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#046A38]" />
                 ) : accountType === 'doctor' ? (
-                  <Stethoscope className="w-5 h-5 text-[#046A38]" />
+                  <Stethoscope className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#046A38]" />
                 ) : (
-                  <Pill className="w-5 h-5 text-[#046A38]" />
+                  <Pill className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-[#046A38]" />
                 )}
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-xl font-extrabold text-[#112228] tracking-tight">
+                <h2 className="text-base sm:text-xl font-extrabold text-[#112228] tracking-tight truncate">
                   {accountType === 'patient'
                     ? 'Patient Registration'
                     : accountType === 'doctor'
                     ? 'Doctor Onboarding'
                     : 'Pharmacist Registration'}
                 </h2>
-                <p className="text-xs sm:text-sm text-stone-500 font-medium mt-0.5 whitespace-nowrap">
+                <p className="text-xs sm:text-sm text-stone-500 font-medium mt-0.5 truncate">
                   {accountType === 'patient'
                     ? 'Personalized diabetes care'
                     : accountType === 'doctor'
@@ -975,7 +975,7 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => setShowRoleSelection(true)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shrink-0"
             >
               <span>Change</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -1192,7 +1192,7 @@ export default function Signup() {
               )}
 
               {/* ── ROW 2: Email Address & Verification (1 Row) ── */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-[#FAF6EF]/75 border border-[#E8DCC8] space-y-3">
+              <div className="p-3.5 sm:p-5 rounded-2xl bg-[#FAF6EF]/75 border border-[#E8DCC8] space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-stone-800 flex items-center gap-1.5">
                     <Mail className="w-4 h-4 text-[#046A38]" />
@@ -1216,16 +1216,16 @@ export default function Signup() {
                     value={email}
                     onChange={handleEmailChange}
                     placeholder="name@latrocore.com"
-                    className="flex-1 px-3.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed transition-all"
+                    className="flex-1 px-3.5 py-3 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] disabled:bg-stone-100 disabled:text-stone-500 disabled:cursor-not-allowed transition-all min-w-0"
                   />
                   {!isEmailVerified && (
                     <button
                       type="button"
                       disabled={sendingOtp || cooldown > 0 || !isValidEmail(email)}
                       onClick={handleSendOtp}
-                      className="px-4 py-3 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                      className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] hover:bg-[#03542C] disabled:bg-stone-300 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
                     >
-                      {sendingOtp ? 'Sending...' : cooldown > 0 ? `Resend (${cooldown}s)` : otpSent ? 'Resend Code' : 'Send Code'}
+                      {sendingOtp ? 'Sending...' : cooldown > 0 ? `Resend (${cooldown}s)` : otpSent ? 'Resend' : 'Send Code'}
                     </button>
                   )}
                 </div>
@@ -1247,25 +1247,24 @@ export default function Signup() {
                 {/* 6-Digit Verification Code Inputs */}
                 {otpSent && !isEmailVerified && (
                   <div className="pt-2 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-stone-700">
-                        Enter 6-digit verification code:
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs sm:text-sm font-medium text-stone-700 truncate">
+                        Enter 6-digit code:
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         <button
                           type="button"
                           onClick={handlePasteFromClipboard}
                           title="Paste 6-digit code from clipboard"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shadow-2xs active:scale-95"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-[#046A38] hover:text-[#03542C] bg-[#E8F5EE] hover:bg-[#d8eedf] border border-emerald-200 transition-all cursor-pointer shadow-2xs active:scale-95"
                         >
                           <Clipboard className="w-3.5 h-3.5" />
                           <span>Paste Code</span>
                         </button>
-                        <span className="text-xs text-stone-400">Expires in 5 min</span>
                       </div>
                     </div>
 
-                    <div className="flex justify-center gap-1.5 sm:gap-2">
+                    <div className="flex justify-center gap-1 sm:gap-1.5 md:gap-2">
                       {otpCode.map((digit, idx) => (
                         <input
                           key={idx}
@@ -1277,7 +1276,7 @@ export default function Signup() {
                           onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                           onPaste={handleOtpPaste}
-                          className="w-10 h-11 sm:w-11 sm:h-12 text-center text-lg font-mono font-bold rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] shadow-2xs"
+                          className="w-8.5 h-10 sm:w-10 sm:h-11 md:w-11 md:h-12 text-center text-base sm:text-lg font-mono font-bold rounded-xl border border-stone-200 bg-white focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] shadow-2xs"
                         />
                       ))}
                     </div>
