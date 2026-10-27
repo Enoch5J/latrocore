@@ -438,7 +438,8 @@ export default function Signup() {
       if (res?.verificationToken) {
         setVerificationToken(res.verificationToken);
         setIsEmailVerified(true);
-        setOtpSuccessMessage('Email verified successfully!');
+        setOtpSuccessMessage('');
+        setOtpSent(false);
         if (addToast) {
           addToast('Email verified successfully! You can now proceed to the next step.', 'success');
         }
@@ -1230,7 +1231,7 @@ export default function Signup() {
                   )}
                 </div>
 
-                {otpSuccessMessage && (
+                {!isEmailVerified && otpSuccessMessage && (
                   <p className="text-xs sm:text-sm text-[#046A38] font-medium flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
                     <CheckCircle2 className="w-4 h-4 shrink-0 text-[#046A38]" />
                     <span className="truncate">{otpSuccessMessage}</span>
