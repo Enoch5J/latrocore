@@ -834,7 +834,7 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-[#FAF6EF] text-[#112228] flex flex-col justify-between p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#046A38] selection:text-white">
       {/* Top Navigation Bar */}
-      <div className={`w-full ${showRoleSelection ? 'max-w-5xl' : 'max-w-lg'} mx-auto flex items-center justify-between py-2 mb-2`}>
+      <div className={`w-full ${showRoleSelection ? 'max-w-md md:max-w-5xl' : 'max-w-lg'} mx-auto flex items-center justify-between py-2 mb-2`}>
         <button
           type="button"
           onClick={() => {
@@ -844,17 +844,17 @@ export default function Signup() {
               navigate('/');
             }
           }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold text-stone-600 hover:text-stone-900 bg-white/80 hover:bg-white border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold text-black hover:text-[#046A38] bg-white hover:bg-stone-50 border border-[#E8DCC8] shadow-2xs hover:shadow-xs transition-all cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>{!showRoleSelection && !roleParam ? 'Change Workstation' : 'Back to Home'}</span>
         </button>
 
-        <div className="text-xs text-stone-500">
+        <div className="text-xs font-semibold text-black/80">
           Already have an account?{' '}
           <Link
             to="/login"
-            className="font-bold text-[#046A38] hover:text-[#03542C] transition-colors ml-1"
+            className="font-extrabold text-[#046A38] hover:text-[#03542C] hover:underline transition-colors ml-1"
           >
             Sign in here
           </Link>
@@ -876,35 +876,35 @@ export default function Signup() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════
-          VIEW 1: WORKSTATION / ROLE SELECTION (3 CARDS MATCHING SCREENSHOT)
+          VIEW 1: WORKSTATION / ROLE SELECTION (COMPACT & RESPONSIVE ON MOBILE)
          ══════════════════════════════════════════════════════════════════ */}
       {showRoleSelection ? (
-        <div className="w-full max-w-5xl mx-auto my-auto animate-fade-in">
+        <div className="w-full max-w-md md:max-w-5xl mx-auto my-auto animate-fade-in px-2 sm:px-4 md:px-0">
           {/* Header */}
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#E8F5EE] border border-[#A8D7BD] text-xs font-bold text-[#046A38] mb-3">
+          <div className="text-center max-w-xl mx-auto mb-6 sm:mb-8 md:mb-10">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8F5EE] border border-[#A8D7BD] text-[11px] sm:text-xs font-bold text-[#046A38] mb-2 sm:mb-3">
               <ShieldCheck className="w-3.5 h-3.5 text-[#046A38]" />
               <span>LATROCORE Clinical Gateway</span>
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#112228] tracking-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#112228] tracking-tight">
               Select Your Workstation
             </h1>
-            <p className="text-stone-600 text-sm mt-2">
+            <p className="text-stone-600 text-xs sm:text-sm mt-1.5 max-w-sm sm:max-w-md mx-auto">
               Choose whether you are enrolling as a Patient, Doctor, or Pharmacist to access your customized care portal.
             </p>
           </div>
 
-          {/* 3 Workstation Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 3 Workstation Cards (bounded max-width on mobile/tablet, 3-col on desktop) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6 justify-items-center">
             {WORKSTATION_OPTIONS.map((station) => (
               <div
                 key={station.role}
                 onClick={() => handleSelectRole(station.role)}
-                className="group bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DCC8] hover:border-[#046A38] shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between items-center text-center relative overflow-hidden"
+                className="group bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-7 border border-[#E8DCC8] hover:border-[#046A38] shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between items-center text-center relative overflow-hidden w-full max-w-[340px] sm:max-w-[380px] md:max-w-none mx-auto"
               >
                 <div className="w-full flex flex-col items-center">
                   {/* 3D Illustration */}
-                  <div className="w-full aspect-square max-w-[190px] mx-auto mb-5 flex items-center justify-center p-3 rounded-2xl bg-[#FAF6EF]/60 group-hover:bg-[#E8F5EE]/80 transition-colors">
+                  <div className="w-full aspect-square max-w-[130px] sm:max-w-[150px] md:max-w-[170px] mx-auto mb-3 sm:mb-4 flex items-center justify-center p-2 sm:p-2.5 rounded-2xl bg-[#FAF6EF]/60 group-hover:bg-[#E8F5EE]/80 transition-colors">
                     <img
                       src={station.image}
                       alt={station.title}
@@ -914,7 +914,7 @@ export default function Signup() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-[#112228] mb-6 group-hover:text-[#046A38] transition-colors">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-[#112228] mb-3 sm:mb-4 group-hover:text-[#046A38] transition-colors">
                     {station.title}
                   </h3>
                 </div>
@@ -923,7 +923,7 @@ export default function Signup() {
                 <button
                   type="button"
                   onClick={() => handleSelectRole(station.role)}
-                  className="w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] group-hover:bg-[#03542C] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 sm:py-3 md:py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#046A38] group-hover:bg-[#03542C] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>{station.cta}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -932,7 +932,7 @@ export default function Signup() {
             ))}
           </div>
 
-          <div className="mt-8 text-center text-xs text-stone-500">
+          <div className="mt-6 sm:mt-8 text-center text-[11px] sm:text-xs text-stone-500">
             Protected under LATROCORE Enterprise Healthcare Protocols. Compliant with HIPAA & GDPR.
           </div>
         </div>
