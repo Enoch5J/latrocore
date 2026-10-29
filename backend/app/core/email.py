@@ -29,15 +29,17 @@ def _send_smtp(to_email: str, subject: str, html_content: str, text_content: str
         msg.attach(MIMEText(text_content, "plain"))
         msg.attach(MIMEText(html_content, "html"))
 
+        clean_password = (SMTP_PASSWORD or "").replace(" ", "").strip()
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
             if SMTP_PORT == 587:
                 server.starttls()
-            if SMTP_USER and SMTP_PASSWORD:
-                server.login(SMTP_USER, SMTP_PASSWORD)
+            if SMTP_USER and clean_password:
+                server.login(SMTP_USER, clean_password)
             server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+        print(f"[EMAIL SUCCESS] Dispatched email to {to_email} via {SMTP_HOST}:{SMTP_PORT}")
         return True
     except Exception as e:
-        print(f"[EMAIL] SMTP dispatch failed: {e}")
+        print(f"[EMAIL ERROR] SMTP dispatch failed: {e}")
         return False
 
 
@@ -114,8 +116,7 @@ If you did not request this code, please ignore this email or contact support.
 </html>
 """
     _log_console(to_email, subject, otp, purpose)
-    _send_smtp(to_email, subject, html_body, text_body)
-    return True
+    return _send_smtp(to_email, subject, html_body, text_body)
 
 
 def send_password_reset_confirmation(to_email: str) -> bool:

@@ -375,6 +375,11 @@ class ClinicalQAService:
         )
 
         active_model = self.model_name or "gemini-3.1-flash-lite"
+        # Candidate models with automatic failover in case of temporary 503 / 429 demand spikes
+        candidate_models = [active_model]
+        for fallback_model in ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"]:
+            if fallback_model not in candidate_models:
+                candidate_models.append(fallback_model)
 
         # Fast direct REST API call (6.0s timeout max)
         payload = {
@@ -395,29 +400,40 @@ class ClinicalQAService:
 
         try:
             async with httpx.AsyncClient(timeout=6.0) as http_client:
-                res = await http_client.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/{active_model}:generateContent?key={self.api_key}",
-                    json=payload,
-                    headers={"Content-Type": "application/json"}
-                )
+                for model in candidate_models:
+                    try:
+                        res = await http_client.post(
+                            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.api_key}",
+                            json=payload,
+                            headers={"Content-Type": "application/json"}
+                        )
 
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        text_parts = [p.get("text", "") for p in parts if "text" in p and not p.get("thought", False)]
-                        text_part = "".join(text_parts).strip()
-                        if text_part:
-                            return {
-                                "content": text_part,
-                                "sources": [],
-                                "model_id": f"gemini-guardrailed-{active_model}",
-                                "requires_handoff": False,
-                                "pii_scrubbed": pii_found
-                            }
-                
-                logger.warning("Gemini REST API returned status %s: %s. Falling back to local KB.", res.status_code, res.text)
+                        if res.status_code == 200:
+                            data = res.json()
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                text_parts = [p.get("text", "") for p in parts if "text" in p and not p.get("thought", False)]
+                                text_part = "".join(text_parts).strip()
+                                if text_part:
+                                    return {
+                                        "content": text_part,
+                                        "sources": [],
+                                        "model_id": f"gemini-guardrailed-{model}",
+                                        "requires_handoff": False,
+                                        "pii_scrubbed": pii_found
+                                    }
+
+                        # If 503 (high demand) or 429 (rate limited), fail over to next model
+                        if res.status_code in (503, 429):
+                            logger.warning("Gemini model %s returned status %s (high demand/rate limit). Failing over to next model...", model, res.status_code)
+                            continue
+                        else:
+                            logger.warning("Gemini REST API returned status %s for model %s: %s", res.status_code, model, res.text)
+                            break
+                    except Exception as model_err:
+                        logger.warning("Request to Gemini model %s failed: %s. Trying alternate...", model, model_err)
+                        continue
         except Exception as exc:
             logger.error("Error communicating with Gemini REST API: %s. Falling back to local KB.", exc)
 
