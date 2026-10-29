@@ -560,9 +560,9 @@ export default function FloatingAIAssistant() {
             </form>
 
             {/* Clinical Disclaimer Footnote */}
-            <div className="bg-white pb-2 pt-0.5 px-3 text-center shrink-0">
-              <p className="text-[10px] text-stone-400 font-medium leading-tight">
-                LATROCORE AI provides clinical decision support. Always confirm with your doctor.
+            <div className="bg-white pb-2 pt-0.5 px-4 text-center shrink-0">
+              <p className="text-[10px] text-stone-400 font-medium tracking-tight">
+                AI decision support · Always verify with your doctor
               </p>
             </div>
           </div>
