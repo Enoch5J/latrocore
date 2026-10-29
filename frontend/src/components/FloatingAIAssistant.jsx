@@ -328,7 +328,6 @@ export default function FloatingAIAssistant() {
   };
 
   const currentLangObj = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
-  const suggestions = getSuggestedQuestions(lang).slice(0, 3);
 
   if (isAuthPage) {
     return null;
@@ -514,25 +513,6 @@ export default function FloatingAIAssistant() {
                 </div>
               ))}
               <div ref={messagesEndRef} />
-            </div>
-
-            {/* ── Suggested Questions Strip ── */}
-            <div className="px-3.5 py-2 bg-white border-t border-[#E8DCC8] flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
-              <span className="text-[10px] text-[#046A38] font-black shrink-0 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles size={11} className="text-[#046A38]" />
-                Prompt:
-              </span>
-              <div className="flex items-center gap-1.5 min-w-max">
-                {suggestions.map((q, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSend(q)}
-                    className="shrink-0 text-[11px] bg-[#FAF6EF] hover:bg-[#E8F5EE] hover:text-[#046A38] text-stone-700 font-bold px-3 py-1 rounded-full border border-[#E8DCC8] hover:border-[#A8D7BD] transition-all active:scale-95 cursor-pointer shadow-2xs"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* ── Input Box Form ── */}
