@@ -151,7 +151,7 @@ export default function FloatingAIAssistant() {
       id: 'welcome',
       role: 'assistant',
       text: WELCOME_MESSAGES.en,
-      sources: ['ADA Standards of Care 2024 §6 (Glycemic Targets)'],
+      sources: [],
       time: 'Just now',
     },
   ]);
@@ -274,15 +274,11 @@ export default function FloatingAIAssistant() {
     try {
       // Query backend Gemini API with strict PII scrubbing & safety guardrails
       const data = await api.askAssistant(query, lang);
-      const sourcesList = data?.sources && Array.isArray(data.sources)
-        ? data.sources.map((s) => (typeof s === 'string' ? s : `${s.title}${s.section ? ' (' + s.section + ')' : ''}`))
-        : ['ADA Standards of Care 2024'];
-
       const aiMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: data.content,
-        sources: sourcesList,
+        sources: [],
         modelId: data.model_id,
         piiScrubbed: data.pii_scrubbed,
         requiresHandoff: data.requires_handoff,
@@ -297,7 +293,7 @@ export default function FloatingAIAssistant() {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: response.text,
-        sources: response.sources || ['ADA Standards of Care 2024'],
+        sources: [],
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => prev.map((m) => (m.id === tempAiId ? fallbackMsg : m)));
@@ -313,7 +309,7 @@ export default function FloatingAIAssistant() {
       id: `lang-${Date.now()}`,
       role: 'assistant',
       text: WELCOME_MESSAGES[selectedCode] || WELCOME_MESSAGES.en,
-      sources: ['ADA Standards of Care 2024'],
+      sources: [],
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages((prev) => [...prev, switchMsg]);
@@ -325,7 +321,7 @@ export default function FloatingAIAssistant() {
         id: `welcome-${Date.now()}`,
         role: 'assistant',
         text: WELCOME_MESSAGES[lang] || WELCOME_MESSAGES.en,
-        sources: ['ADA Standards of Care 2024 §6 (Glycemic Targets)'],
+        sources: [],
         time: 'Just now',
       },
     ]);
@@ -485,26 +481,6 @@ export default function FloatingAIAssistant() {
                     ) : (
                       <>
                         <p className="whitespace-pre-wrap">{msg.text}</p>
-
-                        {/* Evidence citations */}
-                        {msg.sources && msg.sources.length > 0 && (
-                          <div className="mt-2.5 pt-2 border-t border-stone-100 flex flex-wrap gap-1">
-                            {msg.sources.map((src, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center gap-1 text-[10px] text-[#046A38] bg-[#E8F5EE] px-2 py-0.5 rounded-md font-semibold border border-[#A8D7BD]/60"
-                              >
-                                <Sparkles size={9} className="text-[#046A38]" />
-                                {src}
-                              </span>
-                            ))}
-                            {msg.piiScrubbed && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-200">
-                                Telemetry Redacted for Privacy
-                              </span>
-                            )}
-                          </div>
-                        )}
 
                         {/* Bottom Metadata & Speech Audio */}
                         <div className={`mt-2 flex items-center justify-between text-[11px] pt-1 ${

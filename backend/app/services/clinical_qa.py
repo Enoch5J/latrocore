@@ -115,11 +115,7 @@ DIAGNOSTIC_REGEX = re.compile(
     re.IGNORECASE
 )
 
-DEFAULT_DISCLAIMER = (
-    "\n\n---\n*Disclaimer: LATROCORE Clinical Assistant provides evidence-based educational "
-    "information only. It cannot alter prescriptions, diagnose conditions, or replace professional "
-    "clinical advice from your consulting physician.*"
-)
+DEFAULT_DISCLAIMER = ""
 
 # ══════════════════════════════════════════════════════════════════════════════
 # VERIFIED LOCAL KNOWLEDGE BASE (SAFE FALLBACK)
@@ -306,7 +302,7 @@ class ClinicalQAService:
             for kw in kb_data["keywords"]:
                 if kw in q_lower:
                     return {
-                        "content": kb_data["answer"] + DEFAULT_DISCLAIMER,
+                        "content": kb_data["answer"],
                         "sources": kb_data["sources"],
                         "model_id": "latrocore-verified-clinical-kb",
                         "requires_handoff": False
@@ -319,7 +315,6 @@ class ClinicalQAService:
                 "telemetry, adhering strictly to physician-prescribed medication schedules, and following a balanced "
                 "diet rich in fiber and low in glycemic load.\n\n"
                 "For specialized clinical queries regarding your individual regimen, please message your assigned doctor."
-                + DEFAULT_DISCLAIMER
             ),
             "sources": [{"title": "ADA Standards of Care 2024", "section": "General Overview"}],
             "model_id": "latrocore-verified-clinical-kb",
@@ -333,6 +328,28 @@ class ClinicalQAService:
         if pii_found:
             logger.info("PII/Telemetry scrubbed from query. Redacted types: %s", redactions)
 
+        # Fast Greeting Filter: 0.001s instant response without cloud latency
+        clean_lower = clean_prompt.strip().lower().rstrip("!.,?")
+        GREETINGS = {
+            "hi", "hello", "hey", "hola", "namaste", "vanakkam", "hi there", "hello there",
+            "good morning", "good evening", "good afternoon", "hii", "hiii"
+        }
+        if clean_lower in GREETINGS:
+            greeting_msg = (
+                "Hello! How can I assist you with your glucose, medications, or diet today?"
+                if language == "en" else
+                "வணக்கம்! உங்கள் இரத்த சர்க்கரை, மருந்துகள் அல்லது உணவு முறை பற்றி நான் எப்படி உதவலாம்?" if language == "ta" else
+                "नमस्ते! आज मैं आपकी रक्त शर्करा, दवाओं या आहार योजना में कैसे मदद कर सकता हूँ?" if language == "hi" else
+                "Hello! How can I assist you with your diabetes care today?"
+            )
+            return {
+                "content": greeting_msg,
+                "sources": [],
+                "model_id": "latrocore-instant-greeting",
+                "requires_handoff": False,
+                "pii_scrubbed": pii_found
+            }
+
         # Step 2: Clinical safety gate pre-check
         guardrail_response = self._check_safety_guardrails(clean_prompt)
         if guardrail_response:
@@ -345,7 +362,7 @@ class ClinicalQAService:
             response["pii_scrubbed"] = pii_found
             return response
 
-        # Step 4: Query Google Gemini API with guardrailed system prompt
+        # Step 4: Query Google Gemini API with concise prompt
         system_instructions = (
             "You are LATROCORE Clinical AI, a concise and friendly healthcare assistant.\n"
             "STRICT RULES:\n"
@@ -359,34 +376,7 @@ class ClinicalQAService:
 
         active_model = self.model_name or "gemini-3.1-flash-lite"
 
-        # 4A. Use official google-genai SDK if available
-        if HAS_GOOGLE_GENAI:
-            try:
-                client = genai.Client(api_key=self.api_key)
-                prompt_content = f"{system_instructions}\n\nUser Question:\n{clean_prompt}"
-                
-                def _invoke_sdk():
-                    return client.models.generate_content(
-                        model=active_model,
-                        contents=prompt_content
-                    )
-
-                sdk_res = await anyio.to_thread.run_sync(_invoke_sdk)
-                if sdk_res and sdk_res.text:
-                    return {
-                        "content": sdk_res.text.strip() + DEFAULT_DISCLAIMER,
-                        "sources": [
-                            {"title": "ADA Standards of Care 2024", "section": "Clinical Reference"},
-                            {"title": "WHO Diabetes Guidelines", "section": "Patient Education"}
-                        ],
-                        "model_id": f"gemini-guardrailed-{active_model}",
-                        "requires_handoff": False,
-                        "pii_scrubbed": pii_found
-                    }
-            except Exception as exc:
-                logger.warning("google-genai SDK call issue: %s. Falling back to REST/KB.", exc)
-
-        # 4B. REST API fallback
+        # Fast direct REST API call (6.0s timeout max)
         payload = {
             "contents": [
                 {
@@ -398,13 +388,13 @@ class ClinicalQAService:
             ],
             "generationConfig": {
                 "temperature": 0.2,
-                "maxOutputTokens": 2048,
+                "maxOutputTokens": 800,
                 "topP": 0.8
             }
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as http_client:
+            async with httpx.AsyncClient(timeout=6.0) as http_client:
                 res = await http_client.post(
                     f"https://generativelanguage.googleapis.com/v1beta/models/{active_model}:generateContent?key={self.api_key}",
                     json=payload,
@@ -420,11 +410,8 @@ class ClinicalQAService:
                         text_part = "".join(text_parts).strip()
                         if text_part:
                             return {
-                                "content": text_part + DEFAULT_DISCLAIMER,
-                                "sources": [
-                                    {"title": "ADA Standards of Care 2024", "section": "Clinical Reference"},
-                                    {"title": "WHO Diabetes Guidelines", "section": "Patient Education"}
-                                ],
+                                "content": text_part,
+                                "sources": [],
                                 "model_id": f"gemini-guardrailed-{active_model}",
                                 "requires_handoff": False,
                                 "pii_scrubbed": pii_found
