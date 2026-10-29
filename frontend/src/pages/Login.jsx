@@ -52,7 +52,11 @@ export default function Login() {
     try {
       const userData = await login(identifier.trim(), password);
       if (setUser && userData) setUser(userData);
-      if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard') {
+
+      const isPending = userData?.role !== 'admin' && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
+      if (isPending) {
+        navigate('/waiting-approval', { replace: true });
+      } else if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard' && fromPath !== '/waiting-approval') {
         navigate(fromPath, { replace: true });
       } else if (userData?.role === 'patient') {
         navigate('/patient/dashboard', { replace: true });

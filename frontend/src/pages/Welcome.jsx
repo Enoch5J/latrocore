@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
-import ScrollHero3D from '../components/home/ScrollHero3D';
+import HeroBannerCarousel from '../components/home/HeroBannerCarousel';
+import DailyCareCompanion from '../components/home/DailyCareCompanion';
 import patientImg from '../assets/images/patient.png';
 import doctorImg from '../assets/images/doctor.png';
 import pharmacistImg from '../assets/images/pharmacist.png';
@@ -288,10 +289,12 @@ export default function Welcome() {
         )}
       </header>
 
-      {/* ── 3D SCROLL-DRIVEN HERO SECTION ────────────────────────────── */}
-      <ScrollHero3D
-        isAuthenticated={isAuthenticated}
-      />
+      {/* ── HERO BANNER CAROUSEL ────────────────────────────────────────── */}
+      <section className="pt-4 pb-6 sm:pt-6 sm:pb-8 bg-[#FAF6EF]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HeroBannerCarousel isAuthenticated={isAuthenticated} />
+        </div>
+      </section>
 
       {/* ── 6-PILLAR HEALTHCARE SERVICES GRID (APOLLO / 1MG ICONS) ─────── */}
       <section id="care-continuum" className="pt-5 pb-8 sm:pt-6 sm:pb-10 bg-white border-y border-[#E8DCC8]">
@@ -407,6 +410,9 @@ export default function Welcome() {
           </div>
         </div>
       </section>
+
+      {/* ── EVERYDAY HEALTH COMPANION (3D CONNECTED CARE CARDS) ───────── */}
+      <DailyCareCompanion isAuthenticated={isAuthenticated} />
 
       {/* ── ROLE-BASED WORKSTATIONS (ECOSYSTEM LAUNCHPAD) ───────────── */}
       <section id="workstations" className="py-12 sm:py-16 bg-[#FAF6EF] border-b border-[#E8DCC8]">

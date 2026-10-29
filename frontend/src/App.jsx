@@ -6,6 +6,7 @@ import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import WaitingApproval from './pages/WaitingApproval';
 import ProjectOverview from './pages/ProjectOverview';
 import NotFound from './pages/NotFound';
 import { AppProvider, useApp } from './context/AppContext';
@@ -66,6 +67,9 @@ function RoleDashboardRedirect() {
   }
 
   const role = user?.role;
+  const isPending = role !== 'admin' && (user?.status === 'pending' || user?.approvalStatus === 'pending');
+  if (isPending) return <Navigate to="/waiting-approval" replace />;
+
   if (role === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
   if (role === 'pharmacist' || role === 'care_team') return <Navigate to="/pharmacist/dashboard" replace />;
   if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
@@ -77,7 +81,7 @@ function RoleDashboardRedirect() {
 function AppRoutes() {
   const { toasts, removeToast } = useApp();
   const location = useLocation();
-  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify'].some(
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify', '/waiting-approval'].some(
     (path) => location.pathname.toLowerCase().startsWith(path)
   );
 
@@ -95,6 +99,16 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        {/* Dedicated Admin Approval Waiting Route */}
+        <Route
+          path="/waiting-approval"
+          element={
+            <ProtectedRoute>
+              <WaitingApproval />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Automatic Role-Based Dashboard Redirection */}
         <Route

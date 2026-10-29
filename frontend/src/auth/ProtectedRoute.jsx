@@ -29,5 +29,17 @@ export default function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  const isPending = user.role !== 'admin' && (user.status === 'pending' || user.approvalStatus === 'pending');
+
+  // If user is pending admin approval and attempting to access clinical portals
+  if (isPending && location.pathname !== '/waiting-approval') {
+    return <Navigate to="/waiting-approval" replace />;
+  }
+
+  // If user is already approved and visits waiting page
+  if (!isPending && location.pathname === '/waiting-approval') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return children ? children : <Outlet />;
 }

@@ -29,7 +29,8 @@ import {
   Clipboard,
   Ruler,
   Weight as WeightIcon,
-  ChevronRight
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 
 const WORKSTATION_OPTIONS = [
@@ -125,7 +126,7 @@ export default function Signup() {
   const roleParam = searchParams.get('role');
 
   const { setAuthUser } = useAuth();
-  const { addToast } = useApp();
+  const { addToast } = useApp() || {};
 
   // Role selection: If roleParam is provided, skip card picker; otherwise show 3 workstation cards first
   const [showRoleSelection, setShowRoleSelection] = useState(!roleParam);
@@ -203,6 +204,8 @@ export default function Signup() {
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [otherCondition, setOtherCondition] = useState('');
   const [showOtherCondition, setShowOtherCondition] = useState(false);
+  const [isConditionsDropdownOpen, setIsConditionsDropdownOpen] = useState(false);
+  const conditionsDropdownRef = useRef(null);
   const [prescriptionFile, setPrescriptionFile] = useState(null);
   const [prescriptionPreview, setPrescriptionPreview] = useState(null);
   const [uploadedFileMeta, setUploadedFileMeta] = useState(null);
@@ -235,6 +238,17 @@ export default function Signup() {
     }
     return () => clearInterval(timer);
   }, [cooldown]);
+
+  // Click outside to close conditions dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (conditionsDropdownRef.current && !conditionsDropdownRef.current.contains(e.target)) {
+        setIsConditionsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const isValidEmail = (val) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val.trim());
@@ -438,9 +452,10 @@ export default function Signup() {
       if (res?.verificationToken) {
         setVerificationToken(res.verificationToken);
         setIsEmailVerified(true);
-        setOtpSuccessMessage('');
+        setOtpError('');
+        setOtpSuccessMessage('Email verified successfully!');
         setOtpSent(false);
-        if (addToast) {
+        if (typeof addToast === 'function') {
           addToast('Email verified successfully! You can now proceed to the next step.', 'success');
         }
       } else {
@@ -551,9 +566,6 @@ export default function Signup() {
     try {
       const uploadRes = await api.uploadPrescription(file);
       setUploadedFileMeta(uploadRes);
-      if (addToast) {
-        addToast('Prescription uploaded securely.', 'success');
-      }
     } catch (err) {
       setFormError(err.message || 'Failed to upload prescription. You can continue and upload later.');
     } finally {
@@ -594,9 +606,15 @@ export default function Signup() {
       return;
     }
 
-    if (accountType === 'patient' && !consentHealthData) {
-      setFormError('You must provide explicit consent for processing submitted health data.');
-      return;
+    if (accountType === 'patient') {
+      if (!prescriptionFile) {
+        setFormError('Medical prescription is required. Please upload your prescription.');
+        return;
+      }
+      if (uploadingPrescription) {
+        setFormError('Please wait for your prescription upload to finish.');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -622,7 +640,7 @@ export default function Signup() {
           password,
           confirmPassword,
           verificationToken,
-          consentHealthData,
+          consentHealthData: true,
           acceptTerms
         };
 
@@ -782,43 +800,31 @@ export default function Signup() {
             </p>
           </div>
 
-          {isDoc || isPharm ? (
-            <div className="text-left mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm">
+          <div className="text-left mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm">
               <div className="flex items-center gap-2 font-bold mb-1">
                 <Clock className="w-4 h-4 text-amber-600 animate-pulse" />
                 <span>
                   {isDoc
-                    ? 'Doctor Credential Verification In Progress'
-                    : 'Pharmacy Practice Credential Verification In Progress'}
+                    ? 'Doctor Credential Verification Queued'
+                    : isPharm
+                    ? 'Pharmacy Practice License Verification Queued'
+                    : 'Patient Identity & Enrollment Verification Queued'}
                 </span>
               </div>
               <p className="text-xs text-amber-800 leading-relaxed">
-                As required by clinical governance standards, your professional registration credentials are under verification by the authorized administration team. You can sign in to view your dashboard in restricted mode while approval is completed.
+                As required by clinical governance standards, all accounts must receive verified approval from the authorized Medical Board Administration before clinical workstation tools and medical records can be accessed.
               </p>
             </div>
-          ) : (
-            <p className="text-xs sm:text-sm text-stone-600 mb-6 leading-relaxed">
-              Your patient workstation is now active. You can log glucose measurements, track insulin and medication schedules, and review physician recommendations.
-            </p>
-          )}
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                if (isDoc) {
-                  navigate('/doctor/dashboard');
-                } else if (isPharm) {
-                  navigate('/pharmacist/dashboard');
-                } else {
-                  navigate('/patient/dashboard');
-                }
-              }}
-              className="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-[#046A38] hover:bg-[#03542C] transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Access Your Workstation</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/waiting-approval')}
+                className="flex-1 py-3 px-6 rounded-xl font-bold text-white bg-[#046A38] hover:bg-[#03542C] transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>View Approval Status</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -963,13 +969,6 @@ export default function Signup() {
                     ? 'Doctor Onboarding'
                     : 'Pharmacist Registration'}
                 </h2>
-                <p className="text-xs sm:text-sm text-stone-500 font-medium mt-0.5 truncate">
-                  {accountType === 'patient'
-                    ? 'Personalized diabetes care'
-                    : accountType === 'doctor'
-                    ? 'Clinical care portal'
-                    : 'Pharmacy care portal'}
-                </p>
               </div>
             </div>
 
@@ -1350,75 +1349,142 @@ export default function Signup() {
              ══════════════════════════════════════════════════════════════════ */}
           {currentStep === 2 && (
             <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
-              {/* Back to Step 1 Banner */}
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#FAF6EF] border border-[#E8DCC8]">
-                <div className="text-sm text-stone-700">
-                  Registering as <strong className="text-stone-900">{name}</strong> ({email})
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(1)}
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#046A38] hover:text-[#03542C] hover:underline cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Edit Step 1</span>
-                </button>
-              </div>
 
               {/* ── PATIENT SPECIFIC FIELDS ── */}
               {accountType === 'patient' && (
                 <div className="space-y-6">
-                  {/* Medical Conditions Selector */}
+                  {/* Medical Conditions Selector Dropdown */}
                   <div>
-                    <label className="block text-sm font-semibold text-stone-700 mb-1">
+                    <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                       Chronic / Medical Conditions <span className="text-red-500">*</span>
                     </label>
-                    <p className="text-xs sm:text-sm text-stone-500 mb-3">
-                      Select all relevant diagnoses to help configure your glycemic target curves.
-                    </p>
 
-                    <div className="flex flex-wrap gap-2">
-                      {COMMON_CONDITIONS.map((cond) => {
-                        const isSelected = selectedConditions.includes(cond);
-                        return (
-                          <button
-                            key={cond}
-                            type="button"
-                            onClick={() => toggleCondition(cond)}
-                            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-[#046A38] text-white shadow-2xs border border-[#046A38]'
-                                : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3.5 h-3.5 inline mr-1.5" />}
-                            <span>{cond}</span>
-                          </button>
-                        );
-                      })}
-
-                      <button
-                        type="button"
-                        onClick={toggleOtherCondition}
-                        className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                          showOtherCondition
-                            ? 'bg-[#046A38] text-white shadow-2xs border border-[#046A38]'
-                            : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
+                    <div ref={conditionsDropdownRef} className="relative">
+                      {/* Trigger Box */}
+                      <div
+                        onClick={() => setIsConditionsDropdownOpen((prev) => !prev)}
+                        className={`w-full min-h-[46px] px-3.5 py-2 rounded-xl border bg-stone-50/40 hover:bg-stone-50/80 cursor-pointer transition-all flex items-center justify-between gap-2 ${
+                          isConditionsDropdownOpen
+                            ? 'border-[#046A38] ring-3 ring-[#046A38]/15 bg-white'
+                            : 'border-stone-200'
                         }`}
                       >
-                        {showOtherCondition && <Check className="w-3.5 h-3.5 inline mr-1.5" />}
-                        <span>Other Condition...</span>
-                      </button>
+                        <div className="flex-1">
+                          {selectedConditions.length === 0 && !showOtherCondition ? (
+                            <span className="text-sm text-stone-400 select-none">
+                              Select chronic or medical conditions...
+                            </span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              {selectedConditions.map((cond) => (
+                                <span
+                                  key={cond}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#FAF6EF] text-[#046A38] border border-[#E8DCC8]"
+                                >
+                                  <span>{cond}</span>
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleCondition(cond);
+                                    }}
+                                    className="hover:text-red-600 rounded-full cursor-pointer transition-colors p-0.5"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </span>
+                                </span>
+                              ))}
+                              {showOtherCondition && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#FAF6EF] text-[#046A38] border border-[#E8DCC8]">
+                                  <span>Other{otherCondition ? `: ${otherCondition}` : ''}</span>
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleOtherCondition();
+                                    }}
+                                    className="hover:text-red-600 rounded-full cursor-pointer transition-colors p-0.5"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <ChevronDown
+                          className={`w-4 h-4 text-stone-400 shrink-0 transition-transform duration-200 ${
+                            isConditionsDropdownOpen ? 'rotate-180 text-[#046A38]' : ''
+                          }`}
+                        />
+                      </div>
+
+                      {/* Floating Dropdown Menu */}
+                      {isConditionsDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl border border-[#E8DCC8] shadow-xl z-30 max-h-64 overflow-y-auto p-1.5 space-y-1 animate-fade-in">
+                          {COMMON_CONDITIONS.map((cond) => {
+                            const isSelected = selectedConditions.includes(cond);
+                            return (
+                              <div
+                                key={cond}
+                                onClick={() => toggleCondition(cond)}
+                                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#FAF6EF] text-[#046A38] font-bold'
+                                    : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900 font-medium'
+                                }`}
+                              >
+                                <span>{cond}</span>
+                                <div
+                                  className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                    isSelected
+                                      ? 'bg-[#046A38] border-[#046A38] text-white'
+                                      : 'border-stone-300 bg-white'
+                                  }`}
+                                >
+                                  {isSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          <div
+                            onClick={toggleOtherCondition}
+                            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm transition-all cursor-pointer ${
+                              showOtherCondition
+                                ? 'bg-[#FAF6EF] text-[#046A38] font-bold'
+                                : 'text-stone-700 hover:bg-stone-50 hover:text-stone-900 font-medium'
+                            }`}
+                          >
+                            <span>Other Condition...</span>
+                            <div
+                              className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                showOtherCondition
+                                  ? 'bg-[#046A38] border-[#046A38] text-white'
+                                  : 'border-stone-300 bg-white'
+                              }`}
+                            >
+                              {showOtherCondition && <Check className="w-3 h-3 stroke-[2.5]" />}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {showOtherCondition && (
-                      <div className="mt-3">
+                      <div className="mt-2.5 animate-fade-in">
+                        <label className="block text-xs font-semibold text-stone-600 mb-1">
+                          Specify Other Condition
+                        </label>
                         <input
                           type="text"
                           value={otherCondition}
                           onChange={(e) => setOtherCondition(e.target.value)}
-                          placeholder="Specify condition (e.g. Hashimoto's Thyroiditis, PCOS)"
-                          className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50/40 text-stone-900 text-sm sm:text-base focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
+                          placeholder="e.g. Hashimoto's Thyroiditis, PCOS, Celiac Disease"
+                          className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white text-stone-900 text-sm focus:outline-none focus:ring-3 focus:ring-[#046A38]/15 focus:border-[#046A38] transition-all"
                         />
                       </div>
                     )}
@@ -1426,27 +1492,22 @@ export default function Signup() {
 
                   {/* Prescription Upload Dropzone */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
-                        <FileText className="w-4 h-4 text-[#046A38]" />
-                        <span>Recent Medical Prescription</span>
-                        <span className="text-stone-400 font-normal">(Optional)</span>
-                      </label>
-                      <span className="text-xs text-stone-400 font-medium">
-                        PDF, WEBP, PNG, JPG, JPEG &lt; 10 MB
-                      </span>
-                    </div>
+                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-[#046A38] shrink-0" />
+                      <span>Recent Medical Prescription</span>
+                      <span className="text-red-500">*</span>
+                    </label>
 
                     {!prescriptionFile ? (
-                      <label className="border-2 border-dashed border-[#E8DCC8] hover:border-[#046A38] bg-stone-50/40 hover:bg-[#FAF6EF]/60 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
-                        <div className="w-12 h-12 rounded-xl bg-white border border-[#E8DCC8] flex items-center justify-center text-[#046A38] group-hover:scale-105 transition-transform mb-2 shadow-2xs">
-                          <UploadCloud className="w-6 h-6 text-[#046A38]" />
+                      <label className="border-2 border-dashed border-[#E8DCC8] hover:border-[#046A38] bg-[#FAF6EF]/30 hover:bg-[#FAF6EF]/70 rounded-xl py-4 sm:py-5 px-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 group shadow-2xs hover:shadow-xs">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-[#E8DCC8] flex items-center justify-center text-[#046A38] group-hover:scale-105 group-hover:border-[#046A38]/40 transition-all mb-2 shadow-2xs">
+                          <UploadCloud className="w-5 h-5 text-[#046A38]" />
                         </div>
-                        <span className="text-sm sm:text-base font-bold text-stone-800">
+                        <span className="text-sm font-bold text-stone-900 group-hover:text-[#046A38] transition-colors">
                           Click to upload or drag & drop prescription
                         </span>
-                        <span className="text-xs text-stone-500 mt-1">
-                          Our clinical OCR will extract your insulin dosage and current medications
+                        <span className="text-xs text-stone-500 mt-1 font-medium">
+                          PDF, PNG, JPG, WEBP (Max 10MB)
                         </span>
                         <input
                           type="file"
@@ -1658,8 +1719,8 @@ export default function Signup() {
                 </div>
               )}
 
-              {/* Password Fields (12-128 chars, Argon2id) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Password Fields (12-128 chars, Argon2id) - Stacked in 2 distinct rows */}
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-stone-700 mb-1.5">
                     Password (min. 12 chars) <span className="text-red-500">*</span>
@@ -1719,21 +1780,8 @@ export default function Signup() {
                 </div>
               </div>
 
-              {/* Consent and Terms Checkboxes */}
-              <div className="space-y-3 pt-2">
-                {accountType === 'patient' && (
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={consentHealthData}
-                      onChange={(e) => setConsentHealthData(e.target.checked)}
-                      className="mt-1 w-4 h-4 text-[#046A38] rounded border-stone-300 focus:ring-[#046A38]"
-                    />
-                    <span className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-                      I give my explicit consent to store, analyze, and process my continuous glucose telemetry, medical conditions, and uploaded prescriptions under encrypted healthcare storage protocols.
-                    </span>
-                  </label>
-                )}
+              {/* Terms Checkbox */}
+              <div className="pt-2">
 
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input

@@ -133,8 +133,10 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getMe: () => request('/auth/me'),
+  getAuthStatus: () => request('/auth/status'),
 
-  // Admin Doctor Management
+  // Admin Clinical Approval & User Governance
+  getApprovalsSummary: () => request('/admin/approvals/summary'),
   getPendingDoctors: () => request('/admin/doctors/pending'),
   approveDoctor: (profileId) =>
     request(`/admin/doctors/${encodeURIComponent(profileId)}/approve`, {
@@ -144,6 +146,37 @@ export const api = {
     request(`/admin/doctors/${encodeURIComponent(profileId)}/reject`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    }),
+  getPendingPharmacists: () => request('/admin/pharmacists/pending'),
+  approvePharmacist: (profileId) =>
+    request(`/admin/pharmacists/${encodeURIComponent(profileId)}/approve`, {
+      method: 'POST',
+    }),
+  rejectPharmacist: (profileId, reason) =>
+    request(`/admin/pharmacists/${encodeURIComponent(profileId)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+  getPendingPatients: () => request('/admin/patients/pending'),
+  approvePatient: (patientId) =>
+    request(`/admin/patients/${encodeURIComponent(patientId)}/approve`, {
+      method: 'POST',
+    }),
+  rejectPatient: (patientId, reason) =>
+    request(`/admin/patients/${encodeURIComponent(patientId)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+  batchApprove: (data) =>
+    request('/admin/approvals/batch-approve', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getAllUsers: () => request('/admin/users/all'),
+  updateUserStatus: (userId, status) =>
+    request(`/admin/users/${encodeURIComponent(userId)}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
     }),
 
   // Patients
@@ -224,6 +257,11 @@ export const api = {
     request('/conversations/messages', {
       method: 'POST',
       body: JSON.stringify({ conversation_id: conversationId, content }),
+    }),
+  askAssistant: (content, language = 'en') =>
+    request('/conversations/chat', {
+      method: 'POST',
+      body: JSON.stringify({ content, language }),
     }),
 
   // Notifications

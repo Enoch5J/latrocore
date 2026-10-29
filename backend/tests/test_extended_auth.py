@@ -143,7 +143,8 @@ def test_patient_signup_and_patient_id():
         data = res_ok.json()
         assert data["user"]["email"] == test_email
         assert data["user"]["role"] == "patient"
-        assert data["user"]["status"] == "active"
+        assert data["user"]["status"] == "pending"
+        assert data["user"]["approvalStatus"] == "pending"
         assert data["user"]["displayId"].startswith("PAT-")
 
         # Verify PAT-XXXXXX in database

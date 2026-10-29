@@ -5,6 +5,7 @@ import { Modal, Badge } from '../../components/ui';
 import { Bot, Send, Mic, MicOff, Volume2, VolumeX, Globe, MessageSquare, Heart, Phone, X, ChevronRight, AlertCircle } from 'lucide-react';
 import { getAssistantResponse, getSuggestedQuestions, TOPICS } from '../../services/assistantEngine';
 import { addCounsellingRequest, addNotification, addAuditEntry } from '../../services/dataService';
+import { api } from '../../services/api';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', badge: 'EN' },
@@ -36,7 +37,7 @@ export default function Assistant() {
   useEffect(() => {
     setMessages([{
       id: 'welcome', role: 'assistant', lang: 'en',
-      text: "Hello! I'm the LATROCORE AI Assistant (Simulated). I can help you understand your glucose logs, find prescription information, answer medication questions, and navigate the platform. How can I help you today?",
+      text: "Hello! I'm the LATROCORE Clinical AI Assistant. I can help you understand your glucose logs, find prescription information, answer diabetes questions, and navigate the platform. How can I help you today?",
       time: new Date().toISOString(),
     }]);
     if (searchParams.get('action') === 'counselling') setShowCounsellingForm(true);
@@ -96,31 +97,46 @@ export default function Assistant() {
     setIsSpeaking(false);
   };
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const userMsg = { id: `u-${Date.now()}`, role: 'user', text: input.trim(), lang, time: new Date().toISOString() };
+  const handleSend = async (textToSend = null) => {
+    const text = (textToSend || input).trim();
+    if (!text) return;
+    const userMsg = { id: `u-${Date.now()}`, role: 'user', text, lang, time: new Date().toISOString() };
     setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    if (!textToSend) setInput('');
 
-    setTimeout(() => {
-      const response = getAssistantResponse(input.trim(), lang);
-      const assistantMsg = { id: `a-${Date.now()}`, role: 'assistant', text: response.text, lang, topic: response.topic, matched: response.matched, time: new Date().toISOString() };
-      setMessages(prev => [...prev, assistantMsg]);
-    }, 500);
+    const tempLoadingId = `a-loading-${Date.now()}`;
+    const loadingMsg = { id: tempLoadingId, role: 'assistant', text: 'Analyzing clinical guidance...', isLoading: true, lang, time: new Date().toISOString() };
+    setMessages(prev => [...prev, loadingMsg]);
+
+    try {
+      const data = await api.askAssistant(text, lang);
+      const assistantMsg = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: data.content,
+        lang,
+        sources: data.sources,
+        modelId: data.model_id,
+        time: new Date().toISOString()
+      };
+      setMessages(prev => prev.map(m => m.id === tempLoadingId ? assistantMsg : m));
+    } catch {
+      const response = getAssistantResponse(text, lang);
+      const fallbackMsg = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: response.text,
+        lang,
+        topic: response.topic,
+        matched: response.matched,
+        time: new Date().toISOString()
+      };
+      setMessages(prev => prev.map(m => m.id === tempLoadingId ? fallbackMsg : m));
+    }
   };
 
   const handleSuggestedQuestion = (q) => {
-    setInput(q);
-    setTimeout(() => {
-      const userMsg = { id: `u-${Date.now()}`, role: 'user', text: q, lang, time: new Date().toISOString() };
-      setMessages(prev => [...prev, userMsg]);
-      setTimeout(() => {
-        const response = getAssistantResponse(q, lang);
-        const assistantMsg = { id: `a-${Date.now()}`, role: 'assistant', text: response.text, lang, topic: response.topic, matched: response.matched, time: new Date().toISOString() };
-        setMessages(prev => [...prev, assistantMsg]);
-      }, 500);
-      setInput('');
-    }, 100);
+    handleSend(q);
   };
 
   const handleCounsellingRequest = async (topic) => {
@@ -176,15 +192,30 @@ export default function Assistant() {
                     <span className="text-xs font-black text-purple-900 uppercase tracking-wider">LATROCORE AI</span>
                   </div>
                 )}
-                <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                <div className="flex items-center justify-between mt-2.5 pt-1 border-t border-slate-100/60 text-[11px] font-semibold">
-                  <span className={msg.role === 'user' ? 'text-teal-200' : 'text-slate-600'}>{new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  {msg.role === 'assistant' && (
-                    <button onClick={() => speak(msg.text, msg.lang || lang)} className="p-1 rounded hover:bg-slate-100 text-slate-700 hover:text-slate-950 cursor-pointer" title="Read aloud">
-                      {isSpeaking ? <VolumeX size={15} onClick={(e) => { e.stopPropagation(); stopSpeaking(); }} /> : <Volume2 size={15} />}
-                    </button>
-                  )}
-                </div>
+                {msg.isLoading ? (
+                  <div className="flex items-center gap-2.5 py-1 px-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-teal-700 animate-bounce [animation-delay:-0.3s]" />
+                      <span className="w-2 h-2 rounded-full bg-teal-500 animate-bounce [animation-delay:-0.15s]" />
+                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" />
+                    </div>
+                    <span className="text-xs text-slate-400 font-medium tracking-wide animate-pulse">
+                      AI is thinking...
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <div className="flex items-center justify-between mt-2.5 pt-1 border-t border-slate-100/60 text-[11px] font-semibold">
+                      <span className={msg.role === 'user' ? 'text-teal-200' : 'text-slate-600'}>{new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {msg.role === 'assistant' && (
+                        <button onClick={() => speak(msg.text, msg.lang || lang)} className="p-1 rounded hover:bg-slate-100 text-slate-700 hover:text-slate-950 cursor-pointer" title="Read aloud">
+                          {isSpeaking ? <VolumeX size={15} onClick={(e) => { e.stopPropagation(); stopSpeaking(); }} /> : <Volume2 size={15} />}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ))}

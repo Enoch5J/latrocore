@@ -78,12 +78,16 @@ export function AppProvider({ children }) {
     dispatch({ type: 'REFRESH_DATA' });
   }, []);
 
-  const addToast = useCallback((toast) => {
-    const id = toast.id || `toast_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    dispatch({ type: 'ADD_TOAST', payload: { ...toast, id } });
+  const addToast = useCallback((toast, typeOrOptions) => {
+    const toastObj =
+      typeof toast === 'string'
+        ? { message: toast, type: typeof typeOrOptions === 'string' ? typeOrOptions : 'info' }
+        : { ...(toast || {}) };
+    const id = toastObj.id || `toast_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    dispatch({ type: 'ADD_TOAST', payload: { ...toastObj, id } });
     setTimeout(() => {
       dispatch({ type: 'REMOVE_TOAST', payload: id });
-    }, 1000); // Hide within exactly 1 second
+    }, 2500);
   }, []);
 
   const removeToast = useCallback((id) => {

@@ -152,14 +152,22 @@ If you did NOT authorize this change, please contact your clinic administrator i
 
 def send_doctor_approval_notification(to_email: str, doctor_name: str, approved: bool, reason: str = "") -> bool:
     """Notify doctor when their credentials have been approved or rejected."""
-    if approved:
-        subject = "Doctor Credentials Approved — Welcome to LATROCORE"
-        text = f"Dear {doctor_name},\n\nYour medical registration credentials have been verified and approved by our medical board administrator. You can now log in and access your clinical doctor station."
-    else:
-        subject = "LATROCORE Doctor Verification Status Update"
-        text = f"Dear {doctor_name},\n\nYour registration was reviewed and could not be approved at this time.\nReason: {reason}"
+    return send_approval_decision_notification(to_email, doctor_name, "doctor", approved, reason)
 
-    _log_console(to_email, subject, "", "doctor_approval_decision")
+
+def send_approval_decision_notification(to_email: str, user_name: str, role: str, approved: bool, reason: str = "") -> bool:
+    """Notify user (patient, doctor, pharmacist) when account has been approved or rejected."""
+    role_label = "Medical Doctor" if role == "doctor" else ("Pharmacist" if role in ("pharmacist", "care_team") else "Patient")
+    portal_label = "Doctor Clinical Station" if role == "doctor" else ("Pharmacist Workstation" if role in ("pharmacist", "care_team") else "Patient Health Portal")
+
+    if approved:
+        subject = f"{role_label} Account Approved — Welcome to LATROCORE"
+        text = f"Dear {user_name},\n\nYour {role_label} registration has been reviewed and approved by our Medical Board Administration. You can now log in and access your {portal_label}."
+    else:
+        subject = f"LATROCORE {role_label} Registration Status Update"
+        text = f"Dear {user_name},\n\nYour {role_label} registration was reviewed and could not be approved at this time.\nReason: {reason or 'Credentials could not be verified'}"
+
+    _log_console(to_email, subject, "", f"{role}_approval_decision")
     _send_smtp(to_email, subject, text, text)
     return True
 

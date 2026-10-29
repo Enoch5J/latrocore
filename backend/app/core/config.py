@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW_MINUTES: int = int(os.getenv("RATE_LIMIT_WINDOW_MINUTES", "15"))
     RATE_LIMIT_LOCKOUT_MINUTES: int = int(os.getenv("RATE_LIMIT_LOCKOUT_MINUTES", "15"))
 
+    # Gemini AI Integration & Guardrails
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
 
 settings = Settings()
 

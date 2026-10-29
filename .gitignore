@@ -48,3 +48,9 @@ dist-ssr/
 # Uploads
 backend/uploads/prescriptions/*
 !backend/uploads/prescriptions/.gitkeep
+
+# Archives & Backups
+*.zip
+*.tar.gz
+*.backup.*
+*.bak

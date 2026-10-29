@@ -9,9 +9,10 @@ from fastapi import FastAPI, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings, validate_security_settings
-from app.core.database import engine, Base, get_db
+from app.core.database import engine, Base, get_db, init_db_schema
 from app.api.v1.router import api_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.admin import router as admin_router
 from app.api.v1.dashboard import get_dashboard_data
 from app.core.dependencies import get_current_user
 from app.models.models import User
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI):
     validate_security_settings()
     # Initialize tables
     Base.metadata.create_all(bind=engine)
+    init_db_schema()
     try:
         from app.seeders.seed import seed
         seed()
@@ -67,8 +69,9 @@ async def security_headers_middleware(request: Request, call_next):
     return response
 
 
-# Mount Auth directly at /auth and /dashboard to satisfy exact specification
+# Mount Auth and Admin directly at /auth and /admin to satisfy exact specification
 app.include_router(auth_router)
+app.include_router(admin_router)
 
 
 @app.get("/dashboard")

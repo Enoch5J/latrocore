@@ -90,7 +90,7 @@ class PatientSignupRequest(BaseModel):
     password: str
     confirmPassword: str
     verificationToken: str
-    consentHealthData: bool
+    consentHealthData: bool = True
     acceptTerms: bool
 
 
@@ -202,16 +202,17 @@ def get_user_display_meta(user: User, db: Session):
         patient = db.query(Patient).filter(Patient.user_id == user.id).first()
         if patient:
             display_id = patient.patient_id_display
+            approval_status = getattr(patient, "approval_status", None) or ("pending" if user.status == "pending" else "approved")
     elif user.role == "doctor":
         doc = db.query(DoctorProfile).filter(DoctorProfile.user_id == user.id).first()
         if doc:
             display_id = doc.doctor_id_display
-            approval_status = doc.approval_status
+            approval_status = doc.approval_status or ("pending" if user.status == "pending" else "approved")
     elif user.role in ("pharmacist", "care_team"):
         pharm = db.query(PharmacistProfile).filter(PharmacistProfile.user_id == user.id).first()
         if pharm:
             display_id = pharm.pharmacist_id_display
-            approval_status = pharm.approval_status
+            approval_status = pharm.approval_status or ("pending" if user.status == "pending" else "approved")
     return display_id, approval_status
 
 
@@ -682,14 +683,14 @@ def register_patient(
     # 6. Generate Unique Patient ID
     patient_display_id = generate_unique_patient_id(db)
 
-    # 7. Create User and Patient
+    # 7. Create User and Patient (Pending Medical Board Administration Approval)
     new_user = User(
         email=email,
         password_hash=hash_password(req.password),
         name=name,
         phone=f"{req.countryCode}{phone}",
         role="patient",
-        status="active",
+        status="pending",
         verified=True
     )
     db.add(new_user)
@@ -703,7 +704,8 @@ def register_patient(
         weight=req.weight,
         conditions=json.dumps(deduped_conditions),
         prescription_file_url=req.prescriptionFileUrl,
-        prescription_file_name=req.prescriptionFileName
+        prescription_file_name=req.prescriptionFileName,
+        approval_status="pending"
     )
     db.add(new_patient)
     db.commit()
@@ -1061,19 +1063,25 @@ def login(
             detail="Invalid email or password"
         )
 
-    # Suspended account check
+    # Suspended or rejected account check
     if user.status == "suspended":
+        rejection_reason = None
+        if user.role == "doctor" and user.doctor_profile and user.doctor_profile.approval_status == "rejected":
+            rejection_reason = user.doctor_profile.rejection_reason
+        elif user.role in ("pharmacist", "care_team") and user.pharmacist_profile and user.pharmacist_profile.approval_status == "rejected":
+            rejection_reason = user.pharmacist_profile.rejection_reason
+        elif user.role == "patient" and user.patient_profile and getattr(user.patient_profile, "approval_status", None) == "rejected":
+            rejection_reason = user.patient_profile.rejection_reason
+
+        detail_msg = f"Account registration rejected by Medical Board: {rejection_reason}" if rejection_reason else "Account has been suspended. Please contact support."
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account has been suspended. Please contact support."
+            detail=detail_msg
         )
 
-    # If pending and NOT a doctor, reject
-    if user.status == "pending" and user.role != "doctor":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is pending verification."
-        )
+    # Note: Pending users (patient, doctor, pharmacist) are allowed to authenticate
+    # so they can access their Waiting for Admin Approval portal. ProtectedRoute
+    # intercepts pending accounts and prevents unauthorized clinical actions.
 
     # Reset failure counter on success
     record_login_success(db, client_ip, user.email)
@@ -1255,3 +1263,32 @@ def get_me(
         approvalStatus=approval_status,
         phone=current_user.phone
     )
+
+
+@router.get("/status")
+def get_auth_status(
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Lightweight endpoint for polling approval status from Waiting page."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    display_id, approval_status = get_user_display_meta(current_user, db)
+    rejection_reason = None
+    if current_user.role == "patient" and current_user.patient_profile:
+        rejection_reason = getattr(current_user.patient_profile, "rejection_reason", None)
+    elif current_user.role == "doctor" and current_user.doctor_profile:
+        rejection_reason = current_user.doctor_profile.rejection_reason
+    elif current_user.role in ("pharmacist", "care_team") and current_user.pharmacist_profile:
+        rejection_reason = current_user.pharmacist_profile.rejection_reason
+
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "role": current_user.role,
+        "status": current_user.status,
+        "approvalStatus": approval_status or ("pending" if current_user.status == "pending" else "approved"),
+        "displayId": display_id,
+        "rejectionReason": rejection_reason
+    }

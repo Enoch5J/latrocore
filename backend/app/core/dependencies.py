@@ -109,10 +109,10 @@ def check_patient_access(patient_id: str, user: User, db: Session):
     from app.models.models import Assignment, Patient
     from datetime import date
     
-    if user.role == "doctor" and user.status != "active":
+    if user.role != "admin" and user.status != "active":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your doctor account is pending administrative approval. Access to patient records is restricted."
+            detail=f"Your {user.role} account is pending administrative approval. Access to clinical records is restricted."
         )
     
     patient = db.query(Patient).filter(Patient.id == patient_id).first()

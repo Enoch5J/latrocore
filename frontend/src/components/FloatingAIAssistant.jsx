@@ -5,6 +5,7 @@ import {
   Shield, RefreshCw, ChevronDown, Check, Globe
 } from 'lucide-react';
 import { getAssistantResponse, getSuggestedQuestions, SUPPORTED_LANGUAGES } from '../services/assistantEngine';
+import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
 
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify'];
@@ -245,7 +246,7 @@ export default function FloatingAIAssistant() {
     setIsSpeaking(true);
   };
 
-  const handleSend = (textToSend = null) => {
+  const handleSend = async (textToSend = null) => {
     const query = (textToSend || input).trim();
     if (!query) return;
 
@@ -259,17 +260,48 @@ export default function FloatingAIAssistant() {
     setMessages((prev) => [...prev, userMsg]);
     if (!textToSend) setInput('');
 
-    setTimeout(() => {
-      const response = getAssistantResponse(query, lang);
+    // Loading indicator
+    const tempAiId = `a-loading-${Date.now()}`;
+    const loadingMsg = {
+      id: tempAiId,
+      role: 'assistant',
+      text: '',
+      isLoading: true,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, loadingMsg]);
+
+    try {
+      // Query backend Gemini API with strict PII scrubbing & safety guardrails
+      const data = await api.askAssistant(query, lang);
+      const sourcesList = data?.sources && Array.isArray(data.sources)
+        ? data.sources.map((s) => (typeof s === 'string' ? s : `${s.title}${s.section ? ' (' + s.section + ')' : ''}`))
+        : ['ADA Standards of Care 2024'];
+
       const aiMsg = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: data.content,
+        sources: sourcesList,
+        modelId: data.model_id,
+        piiScrubbed: data.pii_scrubbed,
+        requiresHandoff: data.requires_handoff,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages((prev) => prev.map((m) => (m.id === tempAiId ? aiMsg : m)));
+    } catch (err) {
+      // Graceful local clinical engine fallback
+      const response = getAssistantResponse(query, lang);
+      const fallbackMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: response.text,
         sources: response.sources || ['ADA Standards of Care 2024'],
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setMessages((prev) => [...prev, aiMsg]);
-    }, 350);
+      setMessages((prev) => prev.map((m) => (m.id === tempAiId ? fallbackMsg : m)));
+    }
   };
 
   const handleSelectLanguage = (selectedCode) => {
@@ -425,61 +457,83 @@ export default function FloatingAIAssistant() {
                   className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-xl bg-gradient-to-b from-[#022A16] to-[#044D29] border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs overflow-hidden">
+                    <div className={`w-7 h-7 rounded-xl bg-gradient-to-b from-[#022A16] to-[#044D29] border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs overflow-hidden transition-all ${
+                      msg.isLoading ? 'ring-2 ring-emerald-400 ring-offset-1 ring-offset-white animate-pulse' : ''
+                    }`}>
                       <AIFaceAvatar size={20} />
                     </div>
                   )}
 
                   <div
-                    className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed shadow-xs ${
+                    className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-[13px] leading-relaxed shadow-xs transition-all duration-200 ${
                       msg.role === 'user'
                         ? 'bg-[#046A38] text-white rounded-tr-xs font-normal'
                         : 'bg-white text-stone-900 border border-[#E8DCC8] rounded-tl-xs'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
-
-                    {/* Evidence citations */}
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-stone-100 flex flex-wrap gap-1">
-                        {msg.sources.map((src, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 text-[10px] text-[#046A38] bg-[#E8F5EE] px-2 py-0.5 rounded-md font-semibold border border-[#A8D7BD]/60"
-                          >
-                            <Sparkles size={9} className="text-[#046A38]" />
-                            {src}
-                          </span>
-                        ))}
+                    {msg.isLoading ? (
+                      <div className="flex items-center gap-2.5 py-1 px-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#046A38] animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-2 h-2 rounded-full bg-[#10B981] animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-2 h-2 rounded-full bg-[#34D399] animate-bounce" />
+                        </div>
+                        <span className="text-[11px] font-medium text-stone-400 tracking-wide animate-pulse">
+                          AI is thinking...
+                        </span>
                       </div>
-                    )}
+                    ) : (
+                      <>
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
 
-                    {/* Bottom Metadata & Speech Audio */}
-                    <div className={`mt-2 flex items-center justify-between text-[11px] pt-1 ${
-                      msg.role === 'user' ? 'text-emerald-100/70' : 'text-stone-500'
-                    }`}>
-                      <span className="font-semibold text-[10px]">{msg.time}</span>
-                      {msg.role === 'assistant' && (
-                        <button
-                          onClick={() => speakText(msg.text)}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-100 hover:bg-[#E8F5EE] text-stone-700 hover:text-[#046A38] border border-stone-200 hover:border-[#A8D7BD] transition cursor-pointer text-[10px] font-bold"
-                          title="Read aloud"
-                          aria-label="Read message aloud"
-                        >
-                          {isSpeaking ? (
-                            <>
-                              <VolumeX size={12} className="text-[#046A38]" />
-                              <span>Mute</span>
-                            </>
-                          ) : (
-                            <>
-                              <Volume2 size={12} className="text-[#046A38]" />
-                              <span>Listen</span>
-                            </>
+                        {/* Evidence citations */}
+                        {msg.sources && msg.sources.length > 0 && (
+                          <div className="mt-2.5 pt-2 border-t border-stone-100 flex flex-wrap gap-1">
+                            {msg.sources.map((src, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 text-[10px] text-[#046A38] bg-[#E8F5EE] px-2 py-0.5 rounded-md font-semibold border border-[#A8D7BD]/60"
+                              >
+                                <Sparkles size={9} className="text-[#046A38]" />
+                                {src}
+                              </span>
+                            ))}
+                            {msg.piiScrubbed && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-200">
+                                Telemetry Redacted for Privacy
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Bottom Metadata & Speech Audio */}
+                        <div className={`mt-2 flex items-center justify-between text-[11px] pt-1 ${
+                          msg.role === 'user' ? 'text-emerald-100/70' : 'text-stone-500'
+                        }`}>
+                          <span className="font-semibold text-[10px]">{msg.time}</span>
+                          {msg.role === 'assistant' && (
+                            <button
+                              onClick={() => speakText(msg.text)}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-100 hover:bg-[#E8F5EE] text-stone-700 hover:text-[#046A38] border border-stone-200 hover:border-[#A8D7BD] transition cursor-pointer text-[10px] font-bold"
+                              title="Read aloud"
+                              aria-label="Read message aloud"
+                            >
+                              {isSpeaking ? (
+                                <>
+                                  <VolumeX size={12} className="text-[#046A38]" />
+                                  <span>Mute</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Volume2 size={12} className="text-[#046A38]" />
+                                  <span>Listen</span>
+                                </>
+                              )}
+                            </button>
                           )}
-                        </button>
-                      )}
-                    </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
