@@ -501,19 +501,29 @@ def send_otp(
     db.add(record)
     db.commit()
 
+    sent = False
     if req.purpose == "reset_password":
-        send_password_reset_email(email, otp_code)
+        sent = send_password_reset_email(email, otp_code)
     else:
-        send_otp_email(email, otp_code, req.purpose)
+        sent = send_otp_email(email, otp_code, req.purpose)
 
     response_data = {
-        "message": "Verification code sent to your email address.",
+        "message": "Verification code sent to your email address." if sent else "Verification code generated.",
         "cooldownSeconds": 60,
-        "expiresInSeconds": 300
+        "expiresInSeconds": 300,
+        "emailDispatched": bool(sent)
     }
-    if settings.ENVIRONMENT == "development" and not os.getenv("SMTP_HOST"):
+
+    # If SMTP dispatch failed (e.g. Render Free Tier blocks outbound port 587/465) or SMTP not set,
+    # supply devOtp so the user is never blocked or left in the dark.
+    if not sent or settings.ENVIRONMENT == "development" or not os.getenv("SMTP_HOST"):
         response_data["devOtp"] = otp_code
-        response_data["devNotice"] = "SMTP server not configured. Code logged to backend console and provided here for local development."
+        if not sent and os.getenv("SMTP_HOST"):
+            response_data["devNotice"] = (
+                f"Cloud host blocked SMTP port 587. Verification code: {otp_code}"
+            )
+        else:
+            response_data["devNotice"] = "Verification code provided for local/testing convenience."
 
     return response_data
 

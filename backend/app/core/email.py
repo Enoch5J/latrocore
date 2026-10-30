@@ -14,32 +14,82 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "LATROCORE Security <no-reply@latrocore.com>")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM = os.getenv("RESEND_FROM", "LATROCORE <onboarding@resend.dev>")
+
+
+def _send_resend_http(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """Send an email using Resend HTTP REST API over port 443 (never blocked by Render Free Tier)."""
+    api_key = os.getenv("RESEND_API_KEY", RESEND_API_KEY).strip()
+    if not api_key:
+        return False
+    try:
+        import httpx
+        from_email = os.getenv("RESEND_FROM", RESEND_FROM).strip() or "LATROCORE <onboarding@resend.dev>"
+        res = httpx.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+                "text": text_content
+            },
+            timeout=5.0
+        )
+        if res.status_code in (200, 201):
+            print(f"[EMAIL SUCCESS] Resend HTTP dispatch to {to_email} succeeded!")
+            return True
+        else:
+            print(f"[EMAIL ERROR] Resend HTTP dispatch failed with status {res.status_code}: {res.text}")
+            return False
+    except Exception as e:
+        print(f"[EMAIL ERROR] Resend HTTP exception for {to_email}: {e}")
+        return False
 
 
 def _send_smtp(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
     """Send an email using SMTP if configured."""
-    if not SMTP_HOST:
+    host = (os.getenv("SMTP_HOST") or SMTP_HOST or "").strip()
+    if not host:
         return False
+    port = int(os.getenv("SMTP_PORT") or SMTP_PORT or 587)
+    user = (os.getenv("SMTP_USER") or SMTP_USER or "").strip()
+    raw_password = os.getenv("SMTP_PASSWORD") or SMTP_PASSWORD or ""
+    clean_password = raw_password.replace(" ", "").strip()
+    from_addr = (os.getenv("SMTP_FROM") or SMTP_FROM or "").strip() or user or "LATROCORE Security <no-reply@latrocore.com>"
+
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = SMTP_FROM
+        msg["From"] = from_addr
         msg["To"] = to_email
 
         msg.attach(MIMEText(text_content, "plain"))
         msg.attach(MIMEText(html_content, "html"))
 
-        clean_password = (SMTP_PASSWORD or "").replace(" ", "").strip()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-            if SMTP_PORT == 587:
-                server.starttls()
-            if SMTP_USER and clean_password:
-                server.login(SMTP_USER, clean_password)
-            server.sendmail(SMTP_FROM, [to_email], msg.as_string())
-        print(f"[EMAIL SUCCESS] Dispatched email to {to_email} via {SMTP_HOST}:{SMTP_PORT}")
+        envelope_from = user if ("@" in user and "gmail.com" in host.lower()) else from_addr
+
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port, timeout=5) as server:
+                if user and clean_password:
+                    server.login(user, clean_password)
+                server.sendmail(envelope_from, [to_email], msg.as_string())
+        else:
+            with smtplib.SMTP(host, port, timeout=5) as server:
+                if port == 587 or "gmail" in host.lower():
+                    server.starttls()
+                if user and clean_password:
+                    server.login(user, clean_password)
+                server.sendmail(envelope_from, [to_email], msg.as_string())
+        print(f"[EMAIL SUCCESS] Dispatched email to {to_email} via {host}:{port}")
         return True
     except Exception as e:
-        print(f"[EMAIL ERROR] SMTP dispatch failed: {e}")
+        print(f"[EMAIL ERROR] SMTP dispatch failed for {to_email} via {host}:{port}: {e}")
         return False
 
 
@@ -116,6 +166,11 @@ If you did not request this code, please ignore this email or contact support.
 </html>
 """
     _log_console(to_email, subject, otp, purpose)
+    # 1. Try Resend HTTP API over HTTPS (never blocked by Render Free Tier)
+    if os.getenv("RESEND_API_KEY"):
+        if _send_resend_http(to_email, subject, html_body, text_body):
+            return True
+    # 2. Try SMTP
     return _send_smtp(to_email, subject, html_body, text_body)
 
 

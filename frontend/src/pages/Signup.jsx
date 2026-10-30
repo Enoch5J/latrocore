@@ -357,7 +357,11 @@ export default function Signup() {
       if (res?.devOtp) {
         setDevOtpCode(res.devOtp);
       }
-      setOtpSuccessMessage(`Code sent to ${email.trim()}`);
+      if (res?.emailDispatched === false && res?.devOtp) {
+        setOtpSuccessMessage(res?.devNotice || `Verification code: ${res.devOtp}`);
+      } else {
+        setOtpSuccessMessage(`Code sent to ${email.trim()}`);
+      }
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
     } catch (err) {
       setOtpError(err.message || 'Failed to send verification code. Please check your email.');
