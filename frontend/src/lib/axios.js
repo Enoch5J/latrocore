@@ -87,7 +87,7 @@ apiClient.interceptors.request.use(
  * Execute refresh call inside a Web Lock to synchronize cookie rotation across tabs.
  * Fallback gracefully when Web Locks API is unsupported.
  */
-async function performSilentRefresh() {
+export async function performSilentRefresh() {
   const callRefreshEndpoint = async () => {
     if (isLoggingOut) {
       throw new Error('Refresh aborted: Logout in progress');

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../auth/AuthContext';
 import { api } from '../../services/api';
 import { StatCard, LoadingSpinner, Badge, SearchBar, Modal, ConfirmDialog, Tabs, Avatar } from '../../components/ui';
 import {
@@ -34,6 +35,7 @@ import { formatDateTime } from '../../data/demoDate';
 
 export default function AdminDashboard({ initialTab }) {
   const { currentUser, data, refreshData, addToast, dispatch } = useApp();
+  const { user: authUser, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(initialTab || 'approvals');
   const [showReset, setShowReset] = useState(false);
@@ -97,8 +99,10 @@ export default function AdminDashboard({ initialTab }) {
   };
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (!authLoading) {
+      loadAllData();
+    }
+  }, [authLoading]);
 
   const copyToClipboard = (text, id) => {
     navigator.clipboard?.writeText(text);

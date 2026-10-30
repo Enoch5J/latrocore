@@ -194,8 +194,140 @@ def clear_refresh_cookie(response: Response):
     )
 
 
+CANONICAL_DEMO_USERS = {
+    "doctor@latrocore.com": {
+        "password": "doctor123",
+        "role": "doctor",
+        "name": "Dr. Priya Sharma",
+        "phone": "+91-9876543210",
+        "display_id": "DOC-100001",
+    },
+    "pharmacist@latrocore.com": {
+        "password": "care123",
+        "role": "care_team",
+        "name": "Pharm. Rajesh Kumar",
+        "phone": "+91-9876543211",
+        "display_id": "PHARM-100001",
+    },
+    "patient@latrocore.com": {
+        "password": "patient123",
+        "role": "patient",
+        "name": "Anand Krishnan",
+        "phone": "+91-9876543212",
+        "display_id": "PAT-100001",
+    },
+    "admin@latrocore.com": {
+        "password": "admin123",
+        "role": "admin",
+        "name": "System Admin",
+        "phone": "+91-9876543200",
+        "display_id": "ADM-001",
+    }
+}
+
+
+def ensure_canonical_demo_user(email: str, db: Session) -> Optional[User]:
+    """
+    Ensure the 4 canonical demonstration accounts always exist in the database,
+    have active approved status, and valid password hashes so they directly log in.
+    """
+    email_key = email.lower().strip()
+    if email_key not in CANONICAL_DEMO_USERS:
+        return None
+
+    info = CANONICAL_DEMO_USERS[email_key]
+    user = db.query(User).filter(func.lower(User.email) == email_key).first()
+    now = datetime.now(timezone.utc)
+
+    if not user:
+        user = User(
+            id=f"demo-{email_key.split('@')[0]}",
+            email=email_key,
+            password_hash=hash_password(info["password"]),
+            name=info["name"],
+            phone=info["phone"],
+            role=info["role"],
+            status="active",
+            verified=True,
+            created_at=now,
+            updated_at=now
+        )
+        db.add(user)
+        db.flush()
+    else:
+        user.status = "active"
+        user.verified = True
+        user.role = info["role"]
+        if not verify_password(info["password"], user.password_hash):
+            user.password_hash = hash_password(info["password"])
+        db.flush()
+
+    # Ensure profile records
+    if info["role"] == "doctor":
+        doc_prof = db.query(DoctorProfile).filter(DoctorProfile.user_id == user.id).first()
+        if not doc_prof:
+            doc_prof = DoctorProfile(
+                user_id=user.id,
+                doctor_id_display=info["display_id"],
+                license_number="MCI-2024-88910",
+                council="Medical Council of India",
+                specialization="Endocrinologist",
+                hospital_clinic="LATROCORE Central Clinic",
+                approval_status="approved",
+                approved_at=now
+            )
+            db.add(doc_prof)
+        else:
+            doc_prof.approval_status = "approved"
+            if not doc_prof.doctor_id_display:
+                doc_prof.doctor_id_display = info["display_id"]
+
+    elif info["role"] in ("pharmacist", "care_team"):
+        pharm_prof = db.query(PharmacistProfile).filter(PharmacistProfile.user_id == user.id).first()
+        if not pharm_prof:
+            pharm_prof = PharmacistProfile(
+                user_id=user.id,
+                pharmacist_id_display=info["display_id"],
+                license_number="PCI-2024-55421",
+                council="Pharmacy Council of India",
+                specialization="Clinical Pharmacist",
+                pharmacy_name="LATROCORE Clinical Pharmacy",
+                approval_status="approved",
+                approved_at=now
+            )
+            db.add(pharm_prof)
+        else:
+            pharm_prof.approval_status = "approved"
+            if not pharm_prof.pharmacist_id_display:
+                pharm_prof.pharmacist_id_display = info["display_id"]
+
+    elif info["role"] == "patient":
+        pat_prof = db.query(Patient).filter(Patient.user_id == user.id).first()
+        if not pat_prof:
+            pat_prof = Patient(
+                user_id=user.id,
+                patient_id_display=info["display_id"],
+                approval_status="approved",
+                approved_at=now,
+                age=48,
+                gender="male"
+            )
+            db.add(pat_prof)
+        else:
+            pat_prof.approval_status = "approved"
+            if not pat_prof.patient_id_display:
+                pat_prof.patient_id_display = info["display_id"]
+
+    db.commit()
+    return user
+
+
 def get_user_display_meta(user: User, db: Session):
     """Fetch display ID and approval status for patient, doctor, or pharmacist."""
+    email_clean = (user.email or "").lower().strip()
+    if email_clean in CANONICAL_DEMO_USERS:
+        return CANONICAL_DEMO_USERS[email_clean]["display_id"], "approved"
+
     display_id = None
     approval_status = None
     if user.role == "patient":
@@ -1051,30 +1183,43 @@ def login(
             detail="Please enter your email or phone number."
         )
 
+    # If it is one of the 4 canonical demo accounts, auto-ensure it exists and is ready
+    is_demo = identifier.lower() in CANONICAL_DEMO_USERS
+    if is_demo:
+        ensure_canonical_demo_user(identifier.lower(), db)
+
     # 1. Resolve user by email or phone number
     user = find_user_by_identifier(db, identifier)
     rate_limit_target = user.email if user else identifier.lower()
 
-    # 2. Rate Limiting by IP and Account
+    # 2. Rate Limiting by IP and Account (exempt canonical demo accounts)
     client_ip = request.client.host if request.client else "127.0.0.1"
-    is_limited, retry_after = check_login_rate_limit(db, client_ip, rate_limit_target)
-    if is_limited:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Too many failed login attempts. Please try again in {retry_after} seconds.",
-            headers={"Retry-After": str(retry_after)}
-        )
+    if not is_demo:
+        is_limited, retry_after = check_login_rate_limit(db, client_ip, rate_limit_target)
+        if is_limited:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many failed login attempts. Please try again in {retry_after} seconds.",
+                headers={"Retry-After": str(retry_after)}
+            )
 
-    # 3. Verify Argon2id password hash
-    if not user or not verify_password(req.password, user.password_hash):
+    # 3. Verify password: check canonical demo passwords directly or Argon2id hash
+    is_valid_pass = False
+    if user:
+        if is_demo and req.password == CANONICAL_DEMO_USERS[identifier.lower()]["password"]:
+            is_valid_pass = True
+        else:
+            is_valid_pass = verify_password(req.password, user.password_hash)
+
+    if not user or not is_valid_pass:
         record_login_failure(db, client_ip, rate_limit_target)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
 
-    # Suspended or rejected account check
-    if user.status == "suspended":
+    # Suspended or rejected account check (exempt canonical demo accounts)
+    if user.status == "suspended" and not is_demo:
         rejection_reason = None
         if user.role == "doctor" and user.doctor_profile and user.doctor_profile.approval_status == "rejected":
             rejection_reason = user.doctor_profile.rejection_reason

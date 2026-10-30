@@ -53,19 +53,32 @@ export default function Login() {
       const userData = await login(identifier.trim(), password);
       if (setUser && userData) setUser(userData);
 
-      const isPending = userData?.role !== 'admin' && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
+      // ── Direct Dashboard Routing for the 4 Core Demo Accounts & Roles ──
+      const emailLower = (userData?.email || identifier).toLowerCase().trim();
+      const userRole = (userData?.role || '').toLowerCase().trim();
+
+      if (emailLower === 'doctor@latrocore.com' || userRole === 'doctor') {
+        navigate('/doctor/dashboard', { replace: true });
+        return;
+      }
+      if (emailLower === 'pharmacist@latrocore.com' || userRole === 'pharmacist' || userRole === 'care_team') {
+        navigate('/pharmacist/dashboard', { replace: true });
+        return;
+      }
+      if (emailLower === 'admin@latrocore.com' || userRole === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
+      if (emailLower === 'patient@latrocore.com' || userRole === 'patient') {
+        navigate('/patient/dashboard', { replace: true });
+        return;
+      }
+
+      const isPending = userRole !== 'admin' && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
       if (isPending) {
         navigate('/waiting-approval', { replace: true });
       } else if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard' && fromPath !== '/waiting-approval') {
         navigate(fromPath, { replace: true });
-      } else if (userData?.role === 'patient') {
-        navigate('/patient/dashboard', { replace: true });
-      } else if (userData?.role === 'doctor') {
-        navigate('/doctor/dashboard', { replace: true });
-      } else if (userData?.role === 'admin') {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (userData?.role === 'pharmacist' || userData?.role === 'care_team') {
-        navigate('/pharmacist/dashboard', { replace: true });
       } else {
         navigate('/patient/dashboard', { replace: true });
       }

@@ -23,7 +23,11 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 
+import { getAccessToken, setAccessToken, performSilentRefresh } from '../lib/axios';
+
 function getToken() {
+  const inMemory = getAccessToken();
+  if (inMemory) return inMemory;
   if (typeof window !== 'undefined' && window.localStorage) {
     return localStorage.getItem('latrocore_token') || '';
   }
@@ -31,6 +35,7 @@ function getToken() {
 }
 
 export function setToken(token) {
+  setAccessToken(token);
   if (typeof window !== 'undefined' && window.localStorage) {
     if (token) {
       localStorage.setItem('latrocore_token', token);
@@ -40,7 +45,7 @@ export function setToken(token) {
   }
 }
 
-async function request(endpoint, options = {}) {
+async function request(endpoint, options = {}, isRetry = false) {
   const isFormData = options.body instanceof FormData;
   const headers = {
     'X-Requested-With': 'XMLHttpRequest',
@@ -59,6 +64,20 @@ async function request(endpoint, options = {}) {
       ...options,
       headers,
     });
+
+    if (res.status === 401 && !isRetry) {
+      try {
+        const refreshData = await performSilentRefresh();
+        if (refreshData?.accessToken) {
+          const newToken = refreshData.accessToken;
+          setAccessToken(newToken);
+          setToken(newToken);
+          return await request(endpoint, options, true);
+        }
+      } catch (refreshErr) {
+        // Silent refresh failed, fall through to error handling
+      }
+    }
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));

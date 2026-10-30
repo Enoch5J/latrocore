@@ -5,6 +5,7 @@ import {
   setLoggingOutFlag,
   registerSessionExpiredHandler
 } from '../lib/axios';
+import { setToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -37,11 +38,13 @@ export function AuthProvider({ children }) {
         const { accessToken, user: userData } = response.data;
 
         setAccessToken(accessToken);
+        setToken(accessToken);
         setUser(userData);
         localStorage.setItem('hasSession', 'true');
       } catch (err) {
         // Cookie missing, revoked, or expired: clear local session flag
         setAccessToken(null);
+        setToken(null);
         localStorage.removeItem('hasSession');
         setUser(null);
         // Only set sessionExpired if user had a previous session
@@ -74,6 +77,7 @@ export function AuthProvider({ children }) {
 
     // Secure token storage: strictly in memory
     setAccessToken(accessToken);
+    setToken(accessToken);
     setUser(userData);
 
     // Non-sensitive flag only
@@ -96,6 +100,7 @@ export function AuthProvider({ children }) {
     } finally {
       // Always clear local memory, tokens, and session state
       setAccessToken(null);
+      setToken(null);
       localStorage.removeItem('hasSession');
       setUser(null);
       setLoggingOutFlag(false);
@@ -104,6 +109,7 @@ export function AuthProvider({ children }) {
 
   const setAuthUser = (userData, accessToken) => {
     setAccessToken(accessToken);
+    setToken(accessToken);
     setUser(userData);
     localStorage.setItem('hasSession', 'true');
   };
