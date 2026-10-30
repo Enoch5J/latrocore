@@ -66,14 +66,17 @@ function RoleDashboardRedirect() {
     );
   }
 
-  const role = user?.role;
-  const isPending = role !== 'admin' && (user?.status === 'pending' || user?.approvalStatus === 'pending');
-  if (isPending) return <Navigate to="/waiting-approval" replace />;
+  const role = (user?.role || '').toLowerCase().trim();
+  const userEmail = (user?.email || '').toLowerCase().trim();
+  const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
 
-  if (role === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
-  if (role === 'pharmacist' || role === 'care_team') return <Navigate to="/pharmacist/dashboard" replace />;
-  if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-  if (role === 'patient') return <Navigate to="/patient/dashboard" replace />;
+  if (userEmail === 'doctor@latrocore.com' || role === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
+  if (userEmail === 'pharmacist@latrocore.com' || role === 'pharmacist' || role === 'care_team') return <Navigate to="/pharmacist/dashboard" replace />;
+  if (userEmail === 'admin@latrocore.com' || role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (userEmail === 'patient@latrocore.com' || role === 'patient') return <Navigate to="/patient/dashboard" replace />;
+
+  const isPending = !isDemo && role !== 'admin' && (user?.status === 'pending' || user?.approvalStatus === 'pending');
+  if (isPending) return <Navigate to="/waiting-approval" replace />;
 
   return <Navigate to="/" replace />;
 }
