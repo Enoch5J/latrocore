@@ -238,6 +238,39 @@ export const api = {
       body: JSON.stringify({ status, notes }),
     }),
 
+  // Gemini AI Prescription Digitization & Plan Synthesis
+  analyzePrescriptionAI: (fileOrText) => {
+    if (fileOrText instanceof File) {
+      const formData = new FormData();
+      formData.append('file', fileOrText);
+      return request('/prescriptions/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+    }
+    if (typeof fileOrText === 'string') {
+      return request('/prescriptions/analyze-json', {
+        method: 'POST',
+        body: JSON.stringify({ text: fileOrText }),
+      });
+    }
+    if (fileOrText && typeof fileOrText === 'object') {
+      const formData = new FormData();
+      if (fileOrText.file) formData.append('file', fileOrText.file);
+      if (fileOrText.text) formData.append('text', fileOrText.text);
+      return request('/prescriptions/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+    }
+    throw new Error('Please select a prescription file or enter prescription text.');
+  },
+  applyAIPrescription: (data) =>
+    request('/prescriptions/apply', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // Doses
   getDoseSchedule: (patientId, days = 7) =>
     request(`/patients/${encodeURIComponent(patientId)}/schedule?days=${days}`),

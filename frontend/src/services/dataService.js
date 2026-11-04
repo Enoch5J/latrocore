@@ -770,3 +770,139 @@ export function saveProgressionData(patientId, updates = {}) {
   });
 }
 
+/**
+ * Synchronize AI-extracted prescription into local state:
+ * - Updates active prescriptions & medicines
+ * - Regenerates daily dose intake schedules
+ * - Sets the personalized clinical diabetic diet plan and meal times
+ * - Sets the synchronized 24-hour daily routine
+ */
+export function applyAIPrescriptionToPatient(patientId, aiPrescription) {
+  if (!patientId || !aiPrescription) return null;
+
+  const todayKey = new Date().toISOString().split('T')[0];
+  const userKey = `${patientId}_${todayKey}`;
+
+  return update(d => {
+    if (!d.prescriptions) d.prescriptions = [];
+    if (!d.doseEvents) d.doseEvents = [];
+    if (!d.progressions) d.progressions = {};
+
+    // 1. Supersede any existing active prescription for this patient
+    (d.prescriptions || []).forEach(rx => {
+      if (rx.patientId === patientId && rx.status === 'active') {
+        rx.status = 'superseded';
+      }
+    });
+
+    const rxId = `rx-ai-${Date.now()}`;
+    const medicines = (aiPrescription.medicines || []).map((m, idx) => ({
+      id: `med-ai-${idx}-${Date.now()}`,
+      name: m.name,
+      dose: m.dose,
+      route: m.route || 'Oral',
+      frequency: m.frequency,
+      times: m.schedule_times && m.schedule_times.length > 0 ? m.schedule_times : ['08:00 AM'],
+      foodInstruction: m.meal_timing || m.instructions || 'With meals',
+      instructions: m.instructions || '',
+      isInsulin: !!m.is_insulin,
+      reviewDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    }));
+
+    const newPrescription = {
+      id: rxId,
+      patientId,
+      doctorId: 'doc-ai',
+      doctorName: aiPrescription.doctor_name || 'Attending Physician',
+      clinicName: aiPrescription.clinic_name || 'Clinical Care Station',
+      diagnosis: aiPrescription.diagnosis || 'Type 2 Diabetes Mellitus',
+      status: 'active',
+      authorizedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      notes: `Digitized & Verified via Gemini AI: ${aiPrescription.doctor_name || 'Physician'} (${aiPrescription.clinic_name || 'Clinic'}) — Diagnosis: ${aiPrescription.diagnosis || 'T2D'}`,
+      fileUrl: aiPrescription.file_url || null,
+      medicines,
+      dietPlan: aiPrescription.diet_plan || null,
+      dailySchedule: aiPrescription.daily_schedule || null,
+    };
+
+    d.prescriptions.unshift(newPrescription);
+
+    // 2. Generate Today's Scheduled Dose Events from the Real Prescription Medicines
+    d.doseEvents = (d.doseEvents || []).filter(
+      e => !(e.patientId === patientId && e.scheduledTime?.startsWith(todayKey) && e.status === 'pending')
+    );
+
+    medicines.forEach(med => {
+      (med.times || []).forEach(timeStr => {
+        let hour = 8;
+        let minute = 0;
+        const cleanT = (timeStr || '').trim();
+        const parts = cleanT.split(/[:\s]/);
+        if (parts.length >= 2) {
+          hour = parseInt(parts[0], 10) || 8;
+          minute = parseInt(parts[1], 10) || 0;
+          if (cleanT.toLowerCase().includes('pm') && hour < 12) hour += 12;
+          if (cleanT.toLowerCase().includes('am') && hour === 12) hour = 0;
+        }
+
+        const scheduledDate = new Date();
+        scheduledDate.setHours(hour, minute, 0, 0);
+
+        d.doseEvents.push({
+          id: genId('dose'),
+          patientId,
+          prescriptionId: rxId,
+          medicineId: med.id,
+          medicineName: med.name,
+          dose: med.dose,
+          scheduledTime: scheduledDate.toISOString(),
+          status: 'pending',
+          actualTime: null,
+          foodInstruction: med.foodInstruction,
+          note: med.instructions,
+        });
+      });
+    });
+
+    // 3. Map Diet Plan Meals & Tablets for Progression Engine
+    const activeTablets = medicines.map(med => ({
+      id: med.id,
+      name: med.name,
+      dose: med.dose,
+      slot: med.frequency || 'Daily',
+      taken: false,
+      time: med.times?.[0] || '08:00 AM',
+      reason: med.foodInstruction || med.instructions || '',
+    }));
+
+    const dietMeals = (aiPrescription.diet_plan?.meals || []).map((m, idx) => ({
+      id: `meal-ai-${idx}-${Date.now()}`,
+      type: m.type,
+      label: m.type,
+      time: m.recommended_time || '08:00 AM',
+      foods: m.suggested_foods,
+      carbs: m.carb_target_grams || 40,
+      instructions: m.instructions || '',
+      taken: null,
+    }));
+
+    d.progressions[userKey] = {
+      patientId,
+      date: todayKey,
+      meals: dietMeals.length > 0 ? dietMeals : (d.progressions[userKey]?.meals || []),
+      tablets: activeTablets,
+      activityMinutes: 0,
+      targetActivityMinutes: 30,
+      glucoseChecked: false,
+      fastingGlucose: null,
+      hydrationGlasses: 0,
+      targetHydrationGlasses: Math.max(8, Math.round((aiPrescription.diet_plan?.hydration_target_liters || 2.5) * 4)),
+      dietSummary: aiPrescription.diet_plan?.summary || '',
+      dailySchedule: aiPrescription.daily_schedule || null,
+      prescriptionId: rxId,
+      doctorName: aiPrescription.doctor_name,
+      diagnosis: aiPrescription.diagnosis,
+    };
+  });
+}

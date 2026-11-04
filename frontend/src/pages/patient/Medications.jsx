@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Modal, ConfirmDialog, LoadingSpinner, Badge, Tabs, Tooltip, EmptyState } from '../../components/ui';
-import { Pill, Clock, CheckCircle, AlertTriangle, X, FileText, RefreshCw, Calendar, Info, Syringe, BookOpen } from 'lucide-react';
+import { Pill, Clock, CheckCircle, AlertTriangle, X, FileText, RefreshCw, Calendar, Info, Syringe, BookOpen, Sparkles, Salad, UploadCloud, ShieldCheck } from 'lucide-react';
+import PrescriptionUploadModal from '../../components/patient/PrescriptionUploadModal';
 import { formatDate, formatTime, formatDateTime, isToday, getDemoToday } from '../../data/demoDate';
 import { recordDose, addCounsellingRequest, addNotification, addAuditEntry } from '../../services/dataService';
 
@@ -14,6 +15,7 @@ export default function Medications() {
   const [doseModal, setDoseModal] = useState(null);
   const [refillModal, setRefillModal] = useState(null);
   const [rxDetailModal, setRxDetailModal] = useState(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   const patientId = currentUser?.id;
 
@@ -73,9 +75,18 @@ export default function Medications() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Prescribed Medications & Schedule</h1>
-        <p className="text-sm font-semibold text-slate-700 mt-1">Manage active regimens, record dose compliance, and coordinate refills</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Prescribed Medications & Schedule</h1>
+          <p className="text-sm font-semibold text-slate-700 mt-1">Manage active regimens, record dose compliance, and coordinate refills</p>
+        </div>
+        <button
+          onClick={() => setUploadModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-white bg-[#0B3B2C] hover:bg-[#124d3b] shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+        >
+          <Sparkles size={16} className="text-emerald-300" />
+          <span>Upload Prescription (Gemini AI)</span>
+        </button>
       </div>
 
       {/* Adherence summary */}
@@ -245,6 +256,43 @@ export default function Medications() {
                       {rx.notes}
                     </div>
                   )}
+
+                  {rx.dietPlan && (
+                    <div className="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-[#0B3B2C] flex items-center gap-1.5">
+                          <Salad size={14} className="text-emerald-700" />
+                          Synchronized Diet Plan (from Prescription)
+                        </span>
+                        {rx.dietPlan.hydration_target_liters && (
+                          <span className="text-[10px] font-bold text-blue-900 bg-white px-2 py-0.5 rounded border border-blue-200">
+                            {rx.dietPlan.hydration_target_liters}L Water
+                          </span>
+                        )}
+                      </div>
+                      {rx.dietPlan.summary && (
+                        <p className="text-[11px] font-medium text-emerald-950">
+                          {rx.dietPlan.summary}
+                        </p>
+                      )}
+                      <div className="grid grid-cols-2 gap-1.5 pt-1">
+                        {(rx.dietPlan.meals || []).map((m, idx) => (
+                          <div key={idx} className="bg-white p-2 rounded-lg border border-emerald-100 text-[10px]">
+                            <span className="font-extrabold text-stone-900 block">{m.type} ({m.recommended_time})</span>
+                            <span className="text-stone-600 line-clamp-1">{m.suggested_foods}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {rx.dailySchedule && (
+                    <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs space-y-1">
+                      <span className="font-bold text-stone-800 block text-[11px]">24-Hour Schedule Timeline:</span>
+                      {rx.dailySchedule.morning && <p className="text-[11px] text-stone-600">🌅 {rx.dailySchedule.morning}</p>}
+                      {rx.dailySchedule.bedtime && <p className="text-[11px] text-stone-600">🌙 {rx.dailySchedule.bedtime}</p>}
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -354,6 +402,9 @@ export default function Medications() {
         <ConfirmDialog open={!!refillModal} onClose={() => setRefillModal(null)} onConfirm={() => handleRefillRequest(refillModal)}
           title="Request Refill" message={`Send a refill request for ${refillModal.name} to your pharmacist?`} confirmText="Send Request" variant="primary" />
       )}
+
+      {/* Gemini AI Prescription Upload Modal */}
+      <PrescriptionUploadModal isOpen={uploadModalOpen} onClose={() => setUploadModalOpen(false)} onPrescriptionApplied={() => refreshData()} />
 
       {/* Prescription Detail Modal */}
       {rxDetailModal && (

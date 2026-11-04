@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal, LoadingSpinner, Badge, Tabs, ConfirmDialog } from '../../components/ui';
+import PrescriptionUploadModal from '../../components/patient/PrescriptionUploadModal';
 import {
   Salad, Plus, Edit, Trash2, Clock, Heart, Moon, Scale, Droplets, TrendingUp,
   AlertTriangle, CheckCircle2, XCircle, ArrowUpRight, Zap, RefreshCw, Flame,
@@ -28,6 +29,7 @@ export default function Lifestyle() {
   const [formType, setFormType] = useState('meal');
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   const patientId = currentUser?.id || 'pat-001';
 
@@ -758,130 +760,92 @@ export default function Lifestyle() {
               </div>
             </div>
 
-            {/* Timeline Item 2: Morning Tablet */}
-            <div className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
-              progression.tablets?.[0]?.taken === true
-                ? 'bg-white border-teal-200'
-                : progression.tablets?.[0]?.taken === false
-                ? 'bg-rose-50/80 border-rose-300'
-                : 'bg-white border-slate-200'
-            }`}>
-              <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">08:00 AM</div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-teal-800 bg-teal-50 border-teal-200">
-                <Pill size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-extrabold text-slate-950">Prescription Dose: Metformin 500mg</p>
-                  {progression.tablets?.[0]?.taken === false && (
-                    <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
-                      Progression Reduced (-15%)
-                    </span>
-                  )}
+            {/* Dynamic Prescription Tablets from Gemini AI */}
+            {(progression.tablets || []).map((tab, idx) => (
+              <div key={tab.id || idx} className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
+                tab.taken === true ? 'bg-white border-teal-200' :
+                tab.taken === false ? 'bg-rose-50/80 border-rose-300' : 'bg-white border-slate-200'
+              }`}>
+                <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">{tab.time || '08:00 AM'}</div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-teal-800 bg-teal-50 border-teal-200">
+                  <Pill size={18} />
                 </div>
-                <p className="text-xs font-semibold text-slate-600">Take with breakfast • Oral • Once daily</p>
-              </div>
-              <div className="shrink-0 flex items-center gap-1.5">
-                <button
-                  onClick={() => handleToggleTablet(progression.tablets?.[0]?.id, true)}
-                  className={`btn-sm text-xs font-bold ${progression.tablets?.[0]?.taken === true ? 'btn-primary' : 'btn-outline'}`}
-                >
-                  <Check size={13} />
-                  <span>Taken</span>
-                </button>
-                <button
-                  onClick={() => handleToggleTablet(progression.tablets?.[0]?.id, false)}
-                  className={`btn-sm text-xs font-bold ${progression.tablets?.[0]?.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
-                >
-                  <X size={13} />
-                  <span>Not Taken</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Timeline Item 3: Breakfast */}
-            <div className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
-              progression.meals?.[0]?.taken === true
-                ? 'bg-white border-emerald-200'
-                : progression.meals?.[0]?.taken === false
-                ? 'bg-rose-50/80 border-rose-300'
-                : 'bg-white border-slate-200'
-            }`}>
-              <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">08:30 AM</div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-emerald-800 bg-emerald-50 border-emerald-200">
-                <Salad size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-extrabold text-slate-950">Diabetic Breakfast (Low Glycemic Index)</p>
-                  {progression.meals?.[0]?.taken === false && (
-                    <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
-                      Progression Reduced (-12%)
-                    </span>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-extrabold text-slate-950">{tab.name} {tab.dose ? `(${tab.dose})` : ''}</p>
+                    {tab.taken === false && (
+                      <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+                        Progression Reduced (-15%)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-slate-600">{tab.reason || tab.slot || 'Prescription dose'}</p>
                 </div>
-                <p className="text-xs font-semibold text-slate-600">Oats with chia seeds, 2 boiled egg whites, green tea (340 kcal)</p>
-              </div>
-              <div className="shrink-0 flex items-center gap-1.5">
-                <button
-                  onClick={() => handleToggleMeal(progression.meals?.[0]?.id, true)}
-                  className={`btn-sm text-xs font-bold ${progression.meals?.[0]?.taken === true ? 'btn-primary' : 'btn-outline'}`}
-                >
-                  <Check size={13} />
-                  <span>Taken</span>
-                </button>
-                <button
-                  onClick={() => handleToggleMeal(progression.meals?.[0]?.id, false)}
-                  className={`btn-sm text-xs font-bold ${progression.meals?.[0]?.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
-                >
-                  <X size={13} />
-                  <span>Not Taken</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Timeline Item 4: Lunch */}
-            <div className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
-              progression.meals?.[1]?.taken === true
-                ? 'bg-white border-emerald-200'
-                : progression.meals?.[1]?.taken === false
-                ? 'bg-rose-50/80 border-rose-300'
-                : 'bg-white border-slate-200'
-            }`}>
-              <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">01:15 PM</div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-emerald-800 bg-emerald-50 border-emerald-200">
-                <Salad size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-extrabold text-slate-950">Diabetic Balanced Lunch</p>
-                  {progression.meals?.[1]?.taken === false && (
-                    <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
-                      Progression Reduced (-12%)
-                    </span>
-                  )}
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleToggleTablet(tab.id, true)}
+                    className={`btn-sm text-xs font-bold ${tab.taken === true ? 'btn-primary' : 'btn-outline'}`}
+                  >
+                    <Check size={13} />
+                    <span>Taken</span>
+                  </button>
+                  <button
+                    onClick={() => handleToggleTablet(tab.id, false)}
+                    className={`btn-sm text-xs font-bold ${tab.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
+                  >
+                    <X size={13} />
+                    <span>Not Taken</span>
+                  </button>
                 </div>
-                <p className="text-xs font-semibold text-slate-600">Brown rice, yellow dal, steamed palak greens, fresh cucumber salad (480 kcal)</p>
               </div>
-              <div className="shrink-0 flex items-center gap-1.5">
-                <button
-                  onClick={() => handleToggleMeal(progression.meals?.[1]?.id, true)}
-                  className={`btn-sm text-xs font-bold ${progression.meals?.[1]?.taken === true ? 'btn-primary' : 'btn-outline'}`}
-                >
-                  <Check size={13} />
-                  <span>Taken</span>
-                </button>
-                <button
-                  onClick={() => handleToggleMeal(progression.meals?.[1]?.id, false)}
-                  className={`btn-sm text-xs font-bold ${progression.meals?.[1]?.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
-                >
-                  <X size={13} />
-                  <span>Not Taken</span>
-                </button>
-              </div>
-            </div>
+            ))}
 
-            {/* Timeline Item 5: Physical Activity */}
+            {/* Dynamic Diet Plan Meals from Gemini AI */}
+            {(progression.meals || []).map((meal, idx) => (
+              <div key={meal.id || idx} className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
+                meal.taken === true ? 'bg-white border-emerald-200' :
+                meal.taken === false ? 'bg-rose-50/80 border-rose-300' : 'bg-white border-slate-200'
+              }`}>
+                <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">{meal.time || '08:00 AM'}</div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-emerald-800 bg-emerald-50 border-emerald-200">
+                  <Salad size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-extrabold text-slate-950">{meal.type || meal.label}</p>
+                    {meal.taken === false && (
+                      <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+                        Progression Reduced (-12%)
+                      </span>
+                    )}
+                    {meal.carbs && (
+                      <span className="text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-1.5 py-0.5 rounded">
+                        {meal.carbs}g Carbs
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-slate-600">{meal.foods || meal.instructions || 'Diabetic nutritional plan'}</p>
+                </div>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleToggleMeal(meal.id, true)}
+                    className={`btn-sm text-xs font-bold ${meal.taken === true ? 'btn-primary' : 'btn-outline'}`}
+                  >
+                    <Check size={13} />
+                    <span>Taken</span>
+                  </button>
+                  <button
+                    onClick={() => handleToggleMeal(meal.id, false)}
+                    className={`btn-sm text-xs font-bold ${meal.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
+                  >
+                    <X size={13} />
+                    <span>Not Taken</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Daily Physical Activity Walk */}
             <div className="flex items-center gap-3.5 p-3.5 rounded-xl bg-white border border-blue-200 hover:border-blue-400 transition shadow-xs">
               <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">05:30 PM</div>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-blue-800 bg-blue-50 border-blue-200">
@@ -899,88 +863,6 @@ export default function Lifestyle() {
                   className="btn-outline btn-sm font-black text-blue-900 border-blue-300 hover:bg-blue-50 cursor-pointer"
                 >
                   <span>Complete 30m</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Timeline Item 6: Evening Tablet */}
-            <div className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
-              progression.tablets?.[2]?.taken === true
-                ? 'bg-white border-teal-200'
-                : progression.tablets?.[2]?.taken === false
-                ? 'bg-rose-50/80 border-rose-300'
-                : 'bg-white border-slate-200'
-            }`}>
-              <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">08:00 PM</div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-teal-800 bg-teal-50 border-teal-200">
-                <Pill size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-extrabold text-slate-950">Prescription Dose: Glimepiride 1mg</p>
-                  {progression.tablets?.[2]?.taken === false && (
-                    <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
-                      Progression Reduced (-15%)
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs font-semibold text-slate-600">Take 30 mins before dinner • Stimulates nocturnal insulin release</p>
-              </div>
-              <div className="shrink-0 flex items-center gap-1.5">
-                <button
-                  onClick={() => handleToggleTablet(progression.tablets?.[2]?.id, true)}
-                  className={`btn-sm text-xs font-bold ${progression.tablets?.[2]?.taken === true ? 'btn-primary' : 'btn-outline'}`}
-                >
-                  <Check size={13} />
-                  <span>Taken</span>
-                </button>
-                <button
-                  onClick={() => handleToggleTablet(progression.tablets?.[2]?.id, false)}
-                  className={`btn-sm text-xs font-bold ${progression.tablets?.[2]?.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
-                >
-                  <X size={13} />
-                  <span>Not Taken</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Timeline Item 7: Dinner */}
-            <div className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
-              progression.meals?.[2]?.taken === true
-                ? 'bg-white border-emerald-200'
-                : progression.meals?.[2]?.taken === false
-                ? 'bg-rose-50/80 border-rose-300'
-                : 'bg-white border-slate-200'
-            }`}>
-              <div className="text-xs font-extrabold text-slate-700 w-16 shrink-0">08:30 PM</div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border text-emerald-800 bg-emerald-50 border-emerald-200">
-                <Salad size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-extrabold text-slate-950">High Fiber Light Dinner</p>
-                  {progression.meals?.[2]?.taken === false && (
-                    <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
-                      Progression Reduced (-12%)
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs font-semibold text-slate-600">Grilled paneer salad, 1 multigrain roti, steamed broccoli (420 kcal)</p>
-              </div>
-              <div className="shrink-0 flex items-center gap-1.5">
-                <button
-                  onClick={() => handleToggleMeal(progression.meals?.[2]?.id, true)}
-                  className={`btn-sm text-xs font-bold ${progression.meals?.[2]?.taken === true ? 'btn-primary' : 'btn-outline'}`}
-                >
-                  <Check size={13} />
-                  <span>Taken</span>
-                </button>
-                <button
-                  onClick={() => handleToggleMeal(progression.meals?.[2]?.id, false)}
-                  className={`btn-sm text-xs font-bold ${progression.meals?.[2]?.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
-                >
-                  <X size={13} />
-                  <span>Not Taken</span>
                 </button>
               </div>
             </div>

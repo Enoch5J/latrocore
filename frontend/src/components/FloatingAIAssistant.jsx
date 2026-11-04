@@ -141,6 +141,7 @@ export default function FloatingAIAssistant() {
   );
   const { currentUser } = useApp();
   const [isOpen, setIsOpen] = useState(false);
+  const [showHiBubble, setShowHiBubble] = useState(true);
   const [lang, setLang] = useState('en');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -159,6 +160,14 @@ export default function FloatingAIAssistant() {
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const langMenuRef = useRef(null);
+
+  // Auto-dismiss "Hi" bubble after 3 seconds
+  useEffect(() => {
+    if (isAuthPage) return;
+    setShowHiBubble(true);
+    const t = setTimeout(() => setShowHiBubble(false), 3500);
+    return () => clearTimeout(t);
+  }, [location.pathname, isAuthPage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -572,7 +581,37 @@ export default function FloatingAIAssistant() {
       {/* ── Floating AI Assistant Avatar Trigger (Bottom-Right Corner) ── */}
       {!isOpen && (
         <div className="fixed bottom-6 sm:bottom-8 right-6 sm:right-8 z-40 flex flex-col items-center group">
-          {/* Centered Floating Tooltip Badge */}
+
+          {/* ── Hi Greeting Popup (shows for 3.5s on load) ── */}
+          {showHiBubble && (
+            <div
+              className="mb-3 flex items-end gap-2 cursor-pointer"
+              onClick={() => { setShowHiBubble(false); setIsOpen(true); }}
+              style={{
+                animation: 'fadeInUp 0.4s ease-out, fadeOutDown 0.4s ease-in 3.1s forwards',
+              }}
+            >
+              {/* Doctor Avatar */}
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-emerald-400 shadow-lg shrink-0 bg-white">
+                <img
+                  src="/doctor-avatar.png"
+                  alt="Doctor"
+                  className="w-full h-full object-cover object-top scale-110"
+                  draggable={false}
+                />
+              </div>
+
+              {/* Speech Bubble */}
+              <div className="relative bg-white border border-emerald-200 shadow-xl rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[160px]">
+                <p className="text-sm font-bold text-stone-800 leading-tight">Hi there! 👋</p>
+                <p className="text-[11px] text-stone-500 mt-0.5 leading-tight">Need help today?</p>
+                {/* Tail pointing left-down toward doctor */}
+                <span className="absolute -left-2 bottom-3 w-3 h-3 bg-white border-l border-b border-emerald-200 rotate-45 shadow-[-2px_2px_0_0_#bbf7d0]" />
+              </div>
+            </div>
+          )}
+
+          {/* Centered Floating Tooltip Badge (on hover) */}
           <div className="mb-2 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-200 animate-fade-in select-none">
             <div className="bg-stone-900 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-2xl border border-emerald-500/50 flex items-center gap-1.5 whitespace-nowrap backdrop-blur-md">
               <Sparkles size={13} className="text-emerald-400 animate-spin" style={{ animationDuration: '3s' }} />

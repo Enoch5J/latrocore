@@ -115,16 +115,39 @@ def check_patient_access(patient_id: str, user: User, db: Session):
             detail=f"Your {user.role} account is pending administrative approval. Access to clinical records is restricted."
         )
     
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    # 1. Search by Patient.id or Patient.user_id
+    patient = db.query(Patient).filter(
+        (Patient.id == patient_id) | (Patient.user_id == patient_id)
+    ).first()
+
+    # 2. If user is a patient accessing their own record, try matching user.id
+    if not patient and user.role == "patient":
+        patient = db.query(Patient).filter(Patient.user_id == user.id).first()
+
+    # 3. If patient record does not exist in DB for an approved patient user, auto-provision
+    if not patient and user.role == "patient":
+        from app.models.models import gen_uuid
+        import random
+        target_id = patient_id if (patient_id and len(patient_id) > 15) else gen_uuid()
+        patient = Patient(
+            id=target_id,
+            user_id=user.id,
+            patient_id_display=f"PAT-{random.randint(100000, 999999)}",
+            approval_status="approved"
+        )
+        db.add(patient)
+        db.flush()
+        return patient
+
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
     
-    if user.role == "patient" and patient.user_id == user.id:
+    if user.role == "patient" and (patient.user_id == user.id or patient.id == user.id):
         return patient
     
     if user.role in ("doctor", "care_team"):
         assignment = db.query(Assignment).filter(
-            Assignment.patient_id == patient_id,
+            Assignment.patient_id == patient.id,
             Assignment.user_id == user.id,
             Assignment.start_date <= date.today(),
             (Assignment.end_date.is_(None)) | (Assignment.end_date >= date.today())

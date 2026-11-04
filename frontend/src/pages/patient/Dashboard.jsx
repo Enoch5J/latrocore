@@ -5,17 +5,19 @@ import { StatCard, LoadingSpinner, Badge, Modal } from '../../components/ui';
 import {
   Activity, Pill, FileText, Droplets, CalendarDays, Bot,
   Heart, TrendingUp, CheckCircle, ArrowRight, Salad,
-  AlertCircle, ClipboardCheck
+  AlertCircle, ClipboardCheck, Sparkles
 } from 'lucide-react';
+import PrescriptionUploadModal from '../../components/patient/PrescriptionUploadModal';
 import { formatDate, formatTime, isToday, formatDateTime } from '../../data/demoDate';
 import { getProgressionData } from '../../services/dataService';
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, ReferenceLine, ComposedChart } from 'recharts';
 
 export default function PatientDashboard() {
-  const { currentUser, data, addToast } = useApp();
+  const { currentUser, data, refreshData, addToast } = useApp();
   const navigate = useNavigate();
   const [chartRange, setChartRange] = useState('7d');
   const [loading, setLoading] = useState(true);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   // Consultation Modal State
   const [consultModalOpen, setConsultModalOpen] = useState(false);
@@ -126,12 +128,12 @@ export default function PatientDashboard() {
   if (loading) return <LoadingSpinner text="Loading dashboard..." />;
 
   const quickActions = [
+    { label: 'Upload Rx (AI)', icon: Sparkles, color: 'text-emerald-700 bg-emerald-50', onClick: () => setUploadModalOpen(true) },
     { label: 'Record Medication', icon: Pill, color: 'text-blue-600 bg-blue-50', onClick: () => navigate('/patient/medications') },
     { label: 'Add Health Entry', icon: Salad, color: 'text-green-600 bg-green-50', onClick: () => navigate('/patient/lifestyle?action=add') },
     { label: 'Log Glucose', icon: Droplets, color: 'text-teal-600 bg-teal-50', onClick: () => navigate('/patient/glucose?action=add') },
     { label: 'Ask Assistant', icon: Bot, color: 'text-purple-600 bg-purple-50', onClick: () => navigate('/patient/assistant') },
     { label: 'Request Counselling', icon: Heart, color: 'text-rose-600 bg-rose-50', onClick: () => setConsultModalOpen(true) },
-    { label: 'View Prescriptions', icon: FileText, color: 'text-amber-600 bg-amber-50', onClick: () => navigate('/patient/medications') },
   ];
 
   return (
@@ -146,7 +148,14 @@ export default function PatientDashboard() {
             Here's your comprehensive diabetes care overview for today
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setUploadModalOpen(true)}
+            className="btn-outline btn-sm sm:btn bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 flex items-center gap-1.5 font-bold shadow-xs cursor-pointer"
+          >
+            <Sparkles size={16} className="text-emerald-600 animate-pulse" />
+            <span>Upload Prescription (Gemini AI)</span>
+          </button>
           <button
             onClick={() => navigate('/patient/glucose?action=add')}
             className="btn-primary btn-sm sm:btn"
@@ -499,6 +508,14 @@ export default function PatientDashboard() {
           </div>
         </div>
       </div>
+      {/* Electronic Prescription Upload & Verification Modal */}
+      <PrescriptionUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        onPrescriptionApplied={() => {
+          refreshData();
+        }}
+      />
     </div>
   );
 }
