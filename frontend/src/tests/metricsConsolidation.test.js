@@ -4,6 +4,20 @@ describe('Metric Consolidation Tests', () => {
   it('combines glucose, checklist, investigations, and screening under health metrics in navigation', async () => {
     const appLayoutModule = await import('../layouts/AppLayout');
     expect(appLayoutModule.default).toBeDefined();
+    expect(appLayoutModule.ROLE_NAV).toBeDefined();
+    expect(appLayoutModule.ROLE_NAV.pharmacist).toBeDefined();
+    expect(appLayoutModule.ROLE_NAV.care_team).toBeDefined();
+    expect(appLayoutModule.ROLE_NAV.care_team.length).toBeGreaterThanOrEqual(8);
+
+    const labels = appLayoutModule.ROLE_NAV.pharmacist.map(i => i.label);
+    expect(labels).toContain('Dashboard');
+    expect(labels).toContain('Patient Management');
+    expect(labels).toContain('Prescription Management');
+    expect(labels).toContain('Medication Adherence');
+    expect(labels).toContain('Drug Interactions');
+    expect(labels).toContain('Pharm D Counselling');
+    expect(labels).toContain('Medicine Inventory');
+    expect(labels).toContain('Reports & Analytics');
   }, 20000);
 
   it('provides the consolidated PatientMetrics component', async () => {
