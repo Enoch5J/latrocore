@@ -16,6 +16,7 @@ import FloatingAIAssistant from './components/FloatingAIAssistant';
 
 // Patient Pages
 import PatientDashboard from './pages/patient/Dashboard';
+import PatientMetrics from './pages/patient/Metrics';
 import GlucoseMonitor from './pages/patient/GlucoseMonitor';
 import PatientMedications from './pages/patient/Medications';
 import PatientInvestigations from './pages/patient/Investigations';
@@ -134,15 +135,16 @@ function AppRoutes() {
           <Route path="/overview" element={<ProjectOverview />} />
           {/* Patient Routes */}
           <Route path="/patient/dashboard" element={<PatientDashboard />} />
-          <Route path="/patient/glucose" element={<GlucoseMonitor />} />
+          <Route path="/patient/metrics" element={<PatientMetrics />} />
+          <Route path="/patient/glucose" element={<PatientMetrics initialTab="glucose" />} />
           <Route path="/patient/medications" element={<PatientMedications />} />
-          <Route path="/patient/investigations" element={<PatientInvestigations />} />
+          <Route path="/patient/investigations" element={<PatientMetrics initialTab="investigations" />} />
           <Route path="/patient/lifestyle" element={<PatientLifestyle />} />
-          <Route path="/patient/screening" element={<PatientScreening />} />
+          <Route path="/patient/screening" element={<PatientMetrics initialTab="screening" />} />
           <Route path="/patient/safety" element={<SafetyAlerts />} />
           <Route path="/patient/assistant" element={<PatientAssistant />} />
-          <Route path="/patient/checklist" element={<CareChecklist />} />
-          <Route path="/patient/care-checklist" element={<CareChecklist />} />
+          <Route path="/patient/checklist" element={<PatientMetrics initialTab="checklist" />} />
+          <Route path="/patient/care-checklist" element={<PatientMetrics initialTab="checklist" />} />
           <Route path="/patient/test-reminders" element={<TestReminders />} />
           <Route path="/patient/reminders" element={<TestReminders />} />
 

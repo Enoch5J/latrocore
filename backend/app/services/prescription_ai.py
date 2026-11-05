@@ -56,6 +56,11 @@ CRITICAL SAFETY RULE:
 NEVER hallucinate, invent, or assume medications if none are explicitly prescribed in the document.
 If the image is a medical device, equipment icon, illustration, or non-prescription image, you MUST REJECT IT immediately.
 
+STRICT MEDICINE EXTRACTION & GUARDRAILS:
+- Strictly process and extract ONLY the medicines explicitly written in the prescription document. Do NOT hallucinate, guess, or suggest unrelated medicines.
+- If any medicine name, dosage, frequency, or instruction is unreadable, smudged, cut off, or unclear, set that specific field to 'unclear' (e.g. name: 'unclear' or dose: 'unclear') rather than guessing.
+- Never guess or approximate unreadable handwriting. Safe medicine practice requires stating 'unclear' rather than guessing.
+
 IF THE INPUT IS NOT A VALID PRESCRIPTION:
 Return pure JSON matching:
 {

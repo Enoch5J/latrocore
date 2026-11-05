@@ -15,14 +15,14 @@ const ROLE_NAV = {
     { to: '/patient/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/patient/medications', icon: Pill, label: 'Medications' },
     { to: '/patient/lifestyle', icon: Salad, label: 'Lifestyle' },
-    { to: '/patient/glucose', icon: Activity, label: 'Glucose Monitor' },
-    { to: '/patient/checklist', icon: ClipboardCheck, label: 'Care Checklist' },
-    { to: '/patient/investigations', icon: FileText, label: 'Investigations' },
-    { to: '/patient/screening', icon: ClipboardList, label: 'Screening' },
+    { to: '/patient/metrics', icon: Activity, label: 'Health Metrics' },
+
+
+
     { to: '/patient/safety', icon: AlertTriangle, label: 'Safety Alerts' },
     { to: '/patient/assistant', icon: Bot, label: 'AI Assistant' },
+    { to: '/doctors', icon: Stethoscope, label: 'Doctors' },
     { to: '/appointments', icon: CalendarDays, label: 'Appointments' },
-    { to: '/messages', icon: MessageSquare, label: 'Messages' },
   ],
   doctor: [
     { to: '/doctor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -138,7 +138,17 @@ export default function AppLayout() {
           const hasHash = item.to.includes('#');
           const isItemActive = hasHash
             ? (location.pathname === '/patient/dashboard' && location.hash === item.to.slice(item.to.indexOf('#')))
-            : (!location.hash && location.pathname === item.to);
+            : (!location.hash && (
+                location.pathname === item.to ||
+                (item.to === '/patient/metrics' && [
+                  '/patient/metrics',
+                  '/patient/glucose',
+                  '/patient/checklist',
+                  '/patient/care-checklist',
+                  '/patient/investigations',
+                  '/patient/screening'
+                ].includes(location.pathname))
+              ));
 
           return (
             <NavLink

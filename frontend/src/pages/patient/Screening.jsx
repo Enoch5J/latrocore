@@ -5,7 +5,7 @@ import { ClipboardList, Eye, Calendar, CheckCircle, AlertTriangle, Clock, AlertC
 import { formatDate } from '../../data/demoDate';
 import { updateScreening, addAuditEntry } from '../../services/dataService';
 
-export default function Screening() {
+export default function Screening({ embedded = false, onNavigateTab }) {
   const { currentUser, data, refreshData, addToast } = useApp();
   const [showComplete, setShowComplete] = useState(null);
   const patientId = currentUser?.id;
@@ -28,10 +28,14 @@ export default function Screening() {
   const statusColor = (s) => s === 'completed' ? 'success' : s === 'overdue' ? 'danger' : s === 'due' ? 'warning' : 'info';
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div className={`space-y-6 animate-fade-in ${embedded ? 'pb-2' : 'pb-8'}`}>
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Preventive Health Screenings</h1>
-        <p className="text-sm font-semibold text-slate-700 mt-1">Surveillance for diabetic retinopathy, nephropathy, foot exams, and cardiovascular risk</p>
+        {embedded ? (
+          <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">Preventive Health Screenings</h2>
+        ) : (
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Preventive Health Screenings</h1>
+        )}
+        <p className="text-sm font-semibold text-slate-700 mt-0.5">Surveillance for diabetic retinopathy, nephropathy, foot exams, and cardiovascular risk</p>
       </div>
 
       <div className="space-y-3">

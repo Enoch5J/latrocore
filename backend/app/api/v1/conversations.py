@@ -22,6 +22,7 @@ class ChatQuery(BaseModel):
     content: Optional[str] = None
     query: Optional[str] = None
     language: str = "en"
+    prescription_context: Optional[str] = None
 
     @property
     def text(self) -> str:
@@ -114,7 +115,11 @@ async def chat_with_assistant(data: ChatQuery):
     text = data.text
     if not text:
         raise HTTPException(status_code=400, detail="Query text is required")
-    return await clinical_qa_service.generate_response(text, language=data.language or "en")
+    return await clinical_qa_service.generate_response(
+        text,
+        language=data.language or "en",
+        prescription_context=data.prescription_context
+    )
 
 
 @router.post("/conversations/{convo_id}/messages", status_code=201)

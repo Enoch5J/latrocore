@@ -18,7 +18,7 @@ const DEMO_STEPS = [
     title: '2. Continuous Glucose Monitoring',
     role: 'patient',
     userId: 'pat-001',
-    route: '/patient/glucose',
+    route: '/patient/metrics?tab=glucose',
     desc: 'Examine 30 days of glycemic readings. Toggle between chart and table views, filter by measurement context, and test CSV export.',
   },
   {
@@ -46,14 +46,14 @@ const DEMO_STEPS = [
     title: '6. Laboratory & Diagnostic Tracker',
     role: 'patient',
     userId: 'pat-001',
-    route: '/patient/investigations',
+    route: '/patient/metrics?tab=investigations',
     desc: 'Track longitudinal HbA1c reductions, eGFR renal tests, and lipid panels with reference range alerts and file attachment capability.',
   },
   {
     title: '7. Preventive Screening Checklist',
     role: 'patient',
     userId: 'pat-001',
-    route: '/patient/screening',
+    route: '/patient/metrics?tab=screening',
     desc: 'Manage proactive screenings for diabetic retinopathy, podiatry/foot exams, and microalbuminuria with completion verification.',
   },
   {

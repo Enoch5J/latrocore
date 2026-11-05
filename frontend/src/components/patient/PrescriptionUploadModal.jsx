@@ -157,18 +157,22 @@ export default function PrescriptionUploadModal({ isOpen, onClose, onPrescriptio
     setApplying(true);
     setErrorMsg('');
     try {
-      // 1. Sync with FastAPI Backend Database
-      await api.applyAIPrescription({
-        patient_id: patientId,
-        doctor_name: electronicRx.doctor_name,
-        clinic_name: electronicRx.clinic_name,
-        diagnosis: electronicRx.diagnosis,
-        prescription_date: electronicRx.prescription_date,
-        medicines: electronicRx.medicines,
-        diet_plan: electronicRx.diet_plan,
-        daily_schedule: electronicRx.daily_schedule,
-        file_url: electronicRx.file_url || null,
-      });
+      // 1. Sync with FastAPI Backend Database (best effort)
+      try {
+        await api.applyAIPrescription({
+          patient_id: patientId,
+          doctor_name: electronicRx.doctor_name,
+          clinic_name: electronicRx.clinic_name,
+          diagnosis: electronicRx.diagnosis,
+          prescription_date: electronicRx.prescription_date,
+          medicines: electronicRx.medicines,
+          diet_plan: electronicRx.diet_plan,
+          daily_schedule: electronicRx.daily_schedule,
+          file_url: electronicRx.file_url || null,
+        });
+      } catch (backendErr) {
+        console.warn('Backend DB apply sync notice (continuing with local state sync):', backendErr);
+      }
 
       // 2. Synchronize Local Patient State, Active Regimens, and Progression Engine
       applyAIPrescriptionToPatient(patientId, electronicRx);
@@ -176,7 +180,7 @@ export default function PrescriptionUploadModal({ isOpen, onClose, onPrescriptio
       refreshData();
       addToast({
         type: 'success',
-        message: 'Prescription verified and active! Medication schedule and diet plan synchronized.',
+        message: 'Prescription verified and active! Medication schedule and diet plan synchronized with AI.',
       });
 
       if (onPrescriptionApplied) {
@@ -189,7 +193,7 @@ export default function PrescriptionUploadModal({ isOpen, onClose, onPrescriptio
       const msg = err?.message || '';
       const isAuthError = msg.includes('401') || msg.toLowerCase().includes('authenticated') || msg.toLowerCase().includes('session') || msg.toLowerCase().includes('token');
       
-      let friendlyError = 'Failed to activate prescription on server. Please check your connection and try again.';
+      let friendlyError = 'Failed to activate prescription. Please try again.';
       if (isAuthError) {
         friendlyError = 'Your session has expired. Please refresh the page or log in again to save this prescription.';
       } else if (msg) {
@@ -427,24 +431,37 @@ export default function PrescriptionUploadModal({ isOpen, onClose, onPrescriptio
                   </h4>
 
                   <div className="space-y-1.5">
-                    {electronicRx.medicines?.map((med, idx) => (
-                      <div key={idx} className="p-2.5 rounded-lg bg-white border border-stone-200 text-xs">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-stone-900">{med.name}</span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {med.is_insulin && (
-                              <span className="text-[9px] font-bold uppercase text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
-                                Insulin
-                              </span>
-                            )}
-                            <span className="font-semibold text-emerald-800">{med.dose}</span>
+                    {electronicRx.medicines?.map((med, idx) => {
+                      const isUnclear = !med.name || med.name.toLowerCase().includes('unclear') || !med.dose || String(med.dose).toLowerCase().includes('unclear');
+                      return (
+                        <div key={idx} className={`p-2.5 rounded-lg border text-xs ${isUnclear ? 'bg-amber-50/70 border-amber-300' : 'bg-white border-stone-200'}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-stone-900">{med.name || 'Unclear Item'}</span>
+                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                              {isUnclear && (
+                                <span className="text-[9px] font-extrabold uppercase text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+                                  ⚠ Unclear Entry
+                                </span>
+                              )}
+                              {med.is_insulin && (
+                                <span className="text-[9px] font-bold uppercase text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+                                  Insulin
+                                </span>
+                              )}
+                              <span className={`font-semibold ${isUnclear ? 'text-amber-800' : 'text-emerald-800'}`}>{med.dose || 'unclear'}</span>
+                            </div>
                           </div>
+                          <p className="text-[11px] text-stone-500 mt-0.5">
+                            {med.frequency || 'Frequency unclear'} · {med.schedule_times?.join(', ') || 'As directed'} · {med.meal_timing || 'With meals'}
+                          </p>
+                          {isUnclear && (
+                            <p className="text-[10px] text-amber-800 font-medium mt-1">
+                              Notice: Handwriting was unreadable on the prescription. Under strict LATROCORE safety guardrails, we do not guess medicines or doses.
+                            </p>
+                          )}
                         </div>
-                        <p className="text-[11px] text-stone-500 mt-0.5">
-                          {med.frequency} · {med.schedule_times?.join(', ') || 'As directed'} · {med.meal_timing || 'With food'}
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

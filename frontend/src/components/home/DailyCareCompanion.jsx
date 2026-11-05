@@ -35,7 +35,7 @@ const FEATURES = [
     description: 'Continuous glycemic telemetry curves, Time-in-Range tracking, and longitudinal milestones.',
     image: progressTrackingIllustration,
     imageAlt: 'Healthcare doctor reviewing patient glucose trends and longitudinal clinical progress',
-    route: '/patient/glucose',
+    route: '/patient/metrics?tab=glucose',
   },
 ];
 

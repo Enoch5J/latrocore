@@ -90,7 +90,7 @@ const BANNER_SLIDES = [
     subtitle: 'Track glucose and other health measures. Keep check-ups and investigations in view.',
     image: bannerImg3,
     buttonText: 'Explore Health Tracking',
-    route: '/patient/investigations',
+    route: '/patient/metrics',
     hash: '#workstations',
     badge1: {
       icon: TrendingDown,

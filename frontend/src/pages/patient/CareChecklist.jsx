@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { formatDate, isToday } from '../../data/demoDate';
 
-export default function CareChecklist() {
+export default function CareChecklist({ embedded = false, onNavigateTab }) {
   const { currentUser, data, addToast } = useApp();
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all'); // 'all' | 'completed' | 'pending'
@@ -86,7 +86,7 @@ export default function CareChecklist() {
         icon: Droplets,
         iconBg: 'bg-teal-100 text-teal-800 border-teal-300',
         actionLabel: 'Log Glucose Reading',
-        actionRoute: '/patient/glucose?action=add',
+        actionRoute: '/patient/metrics?tab=glucose&action=add',
         target: '80 - 130 mg/dL Fasting',
         lastChecked: latestGlucose ? formatDate(latestGlucose.dateTime) : 'Not logged today',
       },
@@ -102,7 +102,7 @@ export default function CareChecklist() {
         icon: TrendingUp,
         iconBg: 'bg-blue-100 text-blue-800 border-blue-300',
         actionLabel: 'View Lab Investigations',
-        actionRoute: '/patient/investigations',
+        actionRoute: '/patient/metrics?tab=investigations',
         target: '< 7.0% (individualized)',
         lastChecked: latestHbA1c ? formatDate(latestHbA1c.date) : 'Pending schedule',
       },
@@ -172,7 +172,7 @@ export default function CareChecklist() {
         icon: ClipboardCheck,
         iconBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
         actionLabel: 'Review Renal Panel',
-        actionRoute: '/patient/investigations',
+        actionRoute: '/patient/metrics?tab=investigations',
         target: 'uACR < 30 mg/g • eGFR > 60',
         lastChecked: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed') ? 'Completed' : 'Pending Schedule',
       },
@@ -208,25 +208,33 @@ export default function CareChecklist() {
   }, [checklistData, filter]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">
+    <div className={`space-y-6 sm:space-y-8 animate-fade-in ${embedded ? 'pb-2' : 'pb-12'}`}>
       {/* Top Navigation & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <button
-            onClick={() => navigate('/patient/dashboard')}
-            className="text-xs font-bold text-slate-600 hover:text-slate-950 flex items-center gap-1.5 mb-2 group cursor-pointer transition-colors"
-          >
-            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-            <span>Back to Patient Dashboard</span>
-          </button>
+          {!embedded && (
+            <button
+              onClick={() => navigate('/patient/dashboard')}
+              className="text-xs font-bold text-slate-600 hover:text-slate-950 flex items-center gap-1.5 mb-2 group cursor-pointer transition-colors"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+              <span>Back to Patient Dashboard</span>
+            </button>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0 shadow-inner">
               <ClipboardCheck size={22} />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
-                Clinical Care Checklist
-              </h1>
+              {embedded ? (
+                <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                  Clinical Care Checklist
+                </h2>
+              ) : (
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
+                  Clinical Care Checklist
+                </h1>
+              )}
               <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
                 Essential regular checkpoints for optimal glycemic control &amp; complication prevention
               </p>
@@ -237,7 +245,7 @@ export default function CareChecklist() {
         {/* Action Button */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate('/patient/glucose?action=add')}
+            onClick={() => onNavigateTab ? onNavigateTab('glucose') : navigate('/patient/metrics?tab=glucose&action=add')}
             className="btn-primary btn-sm"
           >
             <Droplets size={14} />
@@ -410,7 +418,23 @@ export default function CareChecklist() {
               {/* Action Button Footer */}
               <div className="pt-4 mt-4 border-t border-slate-100">
                 <button
-                  onClick={() => navigate(item.actionRoute)}
+                  onClick={() => {
+                    if (onNavigateTab) {
+                      if (item.actionRoute.includes('tab=glucose') || item.actionRoute.includes('/glucose')) {
+                        onNavigateTab('glucose');
+                        return;
+                      }
+                      if (item.actionRoute.includes('tab=investigations') || item.actionRoute.includes('/investigations')) {
+                        onNavigateTab('investigations');
+                        return;
+                      }
+                      if (item.actionRoute.includes('tab=screening') || (item.actionRoute.includes('/screening') && !item.actionRoute.includes('appointments'))) {
+                        onNavigateTab('screening');
+                        return;
+                      }
+                    }
+                    navigate(item.actionRoute);
+                  }}
                   className={`w-full py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     item.done
                       ? 'bg-slate-100 hover:bg-emerald-100 text-slate-800 hover:text-emerald-950 border border-slate-200'

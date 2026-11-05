@@ -215,8 +215,275 @@ const UNMATCHED_QUERY_GUIDANCE = {
   kn: "ಆ ಪ್ರಶ್ನೆಗೆ ವೈದ್ಯಕೀಯ ಸಲಹೆ ಅಗತ್ಯವಿದೆ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ವೈದ್ಯರನ್ನು ಸಂಪರ್ಕಿಸಿ ಅಥವಾ ಆಪ್ತಸಮಾಲೋಚನೆಗೆ ವಿನಂತಿಸಿ.",
 };
 
-export function getAssistantResponse(message, lang = 'en') {
+export function getClinicalMedicineDetails(medicineName) {
+  const name = (medicineName || '').toLowerCase().trim();
+
+  if (!name || name === 'unclear' || name.includes('unclear') || name.includes('unreadable') || name.includes('illegible')) {
+    return {
+      name: medicineName || 'Unclear Item',
+      isUnclear: true,
+      category: 'Unclear Medication',
+      adverseEffects: "Flagged as 'unclear' on prescription. LATROCORE safety guardrails strictly do not guess unreadable medicines.",
+      lifestyleTips: "Do not take unverified medicines. Please have your clinical pharmacist or doctor verify this entry.",
+      timingGuidance: "Unclear on document",
+      warningSign: "Requires physician/pharmacist clarification"
+    };
+  }
+
+  // Metformin (Biguanides)
+  if (name.includes('metformin') || name.includes('glycomet') || name.includes('glucophage') || name.includes('riomet')) {
+    return {
+      name: medicineName,
+      isUnclear: false,
+      category: 'Biguanide (Insulin Sensitizer)',
+      adverseEffects: 'Gastrointestinal upset (nausea, mild diarrhea, abdominal cramping, metallic taste). With long-term use: potential Vitamin B12 depletion. Rare: lactic acidosis.',
+      lifestyleTips: 'Always take with or immediately after main meals (breakfast/dinner) to protect your stomach. Avoid binge alcohol consumption. Maintain balanced carbohydrate portions.',
+      timingGuidance: 'With meals (usually twice daily with breakfast & dinner)',
+      warningSign: 'Severe persistent stomach pain or extreme fatigue'
+    };
+  }
+
+  // Sulfonylureas (Glimepiride, Gliclazide, Glipizide)
+  if (name.includes('glimepiride') || name.includes('gliclazide') || name.includes('glipizide') || name.includes('amaryl') || name.includes('glycomet-gp')) {
+    return {
+      name: medicineName,
+      isUnclear: false,
+      category: 'Sulfonylurea (Insulin Secretagogue)',
+      adverseEffects: 'Hypoglycemia (shakiness, cold sweat, lightheadedness, sudden hunger, rapid heartbeat), mild weight gain.',
+      lifestyleTips: 'Never skip meals after taking this tablet. Always carry 15g fast-acting carbohydrates (glucose tablets, fruit juice, or candy) for emergency hypoglycemia management.',
+      timingGuidance: '15 to 30 minutes before your main morning meal (breakfast)',
+      warningSign: 'Blood glucose dropping below 70 mg/dL with sweating or tremors'
+    };
+  }
+
+  // DPP-4 Inhibitors (Sitagliptin, Vildagliptin, Linagliptin, Teneligliptin)
+  if (name.includes('sitagliptin') || name.includes('januvia') || name.includes('vildagliptin') || name.includes('galvus') || name.includes('linagliptin') || name.includes('trajenta') || name.includes('teneligliptin')) {
+    return {
+      name: medicineName,
+      isUnclear: false,
+      category: 'DPP-4 Inhibitor (Incretin Enhancer)',
+      adverseEffects: 'Mild headache, nasopharyngitis (stuffy/runny nose), upper respiratory symptoms. Rare: severe joint pain or pancreatitis.',
+      lifestyleTips: 'Can be taken with or without food. Follow a consistent daily schedule. Low hypoglycemia risk when used without sulfonylureas or insulin.',
+      timingGuidance: 'Once daily in the morning',
+      warningSign: 'Severe persistent abdominal pain that radiates to your back'
+    };
+  }
+
+  // SGLT2 Inhibitors (Empagliflozin, Dapagliflozin, Canagliflozin)
+  if (name.includes('empagliflozin') || name.includes('jardiance') || name.includes('dapagliflozin') || name.includes('forxiga') || name.includes('canagliflozin')) {
+    return {
+      name: medicineName,
+      isUnclear: false,
+      category: 'SGLT2 Inhibitor (Renal Glucose Excretion)',
+      adverseEffects: 'Genital mycotic infections (yeast infections), urinary tract infections, increased urine output, mild orthostatic dizziness.',
+      lifestyleTips: 'Maintain generous fluid intake (2.5 to 3 liters of water daily unless restricted by your doctor) to prevent dehydration. Practice meticulous perineal hygiene.',
+      timingGuidance: 'Once daily in the morning with a full glass of water',
+      warningSign: 'Burning during urination or severe lightheadedness upon standing'
+    };
+  }
+
+  // Statins / Lipid Lowering (Atorvastatin, Rosuvastatin)
+  if (name.includes('atorvastatin') || name.includes('atorva') || name.includes('rosuvastatin') || name.includes('lipitor') || name.includes('crestor') || name.includes('statin')) {
+    return {
+      name: medicineName,
+      isUnclear: false,
+      category: 'HMG-CoA Reductase Inhibitor (Vascular Protection)',
+      adverseEffects: 'Myalgia (muscle soreness, tenderness, or stiffness), mild digestive upset. Rare: elevated liver enzymes.',
+      lifestyleTips: 'Best taken once daily at bedtime (liver cholesterol synthesis peaks overnight). Avoid grapefruit. Emphasize high-soluble-fiber and low-saturated-fat foods.',
+      timingGuidance: 'Bedtime (09:00 PM - 10:00 PM)',
+      warningSign: 'Unexplained severe muscle pain or unusually dark (tea-colored) urine'
+    };
+  }
+
+  // Insulin (Lantus, Glargine, Degludec, Lispro, Aspart, Regular)
+  if (name.includes('insulin') || name.includes('lantus') || name.includes('glargine') || name.includes('degludec') || name.includes('lispro') || name.includes('novorapid') || name.includes('humalog') || name.includes('tresiba')) {
+    return {
+      name: medicineName,
+      isUnclear: false,
+      category: 'Exogenous Insulin Therapy',
+      adverseEffects: 'Hypoglycemia, injection site lipohypertrophy (lumpy tissue from repeated injections), mild weight gain.',
+      lifestyleTips: 'Rotate injection sites systematically across abdomen and thighs. Store unopened insulin in the refrigerator (2°C-8°C); in-use pens at room temperature (<30°C) for up to 28 days. Never freeze. Always carry fast-acting glucose.',
+      timingGuidance: 'Strict fixed schedule (basal at bedtime, bolus 10-15 min before meals)',
+      warningSign: 'Frequent hypoglycemic readings (< 70 mg/dL) or unrotated injection site swelling'
+    };
+  }
+
+  // Blood Pressure / Cardio-Renal (Telmisartan, Losartan, Amlodipine, Ramipril)
+  if (name.includes('telmisartan') || name.includes('losartan') || name.includes('amlodipine') || name.includes('ramipril') || name.includes('cilnidipine')) {
+    return {
+      name: medicineName,
+      isUnclear: false,
+      category: 'Antihypertensive / Cardio-Renal Protective',
+      adverseEffects: 'Dizziness upon standing (postural hypotension), ankle swelling (amlodipine), dry cough (ACE inhibitors).',
+      lifestyleTips: 'Stand up slowly from sitting or lying down. Limit dietary sodium to < 2000mg/day. Stay hydrated.',
+      timingGuidance: 'Morning or bedtime as directed by your physician',
+      warningSign: 'Pronounced dizziness upon standing or sudden facial swelling'
+    };
+  }
+
+  // Generic fallback strictly bounded to the prescription
+  return {
+    name: medicineName,
+    isUnclear: false,
+    category: 'Prescribed Regimen',
+    adverseEffects: 'Review package insert and consult your clinical pharmacist for potential drug-specific side effects.',
+    lifestyleTips: 'Take strictly according to your prescription schedule. Maintain consistent meal timings and adequate hydration.',
+    timingGuidance: 'As prescribed',
+    warningSign: 'Any unexpected rash, difficulty breathing, or severe discomfort'
+  };
+}
+
+export function formatPrescriptionInsights(medicines = []) {
+  if (!medicines || medicines.length === 0) {
+    return {
+      medications: [],
+      adverseEffects: [],
+      lifestyleTips: [],
+      schedules: [],
+      warningSigns: [],
+    };
+  }
+
+  const items = medicines.map(m => {
+    const medName = typeof m === 'string' ? m : m.name;
+    const info = getClinicalMedicineDetails(medName);
+    const doseStr = typeof m === 'object' && m.dose ? m.dose : 'unclear';
+    const timingStr = typeof m === 'object' && (m.meal_timing || m.foodInstruction || m.frequency) ? (m.meal_timing || m.foodInstruction || m.frequency) : info.timingGuidance;
+
+    return {
+      ...info,
+      name: medName,
+      dose: doseStr,
+      timing: timingStr,
+    };
+  });
+
+  const adverseEffects = items
+    .filter(i => !i.isUnclear && i.adverseEffects)
+    .map(i => ({
+      medicine: `${i.name} (${i.dose})`,
+      category: i.category,
+      effects: [i.adverseEffects],
+    }));
+
+  const warningSigns = items
+    .filter(i => !i.isUnclear && i.warningSign)
+    .map(i => `${i.name}: ${i.warningSign}`);
+
+  const lifestyleTips = items
+    .filter(i => !i.isUnclear && i.lifestyleTips)
+    .map(i => ({
+      medicine: `${i.name} (${i.category})`,
+      tip: i.lifestyleTips,
+    }));
+
+  const schedules = items
+    .filter(i => !i.isUnclear)
+    .map(i => ({
+      medicine: `${i.name} (${i.dose})`,
+      timing: i.timing,
+      instruction: `${i.timingGuidance}. Food instruction: ${i.timing}`,
+    }));
+
+  return {
+    medications: items,
+    adverseEffects,
+    lifestyleTips,
+    schedules,
+    warningSigns,
+  };
+}
+
+export function getAssistantResponse(message, lang = 'en', prescriptionContext = null, activeMedicines = null) {
   const lower = (message || '').toLowerCase();
+
+  // Parse active medicines if available
+  let meds = Array.isArray(activeMedicines) ? activeMedicines : [];
+  if (meds.length === 0 && prescriptionContext) {
+    const lines = prescriptionContext.split('\n').filter(l => l.trim().startsWith('-'));
+    meds = lines.map(line => {
+      const match = line.match(/^-\s*([^(]+)(?:\((.*)\))?/);
+      if (match) {
+        return { name: match[1].trim(), raw: match[2] || '' };
+      }
+      return { name: line.replace(/^-\s*/, '').trim() };
+    });
+  }
+
+  // Strict Prescription Syncing & Guardrails in local fallback
+  if (meds.length > 0) {
+    // Check if user is asking about unprescribed / outside drugs
+    const commonOutsideDrugs = ['aspirin', 'warfarin', 'ibuprofen', 'paracetamol', 'adderall', 'tramadol', 'digoxin', 'pantoprazole', 'amoxicillin', 'azithromycin', 'omeprazole'];
+    const detectedNamesLower = meds.map(m => (m.name || '').toLowerCase());
+    const queriedOutsideDrug = commonOutsideDrugs.find(d => lower.includes(d) && !detectedNamesLower.some(n => n.includes(d)));
+
+    if (queriedOutsideDrug) {
+      return {
+        text: `🔒 **Strict Prescription Guardrail Active:**\n\n**"${queriedOutsideDrug.toUpperCase()}"** is not listed in your synchronized Active Prescriptions.\n\nUnder LATROCORE clinical safety guardrails, our AI copilot is strictly locked to your verified prescription medicines (${meds.map(m => m.name).join(', ')}). We strictly disallow hallucinating or suggesting unprescribed outside drugs without your physician or clinical pharmacist's verified order.`,
+        topic: 'prescription',
+        matched: true,
+        sources: ['Strict Prescription Guardrail', 'Verified Prescription Context']
+      };
+    }
+
+    const isAdverseQuery = lower.includes('side effect') || lower.includes('adverse') || lower.includes('reaction') || lower.includes('risk') || lower.includes('safe');
+    const isLifestyleQuery = lower.includes('lifestyle') || lower.includes('diet') || lower.includes('food') || lower.includes('eat') || lower.includes('meal') || lower.includes('exercise') || lower.includes('walking') || lower.includes('water') || lower.includes('hydration') || lower.includes('tip');
+    const isMedQuery = lower.includes('medicine') || lower.includes('medication') || lower.includes('tablet') || lower.includes('prescription') || lower.includes('what am i taking') || lower.includes('dose') || lower.includes('drug') || lower.includes('schedule') || lower.includes('timing') || lower.includes('when to take');
+    const isMissedDose = lower.includes('missed') || lower.includes('forgot') || lower.includes('skip');
+
+    if (isAdverseQuery) {
+      const adverseList = meds.map(m => {
+        const info = getClinicalMedicineDetails(m.name);
+        if (info.isUnclear || (m.dose && String(m.dose).toLowerCase().includes('unclear'))) {
+          return `• ⚠️ **${m.name || 'Unclear Item'}** (Dose: ${m.dose || 'unclear'})\n  Status: Entry was unreadable or unclear on prescription. Under LATROCORE strict safety guardrails, we do not guess medicines or dosages. Please have your pharmacist verify this item.`;
+        }
+        return `• **${m.name}** (${info.category})\n  - **Potential Adverse Effects:** ${info.adverseEffects}\n  - **Clinical Warning Sign:** ${info.warningSign}`;
+      }).join('\n\n');
+
+      return {
+        text: `Based on your synchronized prescription, here are the potential adverse effects and safety precautions strictly for your detected medicines:\n\n${adverseList}\n\n🔒 **Strict Prescription Guardrail:** Only medications detected in your verified prescription are detailed above. Zero outside medications or unprescribed drugs are suggested. If any symptom is severe, inform your physician immediately.`,
+        topic: 'prescription',
+        matched: true,
+        sources: ['Verified Electronic Prescription', 'ADA Standards of Care 2024']
+      };
+    }
+
+    if (isLifestyleQuery) {
+      const lifestyleList = meds.map(m => {
+        const info = getClinicalMedicineDetails(m.name);
+        if (info.isUnclear) {
+          return `• **${m.name || 'Unclear Item'}**: Entry marked unclear. Maintain balanced hydration and standard diabetic meal spacing.`;
+        }
+        return `• **${m.name}** (${info.category})\n  - **Diet & Routine Tip:** ${info.lifestyleTips}`;
+      }).join('\n\n');
+
+      return {
+        text: `Here is your personalized lifestyle and dietary guidance coordinated with your prescribed medications:\n\n${lifestyleList}\n\n🥗 **General Clinical Principles:**\n• Maintain 4 portion-controlled meals with low glycemic index complex carbs.\n• Aim for 2.5–3 Liters of water daily unless restricted.\n• Target 30 minutes of brisk post-meal walking.\n\n🔒 **Strict Prescription Guardrail:** Tips are customized exclusively around your detected prescription medicines without hallucinating outside therapies.`,
+        topic: 'lifestyle',
+        matched: true,
+        sources: ['Verified Electronic Prescription', 'ADA Medical Nutrition Therapy 2024']
+      };
+    }
+
+    if (isMedQuery || isMissedDose) {
+      const scheduleList = meds.map(m => {
+        const info = getClinicalMedicineDetails(m.name);
+        const doseStr = m.dose ? m.dose : 'unclear';
+        const timingStr = m.foodInstruction || m.meal_timing || m.timing || info.timingGuidance;
+        return `• **${m.name}**\n  - Dosage: ${doseStr}\n  - Schedule & Food Instruction: ${timingStr}\n  - Administration Note: ${info.timingGuidance}`;
+      }).join('\n\n');
+
+      return {
+        text: `Here are the details for your synchronized prescription medicines:\n\n${scheduleList}\n\n` +
+          (isMissedDose ? `⚠️ **Missed Dose Rule:** Take the missed dose as soon as you remember, unless it is almost time for your next scheduled dose. NEVER take a double dose to compensate.\n\n` : '') +
+          `🔒 **Strict Prescription Guardrail:** Only medications detected in your verified prescription are shown. Unreadable items are labeled as 'unclear' rather than guessed. Consult your doctor or PharmD before modifying any regimen.`,
+        topic: 'prescription',
+        matched: true,
+        sources: ['Verified Electronic Prescription', 'ADA Standards of Care 2024']
+      };
+    }
+  }
+
   const langResponses = RESPONSES[lang] || RESPONSES.en;
 
   for (const [key, item] of Object.entries(langResponses)) {

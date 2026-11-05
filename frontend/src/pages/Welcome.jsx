@@ -250,7 +250,7 @@ export default function Welcome() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs font-bold pt-2">
-              <NavLink to="/patient/glucose" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
+              <NavLink to="/patient/metrics?tab=glucose" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
                 📈 Glucose Monitor
               </NavLink>
               <NavLink to="/doctor/dashboard" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
@@ -259,7 +259,7 @@ export default function Welcome() {
               <a href="#workstations" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
                 🛡️ Workstations
               </a>
-              <NavLink to="/patient/investigations" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
+              <NavLink to="/patient/metrics?tab=investigations" onClick={() => setMobileMenuOpen(false)} className="p-2.5 rounded-xl bg-[#FAF6EF] text-slate-800 text-center">
                 🧪 Investigations
               </NavLink>
             </div>
@@ -361,7 +361,7 @@ export default function Welcome() {
 
             {/* Card 4 */}
             <NavLink
-              to="/patient/glucose"
+              to="/patient/metrics?tab=glucose"
               className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md"
             >
               <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#046A38] shadow-xs group-hover:scale-105 transition-transform mb-3">
@@ -377,7 +377,7 @@ export default function Welcome() {
 
             {/* Card 5 */}
             <NavLink
-              to="/patient/screening"
+              to="/patient/metrics?tab=screening"
               className="p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] hover:border-[#046A38] transition-all text-center group cursor-pointer shadow-2xs hover:shadow-md"
             >
               <div className="w-12 h-12 mx-auto rounded-xl bg-white flex items-center justify-center text-[#E34222] shadow-xs group-hover:scale-105 transition-transform mb-3">
@@ -585,22 +585,22 @@ export default function Welcome() {
               </p>
               <ul className="space-y-2.5 text-xs text-[#D1E7DD] font-medium">
                 <li>
-                  <NavLink to="/patient/glucose" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                  <NavLink to="/patient/metrics?tab=glucose" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
                     <span className="text-[#A8D7BD]">›</span> Continuous CGM Sensor Sync
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/patient/investigations" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                  <NavLink to="/patient/metrics?tab=investigations" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
                     <span className="text-[#A8D7BD]">›</span> HbA1c &amp; Fasting Glucose Panels
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/patient/investigations" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                  <NavLink to="/patient/metrics?tab=investigations" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
                     <span className="text-[#A8D7BD]">›</span> Lipid &amp; Cardio-Renal Profiling
                   </NavLink>
                 </li>
                 <li>
-                  <NavLink to="/patient/screening" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
+                  <NavLink to="/patient/metrics?tab=screening" className="hover:text-white hover:translate-x-1 inline-flex items-center gap-1.5 transition-all">
                     <span className="text-[#A8D7BD]">›</span> Diabetic Neuropathy &amp; Eye Screening
                   </NavLink>
                 </li>

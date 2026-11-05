@@ -57,7 +57,7 @@ export default function Notifications() {
       else if (currentUser.role === 'doctor') navigate('/doctor/escalations');
       else navigate('/patient/dashboard');
     } else if (n.type === 'screening') {
-      navigate('/patient/screening');
+      navigate('/patient/metrics?tab=screening');
     }
   };
 

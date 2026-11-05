@@ -310,10 +310,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ conversation_id: conversationId, content }),
     }),
-  askAssistant: (content, language = 'en') =>
+  askAssistant: (content, language = 'en', prescription_context = null) =>
     request('/conversations/chat', {
       method: 'POST',
-      body: JSON.stringify({ content, language }),
+      body: JSON.stringify({ content, language, prescription_context }),
     }),
 
   // Notifications

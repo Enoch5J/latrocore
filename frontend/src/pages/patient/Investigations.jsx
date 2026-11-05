@@ -10,7 +10,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Res
 
 const TYPES = ['HbA1c', 'Fasting Glucose (Lab)', 'Post-meal Glucose (Lab)', 'Lipid Profile', 'Creatinine/eGFR', 'Urine Albumin/ACR'];
 
-export default function Investigations() {
+export default function Investigations({ embedded = false, onNavigateTab }) {
   const { currentUser, data, refreshData, addToast } = useApp();
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -59,11 +59,15 @@ export default function Investigations() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div className={`space-y-6 animate-fade-in ${embedded ? 'pb-2' : 'pb-8'}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Diagnostic Lab Investigations</h1>
-          <p className="text-sm font-semibold text-slate-700 mt-1">Track HbA1c trajectory, lipid panels, renal function, and pathology reports</p>
+          {embedded ? (
+            <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">Diagnostic Lab Investigations</h2>
+          ) : (
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Diagnostic Lab Investigations</h1>
+          )}
+          <p className="text-sm font-semibold text-slate-700 mt-0.5">Track HbA1c trajectory, lipid panels, renal function, and pathology reports</p>
         </div>
         <button onClick={() => { setEditing(null); setShowForm(true); }} className="btn-primary font-bold flex items-center gap-2 self-start sm:self-auto">
           <Plus size={16} /> Add Lab Result

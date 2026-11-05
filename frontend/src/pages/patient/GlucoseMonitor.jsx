@@ -12,7 +12,7 @@ const CONTEXTS = ['fasting', 'pre-meal', 'post-meal', 'random'];
 const MEALS = ['', 'Breakfast', 'Lunch', 'Dinner', 'Snack'];
 const SYMPTOMS = ['None', 'Slight dizziness', 'Fatigue', 'Blurred vision', 'Sweating', 'Shakiness', 'Nausea', 'Headache'];
 
-export default function GlucoseMonitor() {
+export default function GlucoseMonitor({ embedded = false, onNavigateTab }) {
   const { currentUser, data, refreshData, addToast } = useApp();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -128,11 +128,15 @@ export default function GlucoseMonitor() {
   if (loading) return <LoadingSpinner text="Loading glucose data..." />;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
+    <div className={`space-y-6 animate-fade-in ${embedded ? 'pb-2' : 'pb-8'}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 max-w-full">
         <div>
-          <h1 className="text-xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Continuous & Self Glucose Monitor</h1>
-          <p className="text-xs sm:text-sm font-semibold text-slate-700 mt-1">{filteredReadings.length} total readings recorded in panel</p>
+          {embedded ? (
+            <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">Continuous &amp; Self Glucose Monitor</h2>
+          ) : (
+            <h1 className="text-xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Continuous &amp; Self Glucose Monitor</h1>
+          )}
+          <p className="text-xs sm:text-sm font-semibold text-slate-700 mt-0.5">{filteredReadings.length} total readings recorded in panel</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button onClick={() => { setEditingReading(null); setShowForm(true); }} className="btn-primary text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2.5 font-bold"><Plus size={15} /> Log Reading</button>

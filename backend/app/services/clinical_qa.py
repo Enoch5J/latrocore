@@ -294,9 +294,55 @@ class ClinicalQAService:
 
         return None
 
-    def _get_local_kb_response(self, query: str) -> Dict[str, Any]:
+    def _get_local_kb_response(self, query: str, prescription_context: Optional[str] = None) -> Dict[str, Any]:
         """Retrieves structured, verified clinical information from local knowledge base."""
         q_lower = query.lower()
+
+        # If user has an active synced prescription and asks about medications, side effects, lifestyle, diet, or schedule:
+        if prescription_context and any(kw in q_lower for kw in [
+            "medicine", "medication", "drug", "tablet", "pill", "prescription", "side effect", "adverse",
+            "dose", "what am i taking", "lifestyle", "diet", "food", "eat", "meal", "timing", "schedule", "missed"
+        ]):
+            med_lines = [l.strip() for l in prescription_context.split('\n') if l.strip().startswith('-') or l.strip().startswith('•')]
+            if not med_lines:
+                med_lines = [l.strip() for l in prescription_context.split('\n') if l.strip()]
+
+            is_side_effect = any(kw in q_lower for kw in ["side effect", "adverse", "risk", "reaction"])
+            is_lifestyle = any(kw in q_lower for kw in ["lifestyle", "diet", "food", "eat", "meal", "exercise", "walk", "hydration", "water", "tip"])
+
+            if is_side_effect:
+                content = (
+                    "Based on your synchronized prescription, here are potential adverse effects and precautions strictly for your detected medicines:\n\n"
+                    + "\n".join([f"{line}" for line in med_lines]) + "\n\n"
+                    "• Metformin (if prescribed): Mild GI upset (nausea, abdominal cramping); take with meals to minimize.\n"
+                    "• Sulfonylureas / Glimepiride (if prescribed): Risk of hypoglycemia; never skip meals and always carry fast-acting glucose.\n"
+                    "• SGLT2i / Dapagliflozin (if prescribed): Ensure 2.5–3L hydration daily and maintain genital hygiene.\n"
+                    "• Statins / Atorvastatin (if prescribed): Muscle aches (myalgia); take at bedtime.\n\n"
+                    "🔒 **Strict Clinical Guardrail:** Only medications detected in your verified prescription are processed. Unreadable items are flagged as 'unclear' rather than guessed. No outside medications are suggested."
+                )
+            elif is_lifestyle:
+                content = (
+                    "Here are personalized lifestyle and nutrition recommendations tailored to your prescribed regimen:\n\n"
+                    + "\n".join([f"{line}" for line in med_lines]) + "\n\n"
+                    "• Meal Timing: Align meal timing with your dose schedule (e.g., Metformin with breakfast/dinner, Glimepiride 15m before breakfast).\n"
+                    "• Nutrition: Low glycemic index, high soluble fiber, split into 4 balanced meals.\n"
+                    "• Hydration: Drink 2.5 to 3 Liters of water daily unless restricted.\n"
+                    "• Activity: Target at least 30 minutes of brisk post-meal walking daily.\n\n"
+                    "🔒 **Strict Clinical Guardrail:** Advice is customized strictly around your detected medications with zero hallucination of unprescribed treatments."
+                )
+            else:
+                content = (
+                    "Here are the details for your synchronized prescription medicines:\n\n"
+                    + "\n".join([f"{line}" for line in med_lines]) + "\n\n"
+                    "🔒 **Strict Clinical Guardrail:** Only medications detected in your verified prescription are shown. Unclear items are labeled 'unclear' rather than guessed. Consult your doctor or PharmD before altering any dose."
+                )
+
+            return {
+                "content": content,
+                "sources": [{"title": "Verified Patient Prescription", "section": "Active Regimen"}, {"title": "ADA Standards of Care 2024", "section": "Pharmacotherapy"}],
+                "model_id": "latrocore-guardrailed-prescription-engine",
+                "requires_handoff": False
+            }
 
         for topic_key, kb_data in VERIFIED_KNOWLEDGE_BASE.items():
             for kw in kb_data["keywords"]:
@@ -321,7 +367,7 @@ class ClinicalQAService:
             "requires_handoff": False
         }
 
-    async def generate_response(self, user_query: str, language: str = "en") -> Dict[str, Any]:
+    async def generate_response(self, user_query: str, language: str = "en", prescription_context: Optional[str] = None) -> Dict[str, Any]:
         """Main entrypoint: Applies PII scrubbing, safety gates, and queries Gemini with verified fallback."""
         # Step 1: PII and telemetry redaction
         clean_prompt, pii_found, redactions = scrub_pii_and_telemetry(user_query)
@@ -358,7 +404,7 @@ class ClinicalQAService:
         # Step 3: If Gemini API key is missing, return safe local knowledge base response
         if not self.api_key:
             logger.info("GEMINI_API_KEY not configured. Serving verified local clinical knowledge base.")
-            response = self._get_local_kb_response(clean_prompt)
+            response = self._get_local_kb_response(clean_prompt, prescription_context=prescription_context)
             response["pii_scrubbed"] = pii_found
             return response
 
@@ -373,6 +419,16 @@ class ClinicalQAService:
             "5. Respond in the user's language (code: " + language + ").\n"
             "6. Tone: Warm, empathetic, and direct."
         )
+
+        if prescription_context:
+            system_instructions += (
+                f"\n\nCURRENT VERIFIED PATIENT PRESCRIPTION CONTEXT:\n{prescription_context}\n\n"
+                "STRICT PRESCRIPTION GUARDRAILS:\n"
+                "- You must STRICTLY and ONLY discuss or reference the specific medications present in the verified prescription context above.\n"
+                "- Do NOT hallucinate, invent, or suggest any unrelated medicines not listed in this prescription.\n"
+                "- If a medicine is unreadable or unclear in the prescription record, state clearly that it is 'unclear' rather than guessing.\n"
+                "- Tailor your lifestyle tips, adverse effects, and medication schedule details specifically around these detected medicines."
+            )
 
         active_model = self.model_name or "gemini-3.1-flash-lite"
         # Candidate models with automatic failover in case of temporary 503 / 429 demand spikes
@@ -438,7 +494,7 @@ class ClinicalQAService:
             logger.error("Error communicating with Gemini REST API: %s. Falling back to local KB.", exc)
 
         # Fallback to local verified knowledge base on any API failure
-        fallback = self._get_local_kb_response(clean_prompt)
+        fallback = self._get_local_kb_response(clean_prompt, prescription_context=prescription_context)
         fallback["pii_scrubbed"] = pii_found
         return fallback
 

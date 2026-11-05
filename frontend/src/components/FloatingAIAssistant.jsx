@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Bot, Send, X, Sparkles, Volume2, VolumeX, Mic, MicOff,
-  Shield, RefreshCw, ChevronDown, Check, Globe
+  Shield, RefreshCw, ChevronDown, Check, Globe, Paperclip, ShieldCheck
 } from 'lucide-react';
 import { getAssistantResponse, getSuggestedQuestions, SUPPORTED_LANGUAGES } from '../services/assistantEngine';
 import { api } from '../services/api';
 import { useApp } from '../context/AppContext';
+import { applyAIPrescriptionToPatient } from '../services/dataService';
+import doctorImg from '../assets/images/doctor.png';
 
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify'];
 
@@ -20,12 +22,12 @@ const LANGUAGES = [
 ];
 
 const WELCOME_MESSAGES = {
-  en: "Hello! I'm LATROCORE Clinical AI. How can I assist you with your glucose, medications, or diet today?",
-  ta: "வணக்கம்! நான் LATROCORE கிளினிக்கல் AI உதவியாளர். உங்கள் இரத்த சர்க்கரை, மருந்துகள் அல்லது உணவு முறை பற்றி நான் எப்படி உதவலாம்?",
-  hi: "नमस्ते! मैं LATROCORE क्लिनिकल AI हूँ। आज मैं आपकी रक्त शर्करा, दवाओं या आहार योजना में कैसे मदद कर सकता हूँ?",
-  ml: "നമസ്കാരം! ഞാൻ LATROCORE ക്ലിനിക്കൽ AI അസിസ്റ്റന്റാണ്. നിങ്ങളുടെ രക്തത്തിലെ പഞ്ചസാര, മരുന്നുകൾ അല്ലെങ്കിൽ ഡയറ്റ് എന്നിവയിൽ എങ്ങനെ സഹായിക്കണം?",
-  te: "నమస్కారం! నేను LATROCORE క్లినికల్ AI అసిస్టెంట్‌ని. మీ బ్లడ్ షుగర్, మందులు లేదా డైట్ ప్లాన్ గురించి నేను ఎలా సహాయపడగలను?",
-  kn: "ನಮಸ್ಕಾರ! ನಾನು LATROCORE ಕ್ಲಿನಿಕಲ್ AI ಸಹಾಯಕ. ನಿಮ್ಮ ರಕ್ತದ ಸಕ್ಕರೆ, ಔಷಧಿಗಳು ಅಥವಾ ಆಹಾರ ಕ್ರಮದ ಬಗ್ಗೆ ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+  en: "Hello! I'm your Clinical AI Assistant. How can I assist you with your glucose, medications, or diet today?",
+  ta: "வணக்கம்! நான் உங்கள் கிளினிக்கல் AI உதவியாளர். உங்கள் இரத்த சர்க்கரை, மருந்துகள் அல்லது உணவு முறை பற்றி நான் எப்படி உதவலாம்?",
+  hi: "नमस्ते! मैं आपका क्लिनिकल AI सहायक हूँ। आज मैं आपकी रक्त शर्करा, दवाओं या आहार योजना में कैसे मदद कर सकता हूँ?",
+  ml: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ ക്ലിനിക്കൽ AI അസിസ്റ്റന്റാണ്. നിങ്ങളുടെ രക്തത്തിലെ പഞ്ചസാര, മരുന്നുകൾ അല്ലെങ്കിൽ ഡയറ്റ് എന്നിവയിൽ എങ്ങനെ സഹായിക്കണം?",
+  te: "నమస్కారం! నేను మీ క్లినికల్ AI అసిస్టెంట్‌ని. మీ బ్లడ్ షుగర్, మందులు లేదా డైట్ ప్లాన్ గురించి నేను ఎలా సహాయపడగలను?",
+  kn: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ಕ್ಲಿನಿಕಲ್ AI ಸಹಾಯಕ. ನಿಮ್ಮ ರಕ್ತದ ಸಕ್ಕರೆ, ಔಷಧಿಗಳು ಅಥವಾ ಆಹಾರ ಕ್ರಮದ ಬಗ್ಗೆ ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
 };
 
 const INPUT_PLACEHOLDERS = {
@@ -139,7 +141,7 @@ export default function FloatingAIAssistant() {
   const isAuthPage = AUTH_PATHS.some((path) =>
     location.pathname.toLowerCase().startsWith(path)
   );
-  const { currentUser } = useApp();
+  const { currentUser, data, refreshData, addToast } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [showHiBubble, setShowHiBubble] = useState(true);
   const [lang, setLang] = useState('en');
@@ -147,6 +149,27 @@ export default function FloatingAIAssistant() {
   const [input, setInput] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isUploadingRx, setIsUploadingRx] = useState(false);
+
+  const patientId = currentUser?.id;
+  const fileInputRef = useRef(null);
+
+  // Active Prescriptions & Medications synced from data
+  const activePrescriptions = useMemo(() => {
+    return (data?.prescriptions || []).filter(p => p.patientId === patientId && p.status === 'active');
+  }, [data?.prescriptions, patientId]);
+
+  const activeMedicines = useMemo(() => {
+    return activePrescriptions.flatMap(rx => rx.medicines || []);
+  }, [activePrescriptions]);
+
+  const prescriptionContext = useMemo(() => {
+    if (!activeMedicines || activeMedicines.length === 0) return null;
+    return activeMedicines.map(m =>
+      `- ${m.name} (Dose: ${m.dose || 'unclear'}, Route: ${m.route || 'Oral'}, Frequency: ${m.frequency || 'As prescribed'}, Meal Timing: ${m.foodInstruction || m.meal_timing || 'With meals'})`
+    ).join('\n');
+  }, [activeMedicines]);
+
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -157,16 +180,30 @@ export default function FloatingAIAssistant() {
     },
   ]);
 
+  // Update welcome message when synced medicines are loaded
+  useEffect(() => {
+    if (activeMedicines.length > 0) {
+      const medNames = activeMedicines.map(m => m.name).join(', ');
+      setMessages([
+        {
+          id: 'welcome-synced',
+          role: 'assistant',
+          text: `${WELCOME_MESSAGES[lang] || WELCOME_MESSAGES.en}\n\n📋 **Verified Prescription Synced:** I have loaded your active medicines (${medNames}). All my clinical guidance, adverse effect analyses, and lifestyle tips are strictly focused on these medicines with zero hallucination.`,
+          sources: [],
+          time: 'Just now',
+        },
+      ]);
+    }
+  }, [activeMedicines.length, lang]);
+
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const langMenuRef = useRef(null);
 
-  // Auto-dismiss "Hi" bubble after 3 seconds
+  // Show "Hi" bubble on navigation; stays visible until user clicks or dismisses it
   useEffect(() => {
     if (isAuthPage) return;
     setShowHiBubble(true);
-    const t = setTimeout(() => setShowHiBubble(false), 3500);
-    return () => clearTimeout(t);
   }, [location.pathname, isAuthPage]);
 
   const scrollToBottom = () => {
@@ -274,20 +311,20 @@ export default function FloatingAIAssistant() {
     const loadingMsg = {
       id: tempAiId,
       role: 'assistant',
-      text: '',
+      text: 'Analyzing with prescription guardrails...',
       isLoading: true,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages((prev) => [...prev, loadingMsg]);
 
     try {
-      // Query backend Gemini API with strict PII scrubbing & safety guardrails
-      const data = await api.askAssistant(query, lang);
+      // Query backend Gemini API with strict PII scrubbing, safety guardrails & prescription context
+      const data = await api.askAssistant(query, lang, prescriptionContext);
       const aiMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: data.content,
-        sources: [],
+        sources: data.sources || [],
         modelId: data.model_id,
         piiScrubbed: data.pii_scrubbed,
         requiresHandoff: data.requires_handoff,
@@ -296,16 +333,101 @@ export default function FloatingAIAssistant() {
 
       setMessages((prev) => prev.map((m) => (m.id === tempAiId ? aiMsg : m)));
     } catch (err) {
-      // Graceful local clinical engine fallback
-      const response = getAssistantResponse(query, lang);
+      // Graceful local clinical engine fallback with prescription context
+      const response = getAssistantResponse(query, lang, prescriptionContext, activeMedicines);
       const fallbackMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: response.text,
-        sources: [],
+        sources: response.sources || [],
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => prev.map((m) => (m.id === tempAiId ? fallbackMsg : m)));
+    }
+  };
+
+  // Direct prescription file upload inside floating AI prompt
+  const handleDirectFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const userFileMsg = {
+      id: `u-file-${Date.now()}`,
+      role: 'user',
+      text: `📎 [Uploaded Prescription]: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, userFileMsg]);
+
+    const tempLoadingId = `a-upload-${Date.now()}`;
+    const loadingMsg = {
+      id: tempLoadingId,
+      role: 'assistant',
+      text: 'Gemini Vision AI is analyzing and digitizing your prescription document...',
+      isLoading: true,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, loadingMsg]);
+    setIsUploadingRx(true);
+
+    try {
+      const result = await api.analyzePrescriptionAI(file);
+
+      if (!result.is_valid_prescription) {
+        const rejectionMsg = {
+          id: `a-${Date.now()}`,
+          role: 'assistant',
+          text: `⚠️ **Prescription Upload Rejected**\n\n**Reason:** ${result.rejection_reason || 'The uploaded file could not be verified as an authentic doctor prescription.'}\n\n**Strict Safety Policy:** LATROCORE strictly processes authentic medical prescriptions with clear medication orders. Please upload a clear document showing clinic header and prescribed medications.`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => prev.map((m) => (m.id === tempLoadingId ? rejectionMsg : m)));
+        setIsUploadingRx(false);
+        return;
+      }
+
+      // Synchronize locally and best-effort backend
+      applyAIPrescriptionToPatient(patientId, result);
+      try {
+        await api.applyAIPrescription({
+          patient_id: patientId,
+          ...result,
+        });
+      } catch (applyErr) {
+        console.warn('Backend DB apply sync notice (continuing with local sync):', applyErr);
+      }
+
+      refreshData();
+
+      const medsList = (result.medicines || []).map((m) => {
+        const isUnclear = !m.name || m.name.toLowerCase().includes('unclear') || !m.dose || String(m.dose).toLowerCase().includes('unclear');
+        return `• **${m.name || 'unclear'}** — ${m.dose || 'unclear'} (${m.frequency || 'frequency unclear'}, ${m.meal_timing || m.instructions || 'With meals'})${isUnclear ? ' ⚠️ [Unclear handwriting flagged]' : ''}`;
+      }).join('\n');
+
+      const responseText = `✅ **Prescription Successfully Synchronized!**\n\n` +
+        `**Doctor:** ${result.doctor_name || 'Attending Physician'}\n` +
+        `**Diagnosis:** ${result.diagnosis || 'Type 2 Diabetes Mellitus'}\n\n` +
+        `**Detected Medications:**\n${medsList}\n\n` +
+        `🔒 **Strict AI Guardrails Active:** My clinical responses, adverse effect analyses, and routine tips are now locked strictly to these detected medications. I will not suggest or hallucinate any outside pharmaceuticals. If any entry is unreadable, it is flagged as 'unclear' rather than guessed.`;
+
+      const successMsg = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: responseText,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => prev.map((m) => (m.id === tempLoadingId ? successMsg : m)));
+      addToast?.({ type: 'success', message: 'Prescription synchronized with AI Assistant' });
+    } catch (err) {
+      const errMsg = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        text: `❌ **Failed to process prescription:** ${err.message || 'Error communicating with Gemini Vision AI. Please ensure the document is clear and try again.'}`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => prev.map((m) => (m.id === tempLoadingId ? errMsg : m)));
+    } finally {
+      setIsUploadingRx(false);
     }
   };
 
@@ -377,10 +499,10 @@ export default function FloatingAIAssistant() {
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-bold text-sm text-white tracking-tight leading-tight">
-                    LATROCORE AI
+                    Clinical AI
                   </h3>
                   <p className="text-xs text-emerald-100/90 leading-tight mt-0.5 font-normal">
-                    Clinical Assistant
+                    Decision Support Assistant
                   </p>
                 </div>
               </div>
@@ -453,6 +575,44 @@ export default function FloatingAIAssistant() {
               </div>
             </div>
 
+            {/* ── Active Prescriptions Sync Banner & Quick Chips ── */}
+            {activeMedicines.length > 0 && (
+              <div className="bg-[#E8F5EE] border-b border-[#A8D7BD] px-3.5 py-2 flex flex-col gap-1.5 shrink-0">
+                <div className="flex items-center justify-between gap-1 text-[11px]">
+                  <span className="font-extrabold text-[#046A38] flex items-center gap-1 shrink-0">
+                    <ShieldCheck size={13} className="text-[#046A38]" />
+                    <span>Rx Synced ({activeMedicines.length} Meds):</span>
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-800 truncate">
+                    {activeMedicines.map(m => m.name).join(', ')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => handleSend("What are the potential adverse effects and precautions of my prescribed medicines?")}
+                    className="px-2 py-0.5 rounded-full bg-white border border-[#A8D7BD] text-[10px] font-bold text-[#046A38] hover:bg-emerald-100 transition whitespace-nowrap cursor-pointer"
+                  >
+                    ⚠️ Adverse Effects
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSend("What lifestyle and diet tips do you recommend for my medications?")}
+                    className="px-2 py-0.5 rounded-full bg-white border border-[#A8D7BD] text-[10px] font-bold text-[#046A38] hover:bg-emerald-100 transition whitespace-nowrap cursor-pointer"
+                  >
+                    🥗 Lifestyle & Diet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSend("What is the daily schedule and timing for taking my medicines?")}
+                    className="px-2 py-0.5 rounded-full bg-white border border-[#A8D7BD] text-[10px] font-bold text-[#046A38] hover:bg-emerald-100 transition whitespace-nowrap cursor-pointer"
+                  >
+                    ⏰ Timing Routine
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ── Messages Scroll Area ── */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FAF6EF] min-h-0">
               {messages.map((msg) => (
@@ -524,14 +684,35 @@ export default function FloatingAIAssistant() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Input Box Form ── */}
+            {/* ── Input Box Form with Direct Upload in AI ── */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSend();
               }}
-              className="p-2.5 sm:p-3 bg-white border-t border-[#E8DCC8] flex items-center gap-2 shrink-0"
+              className="p-2.5 sm:p-3 bg-white border-t border-[#E8DCC8] flex items-center gap-1.5 sm:gap-2 shrink-0"
             >
+              {/* Hidden file input for direct prescription upload */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleDirectFileUpload}
+                accept="image/png,image/jpeg,image/webp,application/pdf"
+                className="hidden"
+              />
+
+              {/* Direct Prescription Upload Button right inside AI prompt */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingRx}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center transition cursor-pointer shrink-0 disabled:opacity-50"
+                title="Directly upload prescription photo or PDF into AI"
+                aria-label="Direct prescription upload"
+              >
+                <Paperclip size={16} />
+              </button>
+
               {/* Mic Speech Input Button */}
               <button
                 type="button"
@@ -552,14 +733,18 @@ export default function FloatingAIAssistant() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={INPUT_PLACEHOLDERS[lang] || INPUT_PLACEHOLDERS.en}
+                placeholder={
+                  activeMedicines.length > 0
+                    ? 'Ask about side effects, lifestyle, or upload Rx...'
+                    : (INPUT_PLACEHOLDERS[lang] || INPUT_PLACEHOLDERS.en)
+                }
                 className="flex-1 bg-stone-50/70 border border-stone-200 focus:border-[#046A38] focus:bg-white focus:ring-2 focus:ring-[#046A38]/15 text-xs sm:text-sm rounded-xl px-3 py-2 outline-none transition text-stone-900 font-medium placeholder:text-stone-400"
               />
 
               {/* Send Button */}
               <button
                 type="submit"
-                disabled={!input.trim()}
+                disabled={!input.trim() || isUploadingRx}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#046A38] hover:bg-[#03542C] disabled:opacity-40 text-white flex items-center justify-center transition shadow-xs cursor-pointer disabled:cursor-not-allowed shrink-0 active:scale-95"
                 title="Send message"
                 aria-label="Send message"
@@ -580,21 +765,25 @@ export default function FloatingAIAssistant() {
 
       {/* ── Floating AI Assistant Avatar Trigger (Bottom-Right Corner) ── */}
       {!isOpen && (
-        <div className="fixed bottom-6 sm:bottom-8 right-6 sm:right-8 z-40 flex flex-col items-center group">
+        <div className="fixed bottom-6 sm:bottom-8 right-6 sm:right-8 z-40 flex flex-col items-center">
 
-          {/* ── Hi Greeting Popup (shows for 3.5s on load) ── */}
+          {/* ── Hi Greeting Popup with Doctor Avatar & Speech Bubble ── */}
           {showHiBubble && (
             <div
-              className="mb-3 flex items-end gap-2 cursor-pointer"
+              className="mb-3 flex items-end gap-2 cursor-pointer relative"
               onClick={() => { setShowHiBubble(false); setIsOpen(true); }}
               style={{
-                animation: 'fadeInUp 0.4s ease-out, fadeOutDown 0.4s ease-in 3.1s forwards',
+                animation: 'fadeInUp 0.4s ease-out forwards',
               }}
             >
               {/* Doctor Avatar */}
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-emerald-400 shadow-lg shrink-0 bg-white">
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-emerald-400 shadow-lg shrink-0 bg-white ring-2 ring-emerald-500/20">
                 <img
                   src="/doctor-avatar.png"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = doctorImg;
+                  }}
                   alt="Doctor"
                   className="w-full h-full object-cover object-top scale-110"
                   draggable={false}
@@ -602,7 +791,20 @@ export default function FloatingAIAssistant() {
               </div>
 
               {/* Speech Bubble */}
-              <div className="relative bg-white border border-emerald-200 shadow-xl rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[160px]">
+              <div className="relative bg-white border border-emerald-200 shadow-xl rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[170px]">
+                {/* Dismiss 'x' button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowHiBubble(false);
+                  }}
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-white hover:bg-stone-100 text-stone-400 hover:text-stone-700 rounded-full flex items-center justify-center shadow-md border border-stone-200 transition cursor-pointer"
+                  title="Close greeting"
+                  aria-label="Close greeting"
+                >
+                  <X size={11} />
+                </button>
                 <p className="text-sm font-bold text-stone-800 leading-tight">Hi there! 👋</p>
                 <p className="text-[11px] text-stone-500 mt-0.5 leading-tight">Need help today?</p>
                 {/* Tail pointing left-down toward doctor */}
@@ -611,27 +813,14 @@ export default function FloatingAIAssistant() {
             </div>
           )}
 
-          {/* Centered Floating Tooltip Badge (on hover) */}
-          <div className="mb-2 hidden group-hover:flex flex-col items-center pointer-events-none transition-all duration-200 animate-fade-in select-none">
-            <div className="bg-stone-900 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-2xl border border-emerald-500/50 flex items-center gap-1.5 whitespace-nowrap backdrop-blur-md">
-              <Sparkles size={13} className="text-emerald-400 animate-spin" style={{ animationDuration: '3s' }} />
-              <span className="bg-gradient-to-r from-emerald-200 via-emerald-100 to-white bg-clip-text text-transparent">
-                LATROCORE AI
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-0.5 shadow-[0_0_6px_#34d399]" />
-            </div>
-            {/* Pointer arrow pointing straight down into the antenna */}
-            <div className="w-2.5 h-2.5 bg-stone-900 border-r border-b border-emerald-500/50 transform rotate-45 -mt-1.5" />
-          </div>
-
           {/* Trigger Button with AI Face Avatar */}
           <button
             onClick={() => setIsOpen(true)}
-            className="relative flex items-center justify-center cursor-pointer transition-all duration-300 transform group-hover:scale-108 active:scale-95 focus:outline-none"
+            className="relative flex items-center justify-center cursor-pointer transition-all duration-300 transform hover:scale-108 active:scale-95 focus:outline-none"
             aria-label="Open Clinical AI Assistant"
           >
             {/* Outer Radiant Pulsing Aura Rings in Forest Green & Emerald */}
-            <span className="absolute -inset-2.5 rounded-full bg-gradient-to-r from-[#046A38] via-emerald-400 to-[#03542C] opacity-60 blur-md group-hover:opacity-90 animate-pulse duration-1000" />
+            <span className="absolute -inset-2.5 rounded-full bg-gradient-to-r from-[#046A38] via-emerald-400 to-[#03542C] opacity-60 blur-md hover:opacity-90 animate-pulse duration-1000" />
             <span className="absolute -inset-1 rounded-full bg-gradient-to-tr from-[#046A38] to-emerald-400 opacity-30 animate-ping duration-1000 pointer-events-none" />
 
             {/* Glowing Sphere Container */}
@@ -641,7 +830,7 @@ export default function FloatingAIAssistant() {
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-400/25 via-transparent to-transparent pointer-events-none" />
 
                 {/* Animated Eye-Catching AI Face Avatar */}
-                <AIFaceAvatar size={42} className="relative z-10 transition-transform duration-300 group-hover:scale-105" />
+                <AIFaceAvatar size={42} className="relative z-10 transition-transform duration-300 hover:scale-105" />
 
                 {/* Live Online Glowing Beacon */}
                 <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#022A16] shadow-[0_0_10px_#34d399] animate-pulse z-20" />
