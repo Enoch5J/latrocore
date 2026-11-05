@@ -7,18 +7,16 @@ import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
   Bot, Heart, Users, Settings, AlertTriangle, ChevronDown, ChevronRight,
-  Home, BarChart3, ClipboardCheck, Package
+  Home, BarChart3, ClipboardCheck, Package, ShieldAlert
 } from 'lucide-react';
 
 const ROLE_NAV = {
   patient: [
     { to: '/patient/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/patient/sos', icon: ShieldAlert, label: 'Emergency SOS', isEmergency: true },
     { to: '/patient/medications', icon: Pill, label: 'Medications' },
     { to: '/patient/lifestyle', icon: Salad, label: 'Lifestyle' },
     { to: '/patient/metrics', icon: Activity, label: 'Health Metrics' },
-
-
-
     { to: '/patient/safety', icon: AlertTriangle, label: 'Safety Alerts' },
     { to: '/patient/assistant', icon: Bot, label: 'AI Assistant' },
     { to: '/doctors', icon: Stethoscope, label: 'Doctors' },
@@ -150,21 +148,36 @@ export default function AppLayout() {
                 ].includes(location.pathname))
               ));
 
+          const isEmergency = item.isEmergency;
+          const activeClass = isEmergency
+            ? 'bg-rose-600 text-white shadow-md ring-2 ring-rose-400'
+            : 'bg-[#046A38] text-white shadow-xs';
+          const inactiveClass = isEmergency
+            ? 'text-rose-700 hover:bg-rose-50 hover:text-rose-900 border border-rose-200/60 font-extrabold bg-rose-50/30'
+            : 'text-slate-800 hover:bg-[#E8F5EE] hover:text-[#046A38]';
+
           return (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={onNavigate}
-              className={
-                `flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                  isItemActive
-                    ? 'bg-[#046A38] text-white shadow-xs'
-                    : 'text-slate-800 hover:bg-[#E8F5EE] hover:text-[#046A38]'
-                }`
-              }
+              className={`flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                isItemActive ? activeClass : inactiveClass
+              }`}
             >
-              <item.icon size={20} className="shrink-0" />
-              {showText && <span className="truncate text-sm font-bold">{item.label}</span>}
+              <item.icon size={20} className={`shrink-0 ${isEmergency && !isItemActive ? 'text-rose-600 animate-pulse' : ''}`} />
+              {showText && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate text-sm font-bold">{item.label}</span>
+                  {isEmergency && (
+                    <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded-md tracking-wider ${
+                      isItemActive ? 'bg-white text-rose-700' : 'bg-rose-600 text-white animate-pulse'
+                    }`}>
+                      24/7
+                    </span>
+                  )}
+                </div>
+              )}
             </NavLink>
           );
         })}

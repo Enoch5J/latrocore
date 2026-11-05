@@ -496,6 +496,7 @@ export default function PatientDashboard() {
   };
 
   const quickActions = [
+    { label: 'Emergency SOS', icon: ShieldAlert, color: 'text-rose-700 bg-rose-100 border border-rose-300', onClick: () => navigate('/patient/sos') },
     { label: 'Upload Rx (AI)', icon: Sparkles, color: 'text-emerald-700 bg-emerald-50', onClick: () => setUploadModalOpen(true) },
     { label: 'Record Medication', icon: Pill, color: 'text-blue-600 bg-blue-50', onClick: () => navigate('/patient/medications') },
     { label: 'Add Health Entry', icon: Salad, color: 'text-green-600 bg-green-50', onClick: () => navigate('/patient/lifestyle?action=add') },
@@ -562,6 +563,13 @@ export default function PatientDashboard() {
             {/* Action buttons */}
             <div className="flex flex-col gap-2 shrink-0">
               <button
+                onClick={() => navigate('/patient/sos')}
+                className="btn-sm bg-rose-600 hover:bg-rose-700 text-white border border-rose-700 flex items-center justify-center gap-1.5 font-black shadow-xs cursor-pointer animate-pulse"
+              >
+                <ShieldAlert size={16} />
+                <span>Emergency SOS</span>
+              </button>
+              <button
                 onClick={() => setUploadModalOpen(true)}
                 className="btn-outline btn-sm bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 flex items-center gap-1.5 font-bold shadow-xs cursor-pointer"
               >
@@ -618,7 +626,7 @@ export default function PatientDashboard() {
           <span className="text-xs font-semibold text-slate-500">Fast tracking & clinic actions</span>
         </div>
         <div className="card-body">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
             {quickActions.map((a, i) => (
               <button
                 key={i}
