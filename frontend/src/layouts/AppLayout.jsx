@@ -10,7 +10,7 @@ import {
   Home, BarChart3, ClipboardCheck, Package, ShieldAlert
 } from 'lucide-react';
 
-const ROLE_NAV = {
+export const ROLE_NAV = {
   patient: [
     { to: '/patient/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/patient/sos', icon: ShieldAlert, label: 'Emergency SOS', isEmergency: true },
@@ -33,7 +33,15 @@ const ROLE_NAV = {
   ],
   pharmacist: [
     { to: '/pharmacist/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/pharmacist/stock-verification', icon: Package, label: 'Stock Verification' },
+    { to: '/pharmacist/patients', icon: Users, label: 'Patient Management' },
+    { to: '/pharmacist/prescriptions', icon: ClipboardList, label: 'Prescription Management' },
+    { to: '/pharmacist/adherence', icon: Activity, label: 'Medication Adherence' },
+    { to: '/pharmacist/interactions', icon: ShieldAlert, label: 'Drug Interactions' },
+    { to: '/pharmacist/counselling', icon: Stethoscope, label: 'Pharm D Counselling' },
+    { to: '/pharmacist/inventory', icon: Package, label: 'Medicine Inventory' },
+    { to: '/pharmacist/reports', icon: BarChart3, label: 'Reports & Analytics' },
+    { to: '/appointments', icon: CalendarDays, label: 'Appointments' },
+    { to: '/messages', icon: MessageSquare, label: 'Messages' },
   ],
   admin: [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -42,6 +50,8 @@ const ROLE_NAV = {
     { to: '/admin/config', icon: Settings, label: 'Configuration' },
   ],
 };
+
+ROLE_NAV.care_team = ROLE_NAV.pharmacist;
 
 export default function AppLayout() {
   const { currentUser, data, setUser, addToast } = useApp();
@@ -66,41 +76,55 @@ export default function AppLayout() {
   }, []);
 
   useEffect(() => {
-    if (authUser && (!currentUser || currentUser.id !== authUser.id)) {
+    if (authUser && (!currentUser || currentUser.id !== authUser.id || (authUser.role === 'care_team' && currentUser.role === 'care_team'))) {
       setUser({
+        ...authUser,
         id: authUser.id,
         name: authUser.name || authUser.email,
         email: authUser.email,
         role: authUser.role === 'care_team' ? 'pharmacist' : authUser.role,
-        ...authUser,
       });
     }
   }, [currentUser, authUser, setUser]);
 
-  const activeUser = currentUser || (authUser ? {
-    id: authUser.id,
-    name: authUser.name || authUser.email,
-    email: authUser.email,
-    role: authUser.role === 'care_team' ? 'pharmacist' : authUser.role,
-    avatar: authUser.role === 'doctor'
-      ? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150'
-      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-  } : null);
+  const rawUser = currentUser || authUser;
+  const activeUser = rawUser ? {
+    ...rawUser,
+    id: rawUser.id,
+    name: rawUser.name || rawUser.email,
+    email: rawUser.email,
+    role: rawUser.role === 'care_team' ? 'pharmacist' : rawUser.role,
+    avatar: rawUser.avatar || (
+      rawUser.role === 'doctor'
+        ? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150'
+        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
+    ),
+  } : null;
 
   if (!activeUser) {
     return <Navigate to="/login" replace />;
   }
 
-  const navItems = ROLE_NAV[activeUser.role] || [];
+  const effectiveRole = (activeUser.role === 'care_team' || activeUser.role === 'pharmacist')
+    ? 'pharmacist'
+    : activeUser.role;
+  const navItems = ROLE_NAV[effectiveRole] || ROLE_NAV[activeUser.role] || [];
   const notifications = data?.notifications?.filter(n => n.userId === activeUser.id) || [];
   const unreadCount = notifications.filter(n => !n.read).length;
-  const roleName = activeUser.role === 'pharmacist' ? 'Pharmacist / Pharm D' : activeUser.role.charAt(0).toUpperCase() + activeUser.role.slice(1);
+  const isPharmacist = activeUser.role === 'pharmacist' || activeUser.role === 'care_team';
+  const roleName = isPharmacist ? 'Pharmacist / Pharm D' : activeUser.role.charAt(0).toUpperCase() + activeUser.role.slice(1);
 
   const handleRoleSwitch = (userId) => {
     const user = data?.users?.[userId];
     if (user) {
       setUser(user);
-      const defaultRoutes = { patient: '/patient/dashboard', doctor: '/doctor/dashboard', pharmacist: '/pharmacist/dashboard', admin: '/admin/dashboard' };
+      const defaultRoutes = {
+        patient: '/patient/dashboard',
+        doctor: '/doctor/dashboard',
+        pharmacist: '/pharmacist/dashboard',
+        care_team: '/pharmacist/dashboard',
+        admin: '/admin/dashboard',
+      };
       navigate(defaultRoutes[user.role] || '/');
       setProfileMenuOpen(false);
       setMobileMenuOpen(false);
@@ -138,6 +162,7 @@ export default function AppLayout() {
             ? (location.pathname === '/patient/dashboard' && location.hash === item.to.slice(item.to.indexOf('#')))
             : (!location.hash && (
                 location.pathname === item.to ||
+                (item.to === '/pharmacist/dashboard' && location.pathname === '/pharmacist') ||
                 (item.to === '/patient/metrics' && [
                   '/patient/metrics',
                   '/patient/glucose',

@@ -5,7 +5,8 @@ import { StatCard, LoadingSpinner, Badge, Tabs, Modal, EmptyState, Avatar } from
 import {
   ClipboardList, Heart, Pill, Users, AlertTriangle, ArrowRight, Clock, CheckCircle,
   Play, Timer, MessageSquare, Search, Barcode, Package, Check, ShieldCheck, Box,
-  RefreshCw, AlertCircle, FileText, ShoppingBag, Layers, Shield, Sparkles, CheckCheck
+  RefreshCw, AlertCircle, FileText, ShoppingBag, Layers, Shield, Sparkles, CheckCheck,
+  ShieldAlert, Activity, BarChart3, Stethoscope
 } from 'lucide-react';
 import { formatDate, formatDateTime } from '../../data/demoDate';
 import { updateMedicationReview, updateCounsellingRequest, addNotification, addAuditEntry } from '../../services/dataService';
@@ -300,9 +301,10 @@ export default function PharmacistDashboard({ initialTab }) {
   if (loading) return <LoadingSpinner text="Loading dashboard..." />;
 
   const tabs = [
-    { id: 'reviews', label: 'Medication Reviews', count: reviews.length },
-    { id: 'counselling', label: 'Counselling', count: counsellingRequests.length },
-    { id: 'refills', label: 'Refill Requests', count: refillRequests.length },
+    { id: 'reviews', label: 'Clinical Alerts & Reviews', count: reviews.length },
+    { id: 'refills', label: 'Refill Requests Queue', count: refillRequests.length },
+    { id: 'missed_doses', label: 'Missed Doses Watchlist', count: 2 },
+    { id: 'counselling', label: 'Pharm D Counselling', count: counsellingRequests.length },
     { id: 'patients', label: 'My Patients', count: assignedPatients.length },
     { id: 'history', label: 'Completed Sessions' },
   ];
@@ -314,11 +316,86 @@ export default function PharmacistDashboard({ initialTab }) {
         <p className="text-sm font-medium text-slate-700 mt-1">Active clinician session: <span className="font-bold text-slate-950">{currentUser?.name}</span></p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Open Reviews" value={reviews.length} icon={ClipboardList} color={reviews.length > 0 ? 'warning' : 'success'} />
-        <StatCard label="Counselling Requests" value={counsellingRequests.length} icon={Heart} color={counsellingRequests.length > 0 ? 'primary' : 'success'} />
-        <StatCard label="Refill Requests" value={refillRequests.length} icon={Pill} color="secondary" />
-        <StatCard label="Assigned Patients" value={assignedPatients.length} icon={Users} color="primary" />
+      {/* ── Core Clinical Stats Overview ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <StatCard
+          label="Assigned Patients"
+          value={assignedPatients.length}
+          icon={Users}
+          color="primary"
+          onClick={() => navigate('/pharmacist/patients')}
+        />
+        <StatCard
+          label="Active Prescriptions"
+          value={data?.prescriptions?.length || 4}
+          icon={ClipboardList}
+          color="primary"
+          onClick={() => navigate('/pharmacist/prescriptions')}
+        />
+        <StatCard
+          label="Refill Requests"
+          value={refillRequests.length}
+          icon={Pill}
+          color="secondary"
+          onClick={() => setActiveTab('refills')}
+        />
+        <StatCard
+          label="Missed Doses / Risk"
+          value={2}
+          icon={Activity}
+          color="warning"
+          onClick={() => setActiveTab('missed_doses')}
+        />
+        <StatCard
+          label="Clinical Safety Alerts"
+          value={reviews.length}
+          icon={ShieldAlert}
+          color={reviews.length > 0 ? 'danger' : 'success'}
+          onClick={() => setActiveTab('reviews')}
+        />
+      </div>
+
+      {/* ── 8 Dedicated Pharmacist Clinical Workstations ── */}
+      <div className="card bg-white rounded-3xl border-2 border-[#E8DCC8] p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-3.5">
+          <div>
+            <h3 className="text-sm font-black text-slate-950 uppercase tracking-wider">Clinical Station Modules</h3>
+            <p className="text-xs font-semibold text-slate-600">Direct access to core pharmacy &amp; Pharm D practice workstations</p>
+          </div>
+          <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-[#E8F5EE] text-[#046A38] border border-[#A8D7BD]">
+            8 Modules Active
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {[
+            { label: 'Patient Management', desc: 'Roster, allergies, diabetes profiles', icon: Users, route: '/pharmacist/patients' },
+            { label: 'Prescription Management', desc: 'Verify orders, refills & statuses', icon: ClipboardList, route: '/pharmacist/prescriptions' },
+            { label: 'Medication Adherence', desc: 'Missed doses, PDC & refill gaps', icon: Activity, route: '/pharmacist/adherence' },
+            { label: 'Drug Interactions', desc: 'Allergies, duplicate therapy CDS', icon: ShieldAlert, route: '/pharmacist/interactions' },
+            { label: 'Pharm D Counselling', desc: 'Insulin technique & Rule of 15', icon: Stethoscope, route: '/pharmacist/counselling' },
+            { label: 'Medicine Inventory', desc: 'Live stock & cold chain vault', icon: Package, route: '/pharmacist/inventory' },
+            { label: 'Reports & Analytics', desc: 'Adherence vs HbA1c impact', icon: BarChart3, route: '/pharmacist/reports' },
+            { label: 'Stock Verification', desc: 'Barcode scanner & dispense', icon: Barcode, route: '/pharmacist/stock-verification' },
+          ].map((m, i) => (
+            <button
+              key={i}
+              onClick={() => navigate(m.route)}
+              className="p-3 rounded-2xl bg-[#FAF6EF] border border-[#E8DCC8] hover:border-[#046A38] hover:bg-white transition-all text-left group cursor-pointer shadow-2xs hover:shadow-xs flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 rounded-xl bg-white border border-[#E8DCC8] text-[#046A38] flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <m.icon size={16} />
+                </div>
+                <ArrowRight size={13} className="text-slate-400 group-hover:text-[#046A38] group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <div>
+                <p className="font-black text-xs text-slate-950 group-hover:text-[#046A38] transition-colors">{m.label}</p>
+                <p className="text-[10px] font-semibold text-slate-500 mt-0.5 line-clamp-1">{m.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="bg-sky-50 border border-sky-300 rounded-xl p-3.5 text-xs sm:text-sm font-semibold text-sky-950 flex items-center gap-2">
@@ -444,29 +521,67 @@ export default function PharmacistDashboard({ initialTab }) {
         </div>
       )}
 
-      {activeTab === 'refills' && (
+      {activeTab === 'missed_doses' && (
         <div className="space-y-3">
-          {refillRequests.map(r => {
-            const patient = data?.users?.[r.patientId];
-            return (
-              <div key={r.id} className="card card-body border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center shrink-0">
-                    <Pill size={20} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-950 text-base">{patient?.name}</p>
-                    <p className="text-sm font-semibold text-slate-800">{r.medicine} — Refill requested</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 w-full sm:w-auto justify-end">
-                  <button onClick={() => handleResolveReview(r, 'Refill approved and processed')} className="btn-primary btn-sm font-bold">Approve</button>
-                  <button onClick={() => handleEscalate(r)} className="btn-outline btn-sm font-bold">Escalate</button>
-                </div>
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle size={18} className="text-amber-700 shrink-0" />
+              <div>
+                <p className="text-xs font-black text-amber-950">Active Non-Adherence Watchlist</p>
+                <p className="text-[11px] font-semibold text-slate-700">Patients reporting consecutive missed doses or timing delays requiring Pharm D intervention.</p>
               </div>
-            );
-          })}
-          {refillRequests.length === 0 && <EmptyState icon={Pill} title="No refill requests" message="No pending refill requests." />}
+            </div>
+            <button
+              onClick={() => navigate('/pharmacist/adherence')}
+              className="btn-outline btn-sm font-bold text-xs"
+            >
+              Full Adherence Telemetry &rarr;
+            </button>
+          </div>
+
+          <div className="card card-body border border-slate-200 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-black text-sm text-slate-950">Priya Sharma (PAT-001)</p>
+                <p className="text-xs font-bold text-[#046A38]">Glimepiride 1mg • Morning Slot</p>
+              </div>
+              <Badge variant="warning">Missed 2 Days Ago</Badge>
+            </div>
+            <p className="text-xs font-semibold text-slate-700">Reason reported: Mild nausea &amp; GI discomfort before meal.</p>
+            <div className="flex gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => navigate('/pharmacist/counselling')}
+                className="btn-primary btn-sm text-xs font-bold"
+              >
+                Start Counselling
+              </button>
+              <button
+                onClick={() => addToast({ type: 'success', message: 'Nudge sent to Priya Sharma.' })}
+                className="btn-outline btn-sm text-xs font-bold"
+              >
+                Send Reminder Nudge
+              </button>
+            </div>
+          </div>
+
+          <div className="card card-body border border-slate-200 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-black text-sm text-slate-950">Rajesh Kumar (PAT-002)</p>
+                <p className="text-xs font-bold text-[#046A38]">Insulin Glargine 16U • Bedtime Slot</p>
+              </div>
+              <Badge variant="danger">Adherence 68% (&lt;80%)</Badge>
+            </div>
+            <p className="text-xs font-semibold text-slate-700">Reason reported: Injection technique friction; needle withdrawal hesitation.</p>
+            <div className="flex gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => navigate('/pharmacist/counselling')}
+                className="btn-primary btn-sm text-xs font-bold"
+              >
+                Schedule Insulin Technique Review
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

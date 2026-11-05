@@ -34,6 +34,13 @@ import PatientOverview from './pages/doctor/PatientOverview';
 
 // Pharmacist Pages
 import PharmacistDashboard from './pages/pharmacist/Dashboard';
+import PatientManagement from './pages/pharmacist/PatientManagement';
+import PrescriptionManagement from './pages/pharmacist/PrescriptionManagement';
+import MedicationAdherence from './pages/pharmacist/MedicationAdherence';
+import DrugInteractions from './pages/pharmacist/DrugInteractions';
+import PatientCounselling from './pages/pharmacist/PatientCounselling';
+import MedicineInventory from './pages/pharmacist/MedicineInventory';
+import ReportsAnalytics from './pages/pharmacist/ReportsAnalytics';
 import StockVerification from './pages/pharmacist/StockVerification';
 
 // Admin Pages
@@ -159,12 +166,19 @@ function AppRoutes() {
           <Route path="/doctor/referrals" element={<PatientOverview initialTab="overview" />} />
 
           {/* Pharmacist Routes */}
+          <Route path="/pharmacist" element={<Navigate to="/pharmacist/dashboard" replace />} />
           <Route path="/pharmacist/dashboard" element={<PharmacistDashboard />} />
-          <Route path="/pharmacist/stock-verification" element={<StockVerification />} />
+          <Route path="/pharmacist/patients" element={<PatientManagement />} />
+          <Route path="/pharmacist/prescriptions" element={<PrescriptionManagement />} />
+          <Route path="/pharmacist/adherence" element={<MedicationAdherence />} />
+          <Route path="/pharmacist/interactions" element={<DrugInteractions />} />
+          <Route path="/pharmacist/counselling" element={<PatientCounselling />} />
+          <Route path="/pharmacist/inventory" element={<MedicineInventory />} />
+          <Route path="/pharmacist/reports" element={<ReportsAnalytics />} />
+          <Route path="/pharmacist/stock-verification" element={<MedicineInventory />} />
           <Route path="/pharmacist/dispensing" element={<StockVerification />} />
           <Route path="/pharmacist/reviews" element={<PharmacistDashboard initialTab="reviews" />} />
-          <Route path="/pharmacist/counselling" element={<PharmacistDashboard initialTab="counselling" />} />
-          <Route path="/pharmacist/refills" element={<PharmacistDashboard initialTab="refills" />} />
+          <Route path="/pharmacist/refills" element={<PrescriptionManagement />} />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
