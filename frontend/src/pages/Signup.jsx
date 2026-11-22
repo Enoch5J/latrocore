@@ -206,10 +206,6 @@ export default function Signup() {
   const [showOtherCondition, setShowOtherCondition] = useState(false);
   const [isConditionsDropdownOpen, setIsConditionsDropdownOpen] = useState(false);
   const conditionsDropdownRef = useRef(null);
-  const [prescriptionFile, setPrescriptionFile] = useState(null);
-  const [prescriptionPreview, setPrescriptionPreview] = useState(null);
-  const [uploadedFileMeta, setUploadedFileMeta] = useState(null);
-  const [uploadingPrescription, setUploadingPrescription] = useState(false);
   const [consentHealthData, setConsentHealthData] = useState(false);
 
   // ── Doctor / Pharmacist Specific State (Section 2) ─────────────────
@@ -541,48 +537,6 @@ export default function Signup() {
     }
   };
 
-  // ── Prescription Upload Handling ───────────────────────────────────
-  const handlePrescriptionSelect = async (file) => {
-    if (!file) return;
-
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      setFormError('Prescription file must be a PDF, WEBP, PNG, JPG, or JPEG.');
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setFormError('Prescription file size exceeds the 10 MB limit.');
-      return;
-    }
-
-    setPrescriptionFile(file);
-    setFormError('');
-
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => setPrescriptionPreview(e.target.result);
-      reader.readAsDataURL(file);
-    } else {
-      setPrescriptionPreview(null);
-    }
-
-    setUploadingPrescription(true);
-    try {
-      const uploadRes = await api.uploadPrescription(file);
-      setUploadedFileMeta(uploadRes);
-    } catch (err) {
-      setFormError(err.message || 'Failed to upload prescription. You can continue and upload later.');
-    } finally {
-      setUploadingPrescription(false);
-    }
-  };
-
-  const removePrescription = () => {
-    setPrescriptionFile(null);
-    setPrescriptionPreview(null);
-    setUploadedFileMeta(null);
-  };
-
   // ── Submit Registration ───────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -628,8 +582,8 @@ export default function Signup() {
           weight: weight ? parseFloat(weight) : null,
           conditions: selectedConditions,
           otherCondition: otherCondition.trim() || null,
-          prescriptionFileUrl: uploadedFileMeta?.fileUrl || null,
-          prescriptionFileName: uploadedFileMeta?.fileName || null,
+          prescriptionFileUrl: null,
+          prescriptionFileName: null,
           password,
           confirmPassword,
           verificationToken,
@@ -1481,17 +1435,6 @@ export default function Signup() {
                         />
                       </div>
                     )}
-                  </div>
-
-                  {/* Prescription Notice (No prescription required during signup) */}
-                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex items-center gap-3 text-xs text-emerald-950 font-medium">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-[#046A38] shrink-0">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#046A38]">No prescription required to register</p>
-                      <p className="text-stone-600 mt-0.5">You can upload past or new medical prescriptions anytime directly from your Patient Dashboard.</p>
-                    </div>
                   </div>
                 </div>
               )}
