@@ -610,17 +610,6 @@ export default function Signup() {
       return;
     }
 
-    if (accountType === 'patient') {
-      if (!prescriptionFile) {
-        setFormError('Medical prescription is required. Please upload your prescription.');
-        return;
-      }
-      if (uploadingPrescription) {
-        setFormError('Please wait for your prescription upload to finish.');
-        return;
-      }
-    }
-
     setSubmitting(true);
 
     try {
@@ -1494,77 +1483,15 @@ export default function Signup() {
                     )}
                   </div>
 
-                  {/* Prescription Upload Dropzone */}
-                  <div>
-                    <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
-                      <FileText className="w-4 h-4 text-[#046A38] shrink-0" />
-                      <span>Recent Medical Prescription</span>
-                      <span className="text-red-500">*</span>
-                    </label>
-
-                    {!prescriptionFile ? (
-                      <label className="border-2 border-dashed border-[#E8DCC8] hover:border-[#046A38] bg-[#FAF6EF]/30 hover:bg-[#FAF6EF]/70 rounded-xl py-4 sm:py-5 px-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 group shadow-2xs hover:shadow-xs">
-                        <div className="w-10 h-10 rounded-xl bg-white border border-[#E8DCC8] flex items-center justify-center text-[#046A38] group-hover:scale-105 group-hover:border-[#046A38]/40 transition-all mb-2 shadow-2xs">
-                          <UploadCloud className="w-5 h-5 text-[#046A38]" />
-                        </div>
-                        <span className="text-sm font-bold text-stone-900 group-hover:text-[#046A38] transition-colors">
-                          Click to upload or drag & drop prescription
-                        </span>
-                        <span className="text-xs text-stone-500 mt-1 font-medium">
-                          PDF, PNG, JPG, WEBP (Max 10MB)
-                        </span>
-                        <input
-                          type="file"
-                          accept=".pdf,.webp,.png,.jpg,.jpeg"
-                          onChange={(e) => handlePrescriptionSelect(e.target.files?.[0])}
-                          className="hidden"
-                        />
-                      </label>
-                    ) : (
-                      <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          {prescriptionPreview ? (
-                            <img
-                              src={prescriptionPreview}
-                              alt="Preview"
-                              className="w-12 h-12 object-cover rounded-lg border border-stone-200 shrink-0"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-lg bg-emerald-100 text-[#046A38] flex items-center justify-center font-bold text-xs shrink-0">
-                              PDF
-                            </div>
-                          )}
-                          <div className="overflow-hidden">
-                            <span className="text-sm font-bold text-stone-900 truncate block">
-                              {prescriptionFile.name}
-                            </span>
-                            <span className="text-xs text-stone-400">
-                              {(prescriptionFile.size / (1024 * 1024)).toFixed(2)} MB •{' '}
-                              {uploadingPrescription ? 'Uploading securely...' : 'Uploaded'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs sm:text-sm font-semibold text-[#046A38] hover:underline cursor-pointer">
-                            Replace
-                            <input
-                              type="file"
-                              accept=".pdf,.webp,.png,.jpg,.jpeg"
-                              onChange={(e) => handlePrescriptionSelect(e.target.files?.[0])}
-                              className="hidden"
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={removePrescription}
-                            className="p-1.5 text-stone-400 hover:text-red-500 rounded-lg hover:bg-stone-200 transition-colors cursor-pointer"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                  {/* Prescription Notice (No prescription required during signup) */}
+                  <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex items-center gap-3 text-xs text-emerald-950 font-medium">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-[#046A38] shrink-0">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#046A38]">No prescription required to register</p>
+                      <p className="text-stone-600 mt-0.5">You can upload past or new medical prescriptions anytime directly from your Patient Dashboard.</p>
+                    </div>
                   </div>
                 </div>
               )}
