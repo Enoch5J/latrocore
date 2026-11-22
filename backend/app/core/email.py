@@ -16,6 +16,49 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "LATROCORE Security <no-reply@latrocore.com>")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 RESEND_FROM = os.getenv("RESEND_FROM", "LATROCORE <onboarding@resend.dev>")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "enoenoch945@gmail.com")
+BREVO_SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "LATROCORE")
+
+
+def _send_brevo_http(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """Send an email using Brevo HTTP REST API over port 443 (delivers to any recipient email)."""
+    api_key = (os.getenv("BREVO_API_KEY") or BREVO_API_KEY or "").strip()
+    if not api_key:
+        return False
+    try:
+        import httpx
+        sender_email = (os.getenv("BREVO_SENDER_EMAIL") or BREVO_SENDER_EMAIL or os.getenv("SMTP_USER") or "enoenoch945@gmail.com").strip()
+        sender_name = (os.getenv("BREVO_SENDER_NAME") or BREVO_SENDER_NAME or "LATROCORE").strip()
+
+        payload = {
+            "sender": {"name": sender_name, "email": sender_email},
+            "to": [{"email": to_email}],
+            "subject": subject,
+            "htmlContent": html_content,
+            "textContent": text_content,
+        }
+
+        res = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json=payload,
+            timeout=8.0,
+        )
+        if res.status_code in (200, 201):
+            msg_id = res.json().get("messageId", "N/A") if res.headers.get("content-type", "").startswith("application/json") else "sent"
+            print(f"[EMAIL SUCCESS] Brevo HTTP dispatch to {to_email} succeeded! Message ID: {msg_id}")
+            return True
+        else:
+            print(f"[EMAIL ERROR] Brevo HTTP dispatch failed with status {res.status_code}: {res.text}")
+            return False
+    except Exception as e:
+        print(f"[EMAIL ERROR] Brevo HTTP exception for {to_email}: {e}")
+        return False
 
 
 def _send_resend_http(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
@@ -177,11 +220,15 @@ If you did not request this code, please ignore this email or contact support.
 def _dispatch_email(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
     """
     Unified email dispatcher:
-    1. Tries Resend REST API (HTTPS over port 443) first — the industry standard
-       for cloud platforms (Render, Railway, AWS) where SMTP outbound ports (587, 465) are blocked.
-    2. Falls back to SMTP if SMTP_HOST is configured and Resend is unconfigured or failed.
-    3. Returns True if dispatch was successful, False otherwise.
+    1. Tries Brevo REST API (HTTPS port 443) first — sends to ANY recipient email without requiring a custom domain.
+    2. Tries Resend REST API (HTTPS port 443) second.
+    3. Falls back to SMTP if SMTP_HOST is configured.
     """
+    brevo_key = (os.getenv("BREVO_API_KEY") or BREVO_API_KEY or "").strip()
+    if brevo_key:
+        if _send_brevo_http(to_email, subject, html_content, text_content):
+            return True
+
     resend_key = (os.getenv("RESEND_API_KEY") or RESEND_API_KEY or "").strip()
     if resend_key:
         if _send_resend_http(to_email, subject, html_content, text_content):

@@ -3,7 +3,12 @@ from typing import List
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
+# Search both current working directory and backend directory for .env
 load_dotenv()
+_backend_env = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+if os.path.exists(_backend_env):
+    load_dotenv(_backend_env)
+
 
 
 class Settings(BaseSettings):
@@ -59,6 +64,13 @@ class Settings(BaseSettings):
     # Gemini AI Integration & Guardrails
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+
+    # Email Service (Brevo HTTP REST & Resend & SMTP)
+    BREVO_API_KEY: str = os.getenv("BREVO_API_KEY", "")
+    BREVO_SENDER_EMAIL: str = os.getenv("BREVO_SENDER_EMAIL", "enoenoch945@gmail.com")
+    BREVO_SENDER_NAME: str = os.getenv("BREVO_SENDER_NAME", "LATROCORE")
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
+    RESEND_FROM: str = os.getenv("RESEND_FROM", "LATROCORE <onboarding@resend.dev>")
 
 
 settings = Settings()

@@ -19,6 +19,12 @@ services:
         fromDatabase:
           name: latrocore-db
           property: connectionString
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        value: enoenoch945@gmail.com
+      - key: BREVO_SENDER_NAME
+        value: LATROCORE
 
   # ── LATROCORE Frontend Static Site (React + Vite SPA) ──
   - type: web
