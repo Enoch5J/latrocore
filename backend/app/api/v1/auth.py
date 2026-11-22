@@ -646,13 +646,14 @@ def send_otp(
         "emailDispatched": bool(sent)
     }
 
-    # If SMTP dispatch failed (e.g. Render Free Tier blocks outbound port 587/465) or SMTP not set,
+    # If email dispatch failed (e.g. Render Free Tier blocks outbound port 587/465) or credentials not set,
     # supply devOtp so the user is never blocked or left in the dark.
-    if not sent or settings.ENVIRONMENT == "development" or not os.getenv("SMTP_HOST"):
+    has_email_config = bool(os.getenv("SMTP_HOST") or os.getenv("RESEND_API_KEY"))
+    if not sent or settings.ENVIRONMENT == "development" or not has_email_config:
         response_data["devOtp"] = otp_code
-        if not sent and os.getenv("SMTP_HOST"):
+        if not sent and has_email_config:
             response_data["devNotice"] = (
-                f"Cloud host blocked SMTP port 587. Verification code: {otp_code}"
+                f"Cloud host blocked SMTP port 587 or email dispatch failed. Verification code: {otp_code}"
             )
         else:
             response_data["devNotice"] = "Verification code provided for local/testing convenience."
@@ -1061,6 +1062,7 @@ def forgot_password(
         EmailVerificationOTP.is_consumed == False
     ).update({"is_consumed": True})
 
+    sent = False
     user = db.query(User).filter(User.email == email).first()
     if user:
         otp_code = generate_otp()
@@ -1078,17 +1080,22 @@ def forgot_password(
         )
         db.add(record)
         db.commit()
-        send_password_reset_email(email, otp_code)
+        sent = send_password_reset_email(email, otp_code)
     else:
         db.commit()
 
     resp = {
         "message": "If an account exists with this email address, we have sent a 6-digit password reset code.",
-        "cooldownSeconds": 60
+        "cooldownSeconds": 60,
+        "emailDispatched": bool(sent)
     }
-    if user and settings.ENVIRONMENT == "development" and not os.getenv("SMTP_HOST"):
+    has_email_config = bool(os.getenv("SMTP_HOST") or os.getenv("RESEND_API_KEY"))
+    if user and (not sent or settings.ENVIRONMENT == "development" or not has_email_config):
         resp["devOtp"] = otp_code
-        resp["devNotice"] = "SMTP server not configured. Code logged to backend console and provided here for local development."
+        if not sent and has_email_config:
+            resp["devNotice"] = f"Cloud host blocked SMTP port 587 or email dispatch failed. Verification code: {otp_code}"
+        else:
+            resp["devNotice"] = "Verification code provided for local/testing convenience."
 
     return resp
 
@@ -1128,6 +1135,7 @@ def reset_password(
 
     otp_record.is_consumed = True
 
+    sent = False
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User account not found.")

@@ -20,12 +20,17 @@ RESEND_FROM = os.getenv("RESEND_FROM", "LATROCORE <onboarding@resend.dev>")
 
 def _send_resend_http(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
     """Send an email using Resend HTTP REST API over port 443 (never blocked by Render Free Tier)."""
-    api_key = os.getenv("RESEND_API_KEY", RESEND_API_KEY).strip()
+    api_key = (os.getenv("RESEND_API_KEY") or RESEND_API_KEY or "").strip()
     if not api_key:
         return False
     try:
         import httpx
-        from_email = os.getenv("RESEND_FROM", RESEND_FROM).strip() or "LATROCORE <onboarding@resend.dev>"
+        from_email = (os.getenv("RESEND_FROM") or RESEND_FROM or "").strip()
+        if not from_email:
+            from_email = "LATROCORE <onboarding@resend.dev>"
+        elif any(domain in from_email.lower() for domain in ["@gmail.com", "@yahoo.com", "@outlook.com", "@hotmail.com"]):
+            print(f"[EMAIL WARNING] Resend does not allow sending from public webmail domains ({from_email}). Falling back to 'LATROCORE <onboarding@resend.dev>'. To send from a custom address, verify your domain in Resend.")
+            from_email = "LATROCORE <onboarding@resend.dev>"
         res = httpx.post(
             "https://api.resend.com/emails",
             headers={
@@ -39,10 +44,10 @@ def _send_resend_http(to_email: str, subject: str, html_content: str, text_conte
                 "html": html_content,
                 "text": text_content
             },
-            timeout=5.0
+            timeout=8.0
         )
         if res.status_code in (200, 201):
-            print(f"[EMAIL SUCCESS] Resend HTTP dispatch to {to_email} succeeded!")
+            print(f"[EMAIL SUCCESS] Resend HTTP dispatch to {to_email} succeeded! ID: {res.json().get('id', 'N/A')}")
             return True
         else:
             print(f"[EMAIL ERROR] Resend HTTP dispatch failed with status {res.status_code}: {res.text}")
@@ -166,12 +171,27 @@ If you did not request this code, please ignore this email or contact support.
 </html>
 """
     _log_console(to_email, subject, otp, purpose)
-    # 1. Try Resend HTTP API over HTTPS (never blocked by Render Free Tier)
-    if os.getenv("RESEND_API_KEY"):
-        if _send_resend_http(to_email, subject, html_body, text_body):
+    return _dispatch_email(to_email, subject, html_body, text_body)
+
+
+def _dispatch_email(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """
+    Unified email dispatcher:
+    1. Tries Resend REST API (HTTPS over port 443) first — the industry standard
+       for cloud platforms (Render, Railway, AWS) where SMTP outbound ports (587, 465) are blocked.
+    2. Falls back to SMTP if SMTP_HOST is configured and Resend is unconfigured or failed.
+    3. Returns True if dispatch was successful, False otherwise.
+    """
+    resend_key = (os.getenv("RESEND_API_KEY") or RESEND_API_KEY or "").strip()
+    if resend_key:
+        if _send_resend_http(to_email, subject, html_content, text_content):
             return True
-    # 2. Try SMTP
-    return _send_smtp(to_email, subject, html_body, text_body)
+
+    smtp_host = (os.getenv("SMTP_HOST") or SMTP_HOST or "").strip()
+    if smtp_host:
+        return _send_smtp(to_email, subject, html_content, text_content)
+
+    return False
 
 
 def send_password_reset_confirmation(to_email: str) -> bool:
@@ -198,12 +218,11 @@ If you did NOT authorize this change, please contact your clinic administrator i
     <p style="color: #334155; font-size: 14px;">The password for your LATROCORE account was successfully reset. All active sessions have been terminated for security.</p>
     <p style="color: #E34222; font-size: 12px; font-weight: bold;">If you did not make this change, please contact system administration immediately.</p>
   </div>
-</body>
+ </body>
 </html>
 """
     _log_console(to_email, subject, "", "password_reset_confirmation")
-    _send_smtp(to_email, subject, html_body, text_body)
-    return True
+    return _dispatch_email(to_email, subject, html_body, text_body)
 
 
 def send_doctor_approval_notification(to_email: str, doctor_name: str, approved: bool, reason: str = "") -> bool:
@@ -219,13 +238,45 @@ def send_approval_decision_notification(to_email: str, user_name: str, role: str
     if approved:
         subject = f"{role_label} Account Approved — Welcome to LATROCORE"
         text = f"Dear {user_name},\n\nYour {role_label} registration has been reviewed and approved by our Medical Board Administration. You can now log in and access your {portal_label}."
+        title = f"{role_label} Account Approved"
+        status_color = "#046A38"
+        status_badge = "APPROVED"
     else:
         subject = f"LATROCORE {role_label} Registration Status Update"
         text = f"Dear {user_name},\n\nYour {role_label} registration was reviewed and could not be approved at this time.\nReason: {reason or 'Credentials could not be verified'}"
+        title = f"{role_label} Registration Update"
+        status_color = "#DC2626"
+        status_badge = "ACTION REQUIRED"
+
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #FAF6EF; padding: 30px; margin: 0;">
+  <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #E8DCC8; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <h2 style="color: #046A38; font-size: 24px; font-weight: 800; margin: 0;">LATROCORE</h2>
+      <p style="color: #64748B; font-size: 12px; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Enterprise Healthcare Security</p>
+    </div>
+    
+    <div style="display: inline-block; background: {'#E8F5EE' if approved else '#FEE2E2'}; color: {status_color}; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; margin-bottom: 12px;">
+      {status_badge}
+    </div>
+    <h3 style="color: #0F172A; font-size: 18px; margin-bottom: 12px;">{title}</h3>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6;">Dear {user_name},</p>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6;">{'Your registration has been reviewed and approved by the LATROCORE Medical Board Administration. You can now log in and access your ' + portal_label + '.' if approved else f'Your registration was reviewed and could not be approved at this time.<br><br><strong>Reason:</strong> {reason or "Credentials could not be verified"}'}</p>
+    
+    <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 24px 0;" />
+    
+    <p style="color: #94A3B8; font-size: 11px; text-align: center; margin: 0;">
+      © {settings.PROJECT_NAME} Clinical Diabetes System • Medical Administration
+    </p>
+  </div>
+</body>
+</html>
+"""
 
     _log_console(to_email, subject, "", f"{role}_approval_decision")
-    _send_smtp(to_email, subject, text, text)
-    return True
+    return _dispatch_email(to_email, subject, html_body, text)
 
 
 # Convenience aliases
