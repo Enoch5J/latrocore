@@ -18,13 +18,35 @@ def setup_db():
 
 
 def get_patient_token():
-    res = client.post(
-        "/auth/login",
-        json={"email": "patient@latrocore.com", "password": "patient123"},
-        headers=CSRF_HEADERS
-    )
-    assert res.status_code == 200, res.text
-    return res.json()["accessToken"]
+    db = SessionLocal()
+    try:
+        from app.models.models import User, Patient, Session as UserSession
+        from app.core.security import hash_password, create_access_token
+        from datetime import datetime, timezone, timedelta
+        user = db.query(User).filter(User.email == "patient.ai.test@latrocore.com").first()
+        if not user:
+            user = User(
+                email="patient.ai.test@latrocore.com",
+                name="AI Test Patient",
+                password_hash=hash_password("patient123"),
+                role="patient",
+                status="active",
+                verified=True
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            pat = Patient(user_id=user.id, patient_id_display="PAT-TESTAI", age=45, approval_status="approved")
+            db.add(pat)
+            db.commit()
+        sess = UserSession(user_id=user.id, expires_at=datetime.now(timezone.utc) + timedelta(days=1), ip_address="127.0.0.1")
+        db.add(sess)
+        db.commit()
+        db.refresh(sess)
+        token, _ = create_access_token(user_id=user.id, session_id=sess.id, role=user.role)
+        return token
+    finally:
+        db.close()
 
 
 def test_analyze_prescription_requires_input():

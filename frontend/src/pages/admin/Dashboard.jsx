@@ -230,6 +230,55 @@ export default function AdminDashboard({ initialTab }) {
     }
   };
 
+  const handlePurgeDemoData = async () => {
+    if (!window.confirm('Are you sure you want to purge all demonstration data? This will permanently remove all synthetic patients, clinicians, and demo records.')) {
+      return;
+    }
+    setProcessingId('purge');
+    try {
+      await api.purgeDemoData();
+      addToast({
+        type: 'success',
+        title: 'Demo Data Purged',
+        message: 'All synthetic demonstration accounts and mock records have been removed.'
+      });
+      await loadAllData();
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Purge Failed',
+        message: err.message || 'Failed to purge demonstration data.'
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteUser = async (targetUser) => {
+    if (!window.confirm(`Are you sure you want to delete ${targetUser.name} (${targetUser.email})?`)) {
+      return;
+    }
+    setProcessingId(targetUser.id);
+    try {
+      await api.deleteUser(targetUser.id);
+      setDirectoryUsers((prev) => prev.filter((u) => u.id !== targetUser.id));
+      addToast({
+        type: 'success',
+        title: 'User Deleted',
+        message: `${targetUser.name} (${targetUser.email}) has been permanently deleted.`
+      });
+      await loadAllData();
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Delete Failed',
+        message: err.message || 'Failed to delete user.'
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   // ── Combined Pending List with Filtering ─────────────────────────────
   const combinedPending = useMemo(() => {
     const list = [];
@@ -762,6 +811,16 @@ export default function AdminDashboard({ initialTab }) {
                 <option value="pending">Pending</option>
                 <option value="suspended">Suspended / Rejected</option>
               </select>
+
+              <button
+                type="button"
+                onClick={handlePurgeDemoData}
+                disabled={processingId === 'purge'}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                <Trash2 size={13} />
+                <span>{processingId === 'purge' ? 'Clearing...' : 'Clear Dummy Data'}</span>
+              </button>
             </div>
           </div>
 
@@ -846,20 +905,34 @@ export default function AdminDashboard({ initialTab }) {
                           {formatDateTime(u.createdAt)}
                         </td>
                         <td className="text-right">
-                          {isPending ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveTab('approvals');
-                                setApprovalSearchQuery(u.name);
-                              }}
-                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
-                            >
-                              Review
-                            </button>
-                          ) : (
-                            <span className="text-[11px] text-stone-400 font-medium">Verified</span>
-                          )}
+                          <div className="flex items-center justify-end gap-2">
+                            {isPending && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveTab('approvals');
+                                  setApprovalSearchQuery(u.name);
+                                }}
+                                className="px-2.5 py-1 rounded-lg text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
+                              >
+                                Review
+                              </button>
+                            )}
+                            {!isPending && (
+                              <span className="text-[11px] text-stone-400 font-medium">Verified</span>
+                            )}
+                            {u.role !== 'admin' && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(u)}
+                                disabled={processingId === u.id}
+                                title="Delete user"
+                                className="p-1 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

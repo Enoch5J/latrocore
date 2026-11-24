@@ -195,27 +195,6 @@ def clear_refresh_cookie(response: Response):
 
 
 CANONICAL_DEMO_USERS = {
-    "doctor@latrocore.com": {
-        "password": "doctor123",
-        "role": "doctor",
-        "name": "Dr. Priya Sharma",
-        "phone": "+91-9876543210",
-        "display_id": "DOC-100001",
-    },
-    "pharmacist@latrocore.com": {
-        "password": "care123",
-        "role": "care_team",
-        "name": "Pharm. Rajesh Kumar",
-        "phone": "+91-9876543211",
-        "display_id": "PHARM-100001",
-    },
-    "patient@latrocore.com": {
-        "password": "patient123",
-        "role": "patient",
-        "name": "Anand Krishnan",
-        "phone": "+91-9876543212",
-        "display_id": "PAT-100001",
-    },
     "admin@latrocore.com": {
         "password": "admin123",
         "role": "admin",

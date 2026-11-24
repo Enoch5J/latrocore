@@ -197,6 +197,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ status }),
     }),
+  deleteUser: (userId) =>
+    request(`/admin/users/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+    }),
+  purgeDemoData: () =>
+    request('/admin/purge-demo-data', {
+      method: 'POST',
+    }),
 
   // Patients
   getPatients: (params = '') => request(`/patients${params ? `?${params}` : ''}`),

@@ -6,6 +6,35 @@ db_url = settings.DATABASE_URL
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
+# Dynamically ensure the requested driver is available or fallback cleanly
+if db_url.startswith("postgresql://"):
+    try:
+        import psycopg2  # noqa: F401
+    except ImportError:
+        try:
+            import psycopg  # noqa: F401
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+        except ImportError:
+            pass
+elif db_url.startswith("postgresql+psycopg://"):
+    try:
+        import psycopg  # noqa: F401
+    except ImportError:
+        try:
+            import psycopg2  # noqa: F401
+            db_url = db_url.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
+        except ImportError:
+            pass
+elif db_url.startswith("postgresql+psycopg2://"):
+    try:
+        import psycopg2  # noqa: F401
+    except ImportError:
+        try:
+            import psycopg  # noqa: F401
+            db_url = db_url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
+        except ImportError:
+            pass
+
 # Handle dialect-specific connection arguments
 connect_args = {}
 if db_url.startswith("sqlite"):
@@ -51,6 +80,26 @@ def init_db_schema():
                     "UPDATE patients SET approval_status = 'approved' "
                     "WHERE approval_status IS NULL OR approval_status = 'pending'"
                 ))
+
+                # Purge synthetic demo users and dummy records
+                demo_emails = "('patient@latrocore.com', 'patient2@latrocore.com', 'doctor@latrocore.com', 'pharmacist@latrocore.com')"
+                try:
+                    conn.execute(text(f"DELETE FROM dose_instances WHERE prescription_item_id IN (SELECT id FROM prescription_items WHERE prescription_id IN (SELECT id FROM prescriptions WHERE prescriber_id IN (SELECT id FROM users WHERE email IN {demo_emails})))"))
+                    conn.execute(text(f"DELETE FROM prescription_items WHERE prescription_id IN (SELECT id FROM prescriptions WHERE prescriber_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
+                    conn.execute(text(f"DELETE FROM prescriptions WHERE prescriber_id IN (SELECT id FROM users WHERE email IN {demo_emails})"))
+                    conn.execute(text(f"DELETE FROM observations WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
+                    conn.execute(text(f"DELETE FROM screening_tasks WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
+                    conn.execute(text(f"DELETE FROM investigations WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
+                    conn.execute(text(f"DELETE FROM referrals WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
+                    conn.execute(text(f"DELETE FROM tickets WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
+                    conn.execute(text(f"DELETE FROM notes WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
+                    conn.execute(text(f"DELETE FROM assignments WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails})"))
+                    conn.execute(text(f"DELETE FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails})"))
+                    conn.execute(text("DELETE FROM doctor_profiles WHERE user_id IN (SELECT id FROM users WHERE email = 'doctor@latrocore.com')"))
+                    conn.execute(text("DELETE FROM pharmacist_profiles WHERE user_id IN (SELECT id FROM users WHERE email = 'pharmacist@latrocore.com')"))
+                    conn.execute(text(f"DELETE FROM users WHERE email IN {demo_emails}"))
+                except Exception as purge_err:
+                    print(f"[DB_SCHEMA] Demo purge notice: {purge_err}")
     except Exception as e:
         print(f"[DB_SCHEMA] Migration check notice: {e}")
 
