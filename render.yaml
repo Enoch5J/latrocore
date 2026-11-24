@@ -25,6 +25,10 @@ services:
         value: enoenoch945@gmail.com
       - key: BREVO_SENDER_NAME
         value: LATROCORE
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-flash-lite-latest
 
   # ── LATROCORE Frontend Static Site (React + Vite SPA) ──
   - type: web

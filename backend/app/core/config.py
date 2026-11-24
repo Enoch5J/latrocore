@@ -63,7 +63,7 @@ class Settings(BaseSettings):
 
     # Gemini AI Integration & Guardrails
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 
     # Email Service (Brevo HTTP REST & Resend & SMTP)
     BREVO_API_KEY: str = os.getenv("BREVO_API_KEY", "")

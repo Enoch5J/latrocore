@@ -430,10 +430,10 @@ class ClinicalQAService:
                 "- Tailor your lifestyle tips, adverse effects, and medication schedule details specifically around these detected medicines."
             )
 
-        active_model = self.model_name or "gemini-3.1-flash-lite"
+        active_model = self.model_name or "gemini-flash-lite-latest"
         # Candidate models with automatic failover in case of temporary 503 / 429 demand spikes
         candidate_models = [active_model]
-        for fallback_model in ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"]:
+        for fallback_model in ["gemini-flash-lite-latest", "gemini-3.5-flash-lite"]:
             if fallback_model not in candidate_models:
                 candidate_models.append(fallback_model)
 
