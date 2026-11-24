@@ -425,8 +425,11 @@ export default function FloatingAIAssistant() {
       addToast?.({ type: 'success', message: patientId ? 'Prescription synchronized with AI Assistant' : 'Prescription analyzed successfully' });
     } catch (err) {
       const isAuthErr = err?.message && (err.message.toLowerCase().includes('authenticated') || err.message.includes('401'));
+      const isThrottled = err?.message && (err.message.includes('503') || err.message.toLowerCase().includes('peak demand') || err.message.toLowerCase().includes('high demand') || err.message.toLowerCase().includes('throttled'));
       const friendlyDetail = isAuthErr
         ? 'Please **[Sign In](/login)** to your patient account first to upload and verify your medical prescription.'
+        : isThrottled
+        ? 'Google Gemini AI services are temporarily experiencing peak demand (status 503). Your prescription image was received safely — please click the paperclip to retry in a few seconds.'
         : (err.message || 'Error communicating with Gemini Vision AI. Please ensure the document is clear and try again.');
 
       const errMsg = {

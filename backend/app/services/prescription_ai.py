@@ -23,8 +23,11 @@ logger = logging.getLogger("latrocore.prescription_ai")
 CANDIDATE_MODELS = [
     os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
     "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
     "gemini-flash-lite-latest",
-    "gemini-3.1-flash-lite"
+    "gemini-flash-latest",
+    "gemini-3.1-flash-lite",
+    "gemini-3.8-flash"
 ]
 
 
@@ -292,12 +295,13 @@ async def analyze_prescription_with_gemini(
         ],
         "generationConfig": {
             "temperature": 0.0,
-            "maxOutputTokens": 2048,
+            "maxOutputTokens": 4096,
             "responseMimeType": "application/json"
         }
     }
 
     last_error = None
+    last_status = None
     seen_models = set()
 
     async with httpx.AsyncClient(timeout=45.0) as client:
@@ -307,71 +311,86 @@ async def analyze_prescription_with_gemini(
             seen_models.add(model)
             
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-            try:
-                logger.info("Calling Gemini model %s for prescription analysis...", model)
-                res = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
-                
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if not candidates:
-                        raise ValueError("Gemini returned empty candidates.")
+            
+            # Retry up to 2 attempts on transient 503 / 429 demand spikes
+            for attempt in range(2):
+                try:
+                    logger.info("Calling Gemini model %s (attempt %d) for prescription analysis...", model, attempt + 1)
+                    res = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                    last_status = res.status_code
                     
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    raw_text = "".join(p.get("text", "") for p in parts if "text" in p).strip()
-                    
-                    # Clean any accidental markdown wrap
-                    raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text, flags=re.MULTILINE)
-                    raw_text = re.sub(r"\s*```$", "", raw_text, flags=re.MULTILINE)
-                    
-                    parsed_json = json.loads(raw_text)
-                    
-                    # 1. Validation Gate: Reject non-prescriptions
-                    is_valid = parsed_json.get("is_valid_prescription", True)
-                    if is_valid is False:
-                        rejection = parsed_json.get("rejection_reason") or "Uploaded document is not a medical prescription."
-                        doc_type = parsed_json.get("document_type_detected") or "Non-prescription document"
-                        raise HTTPException(
-                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail=f"Invalid Prescription: {rejection} (Detected: {doc_type}). Please upload an authentic doctor's prescription."
-                        )
+                    if res.status_code == 200:
+                        data = res.json()
+                        candidates = data.get("candidates", [])
+                        if not candidates:
+                            raise ValueError("Gemini returned empty candidates.")
+                        
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        raw_text = "".join(p.get("text", "") for p in parts if "text" in p).strip()
+                        
+                        # Clean any accidental markdown wrap
+                        raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text, flags=re.MULTILINE)
+                        raw_text = re.sub(r"\s*```$", "", raw_text, flags=re.MULTILINE)
+                        
+                        parsed_json = json.loads(raw_text)
+                        
+                        # 1. Validation Gate: Reject non-prescriptions
+                        is_valid = parsed_json.get("is_valid_prescription", True)
+                        if is_valid is False:
+                            rejection = parsed_json.get("rejection_reason") or "Uploaded document is not a medical prescription."
+                            doc_type = parsed_json.get("document_type_detected") or "Non-prescription document"
+                            raise HTTPException(
+                                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"Invalid Prescription: {rejection} (Detected: {doc_type}). Please upload an authentic doctor's prescription."
+                            )
 
-                    # 2. Validate presence of actual medications
-                    medicines = parsed_json.get("medicines", [])
-                    if not isinstance(medicines, list) or len(medicines) == 0:
-                        raise HTTPException(
-                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail="No prescribed medications found. The document does not contain any readable medical prescription orders. Please upload a clear doctor's prescription."
-                        )
-                    
-                    # 3. Ensure diet_plan and daily_schedule are populated (synthesize clinical defaults if omitted by Gemini)
-                    parsed_json = _ensure_clinical_diet_and_schedule(parsed_json)
+                        # 2. Validate presence of actual medications
+                        medicines = parsed_json.get("medicines", [])
+                        if not isinstance(medicines, list) or len(medicines) == 0:
+                            raise HTTPException(
+                                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="No prescribed medications found. The document does not contain any readable medical prescription orders. Please upload a clear doctor's prescription."
+                            )
+                        
+                        # 3. Ensure diet_plan and daily_schedule are populated (synthesize clinical defaults if omitted by Gemini)
+                        parsed_json = _ensure_clinical_diet_and_schedule(parsed_json)
 
-                    parsed_json["model_used"] = model
-                    return parsed_json
-                
-                elif res.status_code in (503, 429):
-                    logger.warning("Gemini model %s returned status %s. Failing over to next model in pool...", model, res.status_code)
-                    last_error = f"Gemini model {model} high demand / throttled (status {res.status_code})"
-                    continue
-                else:
-                    err_msg = res.text[:200]
-                    logger.error("Gemini API error (%s) on model %s: %s", res.status_code, model, err_msg)
-                    last_error = f"Gemini error {res.status_code}: {err_msg}"
+                        parsed_json["model_used"] = model
+                        return parsed_json
+                    
+                    elif res.status_code in (503, 429):
+                        logger.warning("Gemini model %s returned status %s (attempt %d). Failing over / retrying...", model, res.status_code, attempt + 1)
+                        last_error = f"Gemini model {model} high demand / throttled (status {res.status_code})"
+                        if attempt == 0:
+                            import asyncio
+                            await asyncio.sleep(1.2)
+                            continue
+                        else:
+                            # Move to next candidate model
+                            break
+                    else:
+                        err_msg = res.text[:200]
+                        logger.error("Gemini API error (%s) on model %s: %s", res.status_code, model, err_msg)
+                        last_error = f"Gemini error {res.status_code}: {err_msg}"
+                        break
+                except HTTPException:
+                    # Re-raise explicit clinical validation exceptions directly
+                    raise
+                except json.JSONDecodeError as jde:
+                    logger.error("Failed to parse Gemini JSON output: %s", jde)
+                    last_error = f"Malformed JSON from Gemini: {jde}"
                     break
-            except HTTPException:
-                # Re-raise explicit clinical validation exceptions directly
-                raise
-            except json.JSONDecodeError as jde:
-                logger.error("Failed to parse Gemini JSON output: %s", jde)
-                last_error = f"Malformed JSON from Gemini: {jde}"
-                continue
-            except Exception as exc:
-                logger.warning("Exception calling Gemini model %s: %s", model, exc)
-                last_error = str(exc)
-                continue
+                except Exception as exc:
+                    logger.warning("Exception calling Gemini model %s: %s", model, exc)
+                    last_error = str(exc)
+                    break
 
     # NO FALLBACK DATA ALLOWED: Fail explicitly with descriptive error
+    if last_status in (503, 429) or (last_error and any(k in (last_error or "").lower() for k in ("503", "throttled", "high demand", "unavailable"))):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Gemini AI services are temporarily experiencing peak demand (status 503). Your prescription image was received safely; please try again in a few moments."
+        )
     raise HTTPException(
         status_code=status.HTTP_502_BAD_GATEWAY,
         detail=f"Unable to extract electronic prescription using Gemini AI: {last_error or 'Upstream service unavailable'}. Please verify your prescription image is clear and try again."

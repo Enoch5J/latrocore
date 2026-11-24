@@ -250,10 +250,15 @@ export default function Assistant() {
       setMessages(prev => prev.map(m => m.id === tempLoadingId ? successMsg : m));
       addToast({ type: 'success', message: 'Prescription synchronized with AI Assistant' });
     } catch (err) {
+      const isThrottled = err?.message && (err.message.includes('503') || err.message.toLowerCase().includes('peak demand') || err.message.toLowerCase().includes('high demand') || err.message.toLowerCase().includes('throttled'));
+      const friendlyDetail = isThrottled
+        ? 'Google Gemini AI services are temporarily experiencing peak demand (status 503). Your prescription image was received safely — please retry in a few moments.'
+        : (err.message || 'Network error communicating with Gemini Vision AI. Please try again.');
+
       const errMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        text: `❌ **Failed to process prescription:** ${err.message || 'Network error communicating with Gemini Vision AI. Please try again.'}`,
+        text: `❌ **Failed to process prescription:** ${friendlyDetail}`,
         lang,
         time: new Date().toISOString()
       };

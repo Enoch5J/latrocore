@@ -232,7 +232,7 @@ class ClinicalQAService:
 
     @property
     def model_name(self) -> str:
-        return (os.getenv("GEMINI_MODEL", "").strip() or getattr(settings, "GEMINI_MODEL", "gemini-3.1-flash-lite").strip())
+        return (os.getenv("GEMINI_MODEL", "").strip() or getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash-lite").strip())
 
     @property
     def endpoint_url(self) -> str:
@@ -430,10 +430,10 @@ class ClinicalQAService:
                 "- Tailor your lifestyle tips, adverse effects, and medication schedule details specifically around these detected medicines."
             )
 
-        active_model = self.model_name or "gemini-flash-lite-latest"
+        active_model = self.model_name or "gemini-3.5-flash-lite"
         # Candidate models with automatic failover in case of temporary 503 / 429 demand spikes
         candidate_models = [active_model]
-        for fallback_model in ["gemini-flash-lite-latest", "gemini-3.5-flash-lite"]:
+        for fallback_model in ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-flash-latest"]:
             if fallback_model not in candidate_models:
                 candidate_models.append(fallback_model)
 
