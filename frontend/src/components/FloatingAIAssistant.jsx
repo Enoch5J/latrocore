@@ -386,29 +386,34 @@ export default function FloatingAIAssistant() {
         return;
       }
 
-      // Synchronize locally and best-effort backend
-      applyAIPrescriptionToPatient(patientId, result);
-      try {
-        await api.applyAIPrescription({
-          patient_id: patientId,
-          ...result,
-        });
-      } catch (applyErr) {
-        console.warn('Backend DB apply sync notice (continuing with local sync):', applyErr);
+      // Synchronize locally and best-effort backend if logged in
+      if (patientId) {
+        applyAIPrescriptionToPatient(patientId, result);
+        try {
+          await api.applyAIPrescription({
+            patient_id: patientId,
+            ...result,
+          });
+        } catch (applyErr) {
+          console.warn('Backend DB apply sync notice (continuing with local sync):', applyErr);
+        }
+        refreshData();
       }
-
-      refreshData();
 
       const medsList = (result.medicines || []).map((m) => {
         const isUnclear = !m.name || m.name.toLowerCase().includes('unclear') || !m.dose || String(m.dose).toLowerCase().includes('unclear');
         return `• **${m.name || 'unclear'}** — ${m.dose || 'unclear'} (${m.frequency || 'frequency unclear'}, ${m.meal_timing || m.instructions || 'With meals'})${isUnclear ? ' ⚠️ [Unclear handwriting flagged]' : ''}`;
       }).join('\n');
 
-      const responseText = `✅ **Prescription Successfully Synchronized!**\n\n` +
+      const guestNote = !patientId
+        ? `\n\n💡 **Guest Preview Mode:** You are currently browsing as a guest. To permanently save this prescription to your profile and track daily doses, please **[Sign In](/login)** or **[Register as Patient](/signup?role=patient)**.`
+        : '';
+
+      const responseText = `✅ **Prescription Successfully ${patientId ? 'Synchronized' : 'Analyzed'}!**\n\n` +
         `**Doctor:** ${result.doctor_name || 'Attending Physician'}\n` +
         `**Diagnosis:** ${result.diagnosis || 'Type 2 Diabetes Mellitus'}\n\n` +
         `**Detected Medications:**\n${medsList}\n\n` +
-        `🔒 **Strict AI Guardrails Active:** My clinical responses, adverse effect analyses, and routine tips are now locked strictly to these detected medications. I will not suggest or hallucinate any outside pharmaceuticals. If any entry is unreadable, it is flagged as 'unclear' rather than guessed.`;
+        `🔒 **Strict AI Guardrails Active:** My clinical responses, adverse effect analyses, and routine tips are now locked strictly to these detected medications. I will not suggest or hallucinate any outside pharmaceuticals. If any entry is unreadable, it is flagged as 'unclear' rather than guessed.${guestNote}`;
 
       const successMsg = {
         id: `a-${Date.now()}`,
@@ -417,12 +422,17 @@ export default function FloatingAIAssistant() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => prev.map((m) => (m.id === tempLoadingId ? successMsg : m)));
-      addToast?.({ type: 'success', message: 'Prescription synchronized with AI Assistant' });
+      addToast?.({ type: 'success', message: patientId ? 'Prescription synchronized with AI Assistant' : 'Prescription analyzed successfully' });
     } catch (err) {
+      const isAuthErr = err?.message && (err.message.toLowerCase().includes('authenticated') || err.message.includes('401'));
+      const friendlyDetail = isAuthErr
+        ? 'Please **[Sign In](/login)** to your patient account first to upload and verify your medical prescription.'
+        : (err.message || 'Error communicating with Gemini Vision AI. Please ensure the document is clear and try again.');
+
       const errMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        text: `❌ **Failed to process prescription:** ${err.message || 'Error communicating with Gemini Vision AI. Please ensure the document is clear and try again.'}`,
+        text: `❌ **Failed to process prescription:** ${friendlyDetail}`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => prev.map((m) => (m.id === tempLoadingId ? errMsg : m)));

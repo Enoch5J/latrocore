@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from datetime import datetime, timezone, date, timedelta
 from typing import Optional, List, Dict, Any
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, check_patient_access, require_role
+from app.core.dependencies import get_current_user, get_optional_current_user, check_patient_access, require_role
 from app.models.models import (
     User, Patient, CarePlan, Prescription, PrescriptionItem, DoseInstance, AuditEvent
 )
@@ -329,7 +329,7 @@ MAX_FILE_SIZE = 12 * 1024 * 1024  # 12 MB
 async def analyze_prescription_endpoint(
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_current_user)
 ):
     """
     Directly extracts and digitizes an uploaded doctor prescription (image/PDF or text)
@@ -384,7 +384,7 @@ async def analyze_prescription_endpoint(
 @router.post("/prescriptions/analyze-json")
 async def analyze_prescription_json_endpoint(
     req: AnalyzeTextRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_current_user)
 ):
     """Analyze digital prescription text using Gemini AI."""
     return await analyze_prescription_with_gemini(text_content=req.text)

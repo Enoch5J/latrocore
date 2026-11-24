@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -7,6 +8,8 @@ from app.core.security import decode_access_token, ensure_utc
 from app.models.models import User, Session as UserSession
 
 security_scheme = HTTPBearer(auto_error=True)
+optional_security_scheme = HTTPBearer(auto_error=False)
+
 
 
 async def get_current_user_and_session(
@@ -90,6 +93,33 @@ async def get_current_user(
     """Dependency returning authenticated active user."""
     user, _ = auth_tuple
     return user
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security_scheme),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Dependency returning authenticated user if token present and valid, else None."""
+    if not credentials or not credentials.credentials:
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id = payload.get("sub")
+        session_id = payload.get("sid")
+        if not user_id or not session_id:
+            return None
+        user_session = db.query(UserSession).filter(UserSession.id == session_id).first()
+        if not user_session or user_session.is_revoked:
+            return None
+        now = datetime.now(timezone.utc)
+        if ensure_utc(user_session.expires_at) <= now:
+            return None
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or user.status == "suspended":
+            return None
+        return user
+    except Exception:
+        return None
 
 
 def require_role(*roles: str):
