@@ -593,12 +593,11 @@ export default function Signup() {
 
         const res = await api.registerPatient(payload);
         setAuthUser(res.user, res.accessToken);
-        setRegistrationSuccess({
-          type: 'patient',
-          displayId: res.user.displayId,
-          name: res.user.name,
-          email: res.user.email
-        });
+        if (typeof addToast === 'function') {
+          addToast(`Welcome to LATROCORE, ${res.user.name}! Your account is active.`, 'success');
+        }
+        navigate('/patient/dashboard', { replace: true });
+        return;
       } else if (accountType === 'doctor') {
         if (!licenseNumber.trim()) {
           setFormError('Medical registration / license number is required.');
@@ -726,9 +725,7 @@ export default function Signup() {
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500">
                 {isDoc
                   ? 'Assigned Doctor Account ID'
-                  : isPharm
-                  ? 'Assigned Pharmacist Account ID'
-                  : 'Assigned Patient Health ID'}
+                  : 'Assigned Pharmacist Account ID'}
               </span>
               <button
                 type="button"
@@ -753,13 +750,11 @@ export default function Signup() {
                 <span>
                   {isDoc
                     ? 'Doctor Credential Verification Queued'
-                    : isPharm
-                    ? 'Pharmacy Practice License Verification Queued'
-                    : 'Patient Identity & Enrollment Verification Queued'}
+                    : 'Pharmacy Practice License Verification Queued'}
                 </span>
               </div>
               <p className="text-xs text-amber-800 leading-relaxed">
-                As required by clinical governance standards, all accounts must receive verified approval from the authorized Medical Board Administration before clinical workstation tools and medical records can be accessed.
+                As required by clinical governance standards, doctor and pharmacist accounts must receive verified approval from the authorized Medical Board Administration before clinical workstation tools and medical records can be accessed.
               </p>
             </div>
 

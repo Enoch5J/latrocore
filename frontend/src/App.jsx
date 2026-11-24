@@ -84,7 +84,8 @@ function RoleDashboardRedirect() {
   if (userEmail === 'admin@latrocore.com' || role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   if (userEmail === 'patient@latrocore.com' || role === 'patient') return <Navigate to="/patient/dashboard" replace />;
 
-  const isPending = !isDemo && role !== 'admin' && (user?.status === 'pending' || user?.approvalStatus === 'pending');
+  const requiresApproval = ['doctor', 'pharmacist', 'care_team'].includes(role);
+  const isPending = !isDemo && requiresApproval && (user?.status === 'pending' || user?.approvalStatus === 'pending');
   if (isPending) return <Navigate to="/waiting-approval" replace />;
 
   return <Navigate to="/" replace />;

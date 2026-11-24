@@ -33,8 +33,9 @@ export default function ProtectedRoute({ children }) {
   const userRole = (user?.role || '').toLowerCase().trim();
   const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
 
-  // Demo accounts always bypass pending restrictions directly into their clinical station
-  const isPending = !isDemo && userRole !== 'admin' && (user.status === 'pending' || user.approvalStatus === 'pending');
+  // Only doctor and pharmacist require administrative approval
+  const requiresApproval = ['doctor', 'pharmacist', 'care_team'].includes(userRole);
+  const isPending = !isDemo && requiresApproval && (user.status === 'pending' || user.approvalStatus === 'pending');
 
   // If user is pending admin approval and attempting to access clinical portals
   if (isPending && location.pathname !== '/waiting-approval') {

@@ -81,6 +81,13 @@ export default function WaitingApproval() {
     }
   };
 
+  // Patients never require administrative approval; immediately redirect to patient dashboard
+  useEffect(() => {
+    if (isPatient) {
+      navigate('/patient/dashboard', { replace: true });
+    }
+  }, [isPatient, navigate]);
+
   // Automated background polling every 5 seconds
   useEffect(() => {
     checkStatus(false);

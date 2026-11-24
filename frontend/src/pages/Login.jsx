@@ -74,7 +74,8 @@ export default function Login() {
         return;
       }
 
-      const isPending = userRole !== 'admin' && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
+      const requiresApproval = ['doctor', 'pharmacist', 'care_team'].includes(userRole);
+      const isPending = requiresApproval && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
       if (isPending) {
         navigate('/waiting-approval', { replace: true });
       } else if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard' && fromPath !== '/waiting-approval') {

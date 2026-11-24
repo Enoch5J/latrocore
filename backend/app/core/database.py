@@ -43,11 +43,13 @@ def init_db_schema():
                 if "approved_at" not in columns:
                     conn.execute(text(f"ALTER TABLE patients ADD COLUMN approved_at {dt_type}"))
                 
-                # Mark existing active users' patients as approved so existing demo data works
+                # Auto-approve all patient accounts (patients do not require administrative approval)
+                conn.execute(text(
+                    "UPDATE users SET status = 'active' WHERE role = 'patient' AND status = 'pending'"
+                ))
                 conn.execute(text(
                     "UPDATE patients SET approval_status = 'approved' "
-                    "WHERE user_id IN (SELECT id FROM users WHERE status = 'active' AND role = 'patient') "
-                    "AND (approval_status IS NULL OR approval_status = 'pending')"
+                    "WHERE approval_status IS NULL OR approval_status = 'pending'"
                 ))
     except Exception as e:
         print(f"[DB_SCHEMA] Migration check notice: {e}")

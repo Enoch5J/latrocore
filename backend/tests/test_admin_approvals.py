@@ -106,13 +106,14 @@ def test_patient_doctor_pharmacist_approval_workflow():
             print("res_pat error:", res_pat.json())
         assert res_pat.status_code == 200
         pat_data = res_pat.json()
-        assert pat_data["user"]["status"] == "pending"
-        assert pat_data["user"]["approvalStatus"] == "pending"
+        # Patients are active & approved immediately on registration (no admin approval required)
+        assert pat_data["user"]["status"] == "active"
+        assert pat_data["user"]["approvalStatus"] == "approved"
         pat_display_id = pat_data["user"]["displayId"]
         assert pat_display_id.startswith("PAT-")
         pat_token = pat_data["accessToken"]
 
-        # 3. Check status endpoint for patient while pending
+        # 3. Check status endpoint for patient -> Active and approved
         pat_headers = {
             "Authorization": f"Bearer {pat_token}",
             "X-Requested-With": "XMLHttpRequest",
@@ -121,34 +122,9 @@ def test_patient_doctor_pharmacist_approval_workflow():
         res_status = client.get("/auth/status", headers=pat_headers)
         assert res_status.status_code == 200
         status_info = res_status.json()
-        assert status_info["status"] == "pending"
-        assert status_info["approvalStatus"] == "pending"
+        assert status_info["status"] == "active"
+        assert status_info["approvalStatus"] == "approved"
         assert status_info["displayId"] == pat_display_id
-
-        # 4. Check admin approvals summary
-        res_summary = client.get("/admin/approvals/summary", headers=admin_headers)
-        assert res_summary.status_code == 200
-        summary_data = res_summary.json()
-        assert summary_data["pendingPatients"] >= 1
-
-        # 5. List pending patients in admin
-        res_pending_pats = client.get("/admin/patients/pending", headers=admin_headers)
-        assert res_pending_pats.status_code == 200
-        pending_list = res_pending_pats.json()
-        matching_pat = next((p for p in pending_list if p["email"] == test_patient_email), None)
-        assert matching_pat is not None
-        assert matching_pat["name"] == "Ananya Roy"
-
-        # 6. Admin approves patient
-        res_app_pat = client.post(f"/admin/patients/{matching_pat['id']}/approve", headers=admin_headers)
-        assert res_app_pat.status_code == 200
-        assert res_app_pat.json()["status"] == "approved"
-
-        # 7. Check patient status again -> Now approved!
-        res_status_after = client.get("/auth/status", headers=pat_headers)
-        assert res_status_after.status_code == 200
-        assert res_status_after.json()["status"] == "active"
-        assert res_status_after.json()["approvalStatus"] == "approved"
 
         # 8. Register Pharmacist -> Must be pending
         otp_pharm = EmailVerificationOTP(

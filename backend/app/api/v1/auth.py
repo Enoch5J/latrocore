@@ -334,7 +334,7 @@ def get_user_display_meta(user: User, db: Session):
         patient = db.query(Patient).filter(Patient.user_id == user.id).first()
         if patient:
             display_id = patient.patient_id_display
-            approval_status = getattr(patient, "approval_status", None) or ("pending" if user.status == "pending" else "approved")
+        approval_status = "approved"
     elif user.role == "doctor":
         doc = db.query(DoctorProfile).filter(DoctorProfile.user_id == user.id).first()
         if doc:
@@ -826,14 +826,14 @@ def register_patient(
     # 6. Generate Unique Patient ID
     patient_display_id = generate_unique_patient_id(db)
 
-    # 7. Create User and Patient (Pending Medical Board Administration Approval)
+    # 7. Create User and Patient (Active immediately — no Medical Board approval required for patients)
     new_user = User(
         email=email,
         password_hash=hash_password(req.password),
         name=name,
         phone=f"{req.countryCode}{phone}",
         role="patient",
-        status="pending",
+        status="active",
         verified=True
     )
     db.add(new_user)
@@ -848,7 +848,8 @@ def register_patient(
         conditions=json.dumps(deduped_conditions),
         prescription_file_url=req.prescriptionFileUrl,
         prescription_file_name=req.prescriptionFileName,
-        approval_status="pending"
+        approval_status="approved",
+        approved_at=now
     )
     db.add(new_patient)
     db.commit()
