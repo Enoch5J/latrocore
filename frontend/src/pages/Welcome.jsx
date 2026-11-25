@@ -89,7 +89,7 @@ export default function Welcome() {
     }
     if (data?.users) {
       const matched = Object.values(data.users).find(
-        (u) => u.email?.toLowerCase() === authUser.email?.toLowerCase() || u.role === authUser.role
+        (u) => u.id === authUser.id || (authUser.email && u.email?.toLowerCase() === authUser.email?.toLowerCase())
       );
       if (matched) {
         setUser(matched);

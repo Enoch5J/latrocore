@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
+import { normalizeRole } from '../auth/ProtectedRoute';
 import { Avatar } from '../components/ui';
 import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
@@ -75,27 +76,47 @@ export default function AppLayout() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const mappedAuthRole = normalizeRole(authUser?.role);
+
   useEffect(() => {
-    if (authUser && (!currentUser || currentUser.id !== authUser.id || (authUser.role === 'care_team' && currentUser.role === 'care_team'))) {
+    if (!authUser) return;
+    const expectedName = authUser.name || authUser.email;
+    if (
+      !currentUser ||
+      currentUser.id !== authUser.id ||
+      normalizeRole(currentUser.role) !== mappedAuthRole ||
+      currentUser.email !== authUser.email ||
+      currentUser.name !== expectedName ||
+      currentUser.status !== authUser.status
+    ) {
       setUser({
         ...authUser,
         id: authUser.id,
-        name: authUser.name || authUser.email,
+        name: expectedName,
         email: authUser.email,
-        role: authUser.role === 'care_team' ? 'pharmacist' : authUser.role,
+        role: mappedAuthRole,
       });
     }
-  }, [currentUser, authUser, setUser]);
+  }, [currentUser, authUser, mappedAuthRole, setUser]);
 
-  const rawUser = currentUser || authUser;
+  // Authenticated session user is always authoritative for role & navigation layout
+  const rawUser = authUser
+    ? {
+        ...(currentUser?.id === authUser.id ? currentUser : {}),
+        ...authUser,
+        name: authUser.name || authUser.email,
+        role: mappedAuthRole,
+      }
+    : currentUser;
+  const normalizedRawRole = normalizeRole(rawUser?.role);
   const activeUser = rawUser ? {
     ...rawUser,
     id: rawUser.id,
     name: rawUser.name || rawUser.email,
     email: rawUser.email,
-    role: rawUser.role === 'care_team' ? 'pharmacist' : rawUser.role,
+    role: normalizedRawRole,
     avatar: rawUser.avatar || (
-      rawUser.role === 'doctor'
+      normalizedRawRole === 'doctor'
         ? 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150'
         : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
     ),

@@ -1,23 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../auth/AuthContext';
+import { getDefaultDashboardRoute } from '../auth/ProtectedRoute';
 import { Stethoscope, Home, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
   const navigate = useNavigate();
   const { currentUser } = useApp();
+  const { user: authUser } = useAuth();
+  const activeUser = authUser || currentUser;
 
   const handleHome = () => {
-    if (!currentUser) {
+    if (!activeUser) {
       navigate('/');
       return;
     }
-    const routes = {
-      patient: '/patient/dashboard',
-      doctor: '/doctor/dashboard',
-      pharmacist: '/pharmacist/dashboard',
-      admin: '/admin/dashboard',
-    };
-    navigate(routes[currentUser.role] || '/');
+    navigate(getDefaultDashboardRoute(activeUser));
   };
 
   return (

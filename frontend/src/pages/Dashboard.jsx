@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { getDefaultDashboardRoute } from '../auth/ProtectedRoute';
 import { useApp } from '../context/AppContext';
 
 /**
@@ -20,23 +21,14 @@ export default function Dashboard() {
     if (!loading && user) {
       if (!currentUser && data?.users) {
         const matched = Object.values(data.users).find(
-          (u) => u.email?.toLowerCase() === user.email?.toLowerCase() || u.role === user.role
+          (u) => u.id === user.id || (user.email && u.email?.toLowerCase() === user.email?.toLowerCase())
         );
         if (matched) {
           setUser(matched);
         }
       }
 
-      const role = user.role;
-      if (role === 'doctor') {
-        navigate('/doctor/dashboard', { replace: true });
-      } else if (role === 'pharmacist' || role === 'care_team') {
-        navigate('/pharmacist/dashboard', { replace: true });
-      } else if (role === 'admin') {
-        navigate('/admin/dashboard', { replace: true });
-      } else {
-        navigate('/patient/dashboard', { replace: true });
-      }
+      navigate(getDefaultDashboardRoute(user), { replace: true });
     } else if (!loading && !user) {
       navigate('/login', { replace: true });
     }

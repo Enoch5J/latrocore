@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
-import ProtectedRoute from './auth/ProtectedRoute';
+import ProtectedRoute, { getDefaultDashboardRoute, normalizeRole } from './auth/ProtectedRoute';
 import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -51,6 +51,7 @@ import Appointments from './pages/shared/Appointments';
 import Messages from './pages/shared/Messages';
 import Notifications from './pages/shared/Notifications';
 import CareSummary from './pages/shared/CareSummary';
+import Doctors from './pages/shared/Doctors';
 
 function RoleDashboardRedirect() {
   const { user, loading } = useAuth();
@@ -59,7 +60,7 @@ function RoleDashboardRedirect() {
   useEffect(() => {
     if (user && !currentUser && data?.users) {
       const matched = Object.values(data.users).find(
-        (u) => u.email?.toLowerCase() === user.email?.toLowerCase() || u.role === user.role
+        (u) => u.id === user.id || (user.email && u.email?.toLowerCase() === user.email?.toLowerCase())
       );
       if (matched) {
         setUser(matched);
@@ -75,18 +76,17 @@ function RoleDashboardRedirect() {
     );
   }
 
-  const role = (user?.role || '').toLowerCase().trim();
+  const role = normalizeRole(user?.role);
   const userEmail = (user?.email || '').toLowerCase().trim();
   const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
 
-  if (userEmail === 'doctor@latrocore.com' || role === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
-  if (userEmail === 'pharmacist@latrocore.com' || role === 'pharmacist' || role === 'care_team') return <Navigate to="/pharmacist/dashboard" replace />;
-  if (userEmail === 'admin@latrocore.com' || role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-  if (userEmail === 'patient@latrocore.com' || role === 'patient') return <Navigate to="/patient/dashboard" replace />;
-
-  const requiresApproval = ['doctor', 'pharmacist', 'care_team'].includes(role);
+  const requiresApproval = ['doctor', 'pharmacist'].includes(role);
   const isPending = !isDemo && requiresApproval && (user?.status === 'pending' || user?.approvalStatus === 'pending');
   if (isPending) return <Navigate to="/waiting-approval" replace />;
+
+  if (user) {
+    return <Navigate to={getDefaultDashboardRoute(user)} replace />;
+  }
 
   return <Navigate to="/" replace />;
 }
@@ -142,50 +142,62 @@ function AppRoutes() {
           }
         >
           <Route path="/overview" element={<ProjectOverview />} />
-          {/* Patient Routes */}
-          <Route path="/patient/dashboard" element={<PatientDashboard />} />
-          <Route path="/patient/metrics" element={<PatientMetrics />} />
-          <Route path="/patient/glucose" element={<PatientMetrics initialTab="glucose" />} />
-          <Route path="/patient/medications" element={<PatientMedications />} />
-          <Route path="/patient/investigations" element={<PatientMetrics initialTab="investigations" />} />
-          <Route path="/patient/lifestyle" element={<PatientLifestyle />} />
-          <Route path="/patient/screening" element={<PatientMetrics initialTab="screening" />} />
-          <Route path="/patient/safety" element={<SafetyAlerts />} />
-          <Route path="/patient/sos" element={<PatientSOS />} />
-          <Route path="/patient/assistant" element={<PatientAssistant />} />
-          <Route path="/patient/checklist" element={<PatientMetrics initialTab="checklist" />} />
-          <Route path="/patient/care-checklist" element={<PatientMetrics initialTab="checklist" />} />
-          <Route path="/patient/test-reminders" element={<TestReminders />} />
-          <Route path="/patient/reminders" element={<TestReminders />} />
+          {/* Patient Routes (Role-Guarded) */}
+          <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
+            <Route path="/patient" element={<Navigate to="/patient/dashboard" replace />} />
+            <Route path="/patient/dashboard" element={<PatientDashboard />} />
+            <Route path="/patient/metrics" element={<PatientMetrics />} />
+            <Route path="/patient/glucose" element={<PatientMetrics initialTab="glucose" />} />
+            <Route path="/patient/medications" element={<PatientMedications />} />
+            <Route path="/patient/investigations" element={<PatientMetrics initialTab="investigations" />} />
+            <Route path="/patient/lifestyle" element={<PatientLifestyle />} />
+            <Route path="/patient/screening" element={<PatientMetrics initialTab="screening" />} />
+            <Route path="/patient/safety" element={<SafetyAlerts />} />
+            <Route path="/patient/sos" element={<PatientSOS />} />
+            <Route path="/patient/assistant" element={<PatientAssistant />} />
+            <Route path="/patient/checklist" element={<PatientMetrics initialTab="checklist" />} />
+            <Route path="/patient/care-checklist" element={<PatientMetrics initialTab="checklist" />} />
+            <Route path="/patient/test-reminders" element={<TestReminders />} />
+            <Route path="/patient/reminders" element={<TestReminders />} />
+            <Route path="/doctors" element={<Doctors />} />
+          </Route>
 
-          {/* Doctor Routes */}
-          <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-          <Route path="/doctor/patients" element={<DoctorDashboard />} />
-          <Route path="/doctor/patient/:id" element={<PatientOverview />} />
-          <Route path="/doctor/prescriptions" element={<PatientOverview initialTab="prescriptions" />} />
-          <Route path="/doctor/escalations" element={<DoctorDashboard />} />
-          <Route path="/doctor/referrals" element={<PatientOverview initialTab="overview" />} />
+          {/* Doctor Routes (Role-Guarded) */}
+          <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+            <Route path="/doctor" element={<Navigate to="/doctor/dashboard" replace />} />
+            <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+            <Route path="/doctor/patients" element={<DoctorDashboard />} />
+            <Route path="/doctor/patient/:id" element={<PatientOverview />} />
+            <Route path="/doctor/prescriptions" element={<PatientOverview initialTab="prescriptions" />} />
+            <Route path="/doctor/escalations" element={<DoctorDashboard />} />
+            <Route path="/doctor/referrals" element={<PatientOverview initialTab="overview" />} />
+          </Route>
 
-          {/* Pharmacist Routes */}
-          <Route path="/pharmacist" element={<Navigate to="/pharmacist/dashboard" replace />} />
-          <Route path="/pharmacist/dashboard" element={<PharmacistDashboard />} />
-          <Route path="/pharmacist/patients" element={<PatientManagement />} />
-          <Route path="/pharmacist/prescriptions" element={<PrescriptionManagement />} />
-          <Route path="/pharmacist/adherence" element={<MedicationAdherence />} />
-          <Route path="/pharmacist/interactions" element={<DrugInteractions />} />
-          <Route path="/pharmacist/counselling" element={<PatientCounselling />} />
-          <Route path="/pharmacist/inventory" element={<MedicineInventory />} />
-          <Route path="/pharmacist/reports" element={<ReportsAnalytics />} />
-          <Route path="/pharmacist/stock-verification" element={<MedicineInventory />} />
-          <Route path="/pharmacist/dispensing" element={<StockVerification />} />
-          <Route path="/pharmacist/reviews" element={<PharmacistDashboard initialTab="reviews" />} />
-          <Route path="/pharmacist/refills" element={<PrescriptionManagement />} />
+          {/* Pharmacist Routes (Role-Guarded) */}
+          <Route element={<ProtectedRoute allowedRoles={['pharmacist', 'care_team']} />}>
+            <Route path="/pharmacist" element={<Navigate to="/pharmacist/dashboard" replace />} />
+            <Route path="/pharmacist/dashboard" element={<PharmacistDashboard />} />
+            <Route path="/pharmacist/patients" element={<PatientManagement />} />
+            <Route path="/pharmacist/prescriptions" element={<PrescriptionManagement />} />
+            <Route path="/pharmacist/adherence" element={<MedicationAdherence />} />
+            <Route path="/pharmacist/interactions" element={<DrugInteractions />} />
+            <Route path="/pharmacist/counselling" element={<PatientCounselling />} />
+            <Route path="/pharmacist/inventory" element={<MedicineInventory />} />
+            <Route path="/pharmacist/reports" element={<ReportsAnalytics />} />
+            <Route path="/pharmacist/stock-verification" element={<MedicineInventory />} />
+            <Route path="/pharmacist/dispensing" element={<StockVerification />} />
+            <Route path="/pharmacist/reviews" element={<PharmacistDashboard initialTab="reviews" />} />
+            <Route path="/pharmacist/refills" element={<PrescriptionManagement />} />
+          </Route>
 
-          {/* Admin Routes */}
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminDashboard initialTab="users" />} />
-          <Route path="/admin/audit" element={<AdminDashboard initialTab="audit" />} />
-          <Route path="/admin/config" element={<AdminDashboard initialTab="config" />} />
+          {/* Admin Routes (Role-Guarded) */}
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminDashboard initialTab="users" />} />
+            <Route path="/admin/audit" element={<AdminDashboard initialTab="audit" />} />
+            <Route path="/admin/config" element={<AdminDashboard initialTab="config" />} />
+          </Route>
 
           {/* Shared Routes */}
           <Route path="/appointments" element={<Appointments />} />

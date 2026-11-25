@@ -21,6 +21,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Register callback for when background refresh fails inside axios interceptor
     registerSessionExpiredHandler(() => {
+      setToken(null);
+      localStorage.removeItem('latrocore_user');
       setUser(null);
       setSessionExpired(true);
     });
@@ -28,6 +30,9 @@ export function AuthProvider({ children }) {
     const restoreSession = async () => {
       const hasSession = localStorage.getItem('hasSession') === 'true';
       if (!hasSession) {
+        setAccessToken(null);
+        setToken(null);
+        localStorage.removeItem('latrocore_user');
         setLoading(false);
         return;
       }
@@ -46,6 +51,7 @@ export function AuthProvider({ children }) {
         setAccessToken(null);
         setToken(null);
         localStorage.removeItem('hasSession');
+        localStorage.removeItem('latrocore_user');
         setUser(null);
         // Only set sessionExpired if user had a previous session
         if (hasSession) {
@@ -102,6 +108,7 @@ export function AuthProvider({ children }) {
       setAccessToken(null);
       setToken(null);
       localStorage.removeItem('hasSession');
+      localStorage.removeItem('latrocore_user');
       setUser(null);
       setLoggingOutFlag(false);
     }

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../auth/AuthContext';
+import { getDefaultDashboardRoute, normalizeRole } from '../../auth/ProtectedRoute';
 import { api } from '../../services/api';
 import { StatCard, LoadingSpinner, Badge, SearchBar, Modal, ConfirmDialog, Tabs, Avatar } from '../../components/ui';
 import {
@@ -62,11 +64,16 @@ export default function AdminDashboard({ initialTab }) {
   const [previewPrescription, setPreviewPrescription] = useState(null); // { url, name, patientName }
   const [copiedId, setCopiedId] = useState(null);
 
+  const activeUser = authUser || currentUser;
+  const activeRole = normalizeRole(activeUser?.role);
+  const isAdmin = activeRole === 'admin';
+
   useEffect(() => {
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
 
   const loadAllData = async () => {
+    if (!isAdmin) return;
     try {
       const [summaryRes, docsRes, pharmsRes, patsRes, usersRes] = await Promise.allSettled([
         api.getApprovalsSummary(),
@@ -91,6 +98,17 @@ export default function AdminDashboard({ initialTab }) {
       if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
         setDirectoryUsers(usersRes.value);
       }
+
+      const rejected = [summaryRes, docsRes, pharmsRes, patsRes, usersRes].find(
+        (r) => r.status === 'rejected'
+      );
+      if (rejected) {
+        addToast({
+          type: 'error',
+          title: 'Admin Data Load Notice',
+          message: rejected.reason?.message || 'Unable to load some administration records.'
+        });
+      }
     } catch (err) {
       console.warn('Admin data load warning:', err.message);
     } finally {
@@ -99,10 +117,12 @@ export default function AdminDashboard({ initialTab }) {
   };
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && isAdmin) {
       loadAllData();
+    } else if (!authLoading && !isAdmin) {
+      setLoading(false);
     }
-  }, [authLoading]);
+  }, [authLoading, isAdmin]);
 
   const copyToClipboard = (text, id) => {
     navigator.clipboard?.writeText(text);
@@ -342,6 +362,10 @@ export default function AdminDashboard({ initialTab }) {
     addToast({ type: 'success', title: 'Demo Data Reset', message: 'All demo data restored to original seed dataset.' });
     setShowReset(false);
   };
+
+  if (!authLoading && !isAdmin) {
+    return <Navigate to={getDefaultDashboardRoute(activeUser)} replace />;
+  }
 
   if (loading) return <LoadingSpinner text="Loading system administration dashboard..." />;
 

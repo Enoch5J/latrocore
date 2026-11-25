@@ -2,7 +2,29 @@ import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 
-export default function ProtectedRoute({ children }) {
+export function normalizeRole(role) {
+  const clean = (role || '').toLowerCase().trim();
+  return clean === 'care_team' ? 'pharmacist' : clean;
+}
+
+export function getDefaultDashboardRoute(user) {
+  const email = (user?.email || '').toLowerCase().trim();
+  const role = normalizeRole(user?.role);
+
+  if (email === 'doctor@latrocore.com' || role === 'doctor') return '/doctor/dashboard';
+  if (email === 'pharmacist@latrocore.com' || role === 'pharmacist') return '/pharmacist/dashboard';
+  if (email === 'admin@latrocore.com' || role === 'admin') return '/admin/dashboard';
+  if (email === 'patient@latrocore.com' || role === 'patient') return '/patient/dashboard';
+  return '/patient/dashboard';
+}
+
+export function isRoleAllowed(userRole, allowedRoles) {
+  if (!allowedRoles || allowedRoles.length === 0) return true;
+  const normalizedUserRole = normalizeRole(userRole);
+  return allowedRoles.some((allowed) => normalizeRole(allowed) === normalizedUserRole);
+}
+
+export default function ProtectedRoute({ children, allowedRoles, redirectTo }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -30,11 +52,11 @@ export default function ProtectedRoute({ children }) {
   }
 
   const userEmail = (user?.email || '').toLowerCase().trim();
-  const userRole = (user?.role || '').toLowerCase().trim();
+  const userRole = normalizeRole(user?.role);
   const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
 
   // Only doctor and pharmacist require administrative approval
-  const requiresApproval = ['doctor', 'pharmacist', 'care_team'].includes(userRole);
+  const requiresApproval = ['doctor', 'pharmacist'].includes(userRole);
   const isPending = !isDemo && requiresApproval && (user.status === 'pending' || user.approvalStatus === 'pending');
 
   // If user is pending admin approval and attempting to access clinical portals
@@ -44,11 +66,12 @@ export default function ProtectedRoute({ children }) {
 
   // If user is already approved and visits waiting page
   if (!isPending && location.pathname === '/waiting-approval') {
-    if (userEmail === 'doctor@latrocore.com' || userRole === 'doctor') return <Navigate to="/doctor/dashboard" replace />;
-    if (userEmail === 'pharmacist@latrocore.com' || userRole === 'pharmacist' || userRole === 'care_team') return <Navigate to="/pharmacist/dashboard" replace />;
-    if (userEmail === 'admin@latrocore.com' || userRole === 'admin') return <Navigate to="/admin/dashboard" replace />;
-    if (userEmail === 'patient@latrocore.com' || userRole === 'patient') return <Navigate to="/patient/dashboard" replace />;
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={getDefaultDashboardRoute(user)} replace />;
+  }
+
+  // Enforce strict role-based route access so users never load another role's portal
+  if (allowedRoles && allowedRoles.length > 0 && !isRoleAllowed(userRole, allowedRoles)) {
+    return <Navigate to={redirectTo || getDefaultDashboardRoute(user)} replace />;
   }
 
   return children ? children : <Outlet />;

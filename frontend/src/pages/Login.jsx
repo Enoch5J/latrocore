@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { getDefaultDashboardRoute, normalizeRole } from '../auth/ProtectedRoute';
 import { useApp } from '../context/AppContext';
 import latrocoreLogo from '../assets/Latrocore Medical Monogram Logo.png';
 import {
@@ -53,36 +54,33 @@ export default function Login() {
       const userData = await login(identifier.trim(), password);
       if (setUser && userData) setUser(userData);
 
-      // ── Direct Dashboard Routing for the 4 Core Demo Accounts & Roles ──
       const emailLower = (userData?.email || identifier).toLowerCase().trim();
-      const userRole = (userData?.role || '').toLowerCase().trim();
+      const userRole = normalizeRole(userData?.role);
+      const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(emailLower);
 
-      if (emailLower === 'doctor@latrocore.com' || userRole === 'doctor') {
-        navigate('/doctor/dashboard', { replace: true });
-        return;
-      }
-      if (emailLower === 'pharmacist@latrocore.com' || userRole === 'pharmacist' || userRole === 'care_team') {
-        navigate('/pharmacist/dashboard', { replace: true });
-        return;
-      }
-      if (emailLower === 'admin@latrocore.com' || userRole === 'admin') {
-        navigate('/admin/dashboard', { replace: true });
-        return;
-      }
-      if (emailLower === 'patient@latrocore.com' || userRole === 'patient') {
-        navigate('/patient/dashboard', { replace: true });
-        return;
-      }
-
-      const requiresApproval = ['doctor', 'pharmacist', 'care_team'].includes(userRole);
-      const isPending = requiresApproval && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
+      const requiresApproval = ['doctor', 'pharmacist'].includes(userRole);
+      const isPending = !isDemo && requiresApproval && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
       if (isPending) {
         navigate('/waiting-approval', { replace: true });
-      } else if (fromPath && fromPath !== '/login' && fromPath !== '/dashboard' && fromPath !== '/waiting-approval') {
-        navigate(fromPath, { replace: true });
-      } else {
-        navigate('/patient/dashboard', { replace: true });
+        return;
       }
+
+      const roleRoutePrefixes = {
+        patient: ['/patient', '/doctors'],
+        doctor: ['/doctor'],
+        pharmacist: ['/pharmacist'],
+        admin: ['/admin'],
+      };
+      const sharedPrefixes = ['/appointments', '/messages', '/notifications', '/care-summary', '/overview'];
+      const allowedPrefixes = [...(roleRoutePrefixes[userRole] || []), ...sharedPrefixes];
+
+      if (fromPath && allowedPrefixes.some((prefix) => fromPath.startsWith(prefix))) {
+        navigate(fromPath, { replace: true });
+        return;
+      }
+
+      navigate(getDefaultDashboardRoute(userData), { replace: true });
+      return;
     } catch (err) {
       const detail = err?.response?.data?.detail;
       if (err?.response?.status === 429) {
