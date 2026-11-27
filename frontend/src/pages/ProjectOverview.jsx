@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import {
   Stethoscope, Users, Heart, Pill, Shield, Activity, Brain, ArrowRight,
-  CheckCircle, FileText, Database, Sparkles, AlertTriangle, Layers
+  CheckCircle, FileText, Database, AlertTriangle, Layers
 } from 'lucide-react';
 
 export default function ProjectOverview() {
@@ -39,7 +39,7 @@ export default function ProjectOverview() {
       <div className="bg-gradient-to-r from-teal-800 to-teal-950 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 bg-teal-700/60 backdrop-blur-xs px-3 py-1 rounded-full text-xs font-semibold text-teal-200 mb-4 border border-teal-500/30">
-            <Sparkles size={14} />
+            <Layers size={14} />
             <span>Healthcare Transformation Platform</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">

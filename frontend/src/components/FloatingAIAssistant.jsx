@@ -804,44 +804,6 @@ export default function FloatingAIAssistant({ initialOpen = false, initialGreeti
               </div>
             </div>
 
-            {/* ── Active Prescriptions Sync Banner & Quick Chips ── */}
-            {activeMedicines.length > 0 && (
-              <div className="bg-[#E8F5EE] border-b border-[#A8D7BD] px-3.5 py-2 flex flex-col gap-1.5 shrink-0">
-                <div className="flex items-center justify-between gap-1 text-[11px]">
-                  <span className="font-extrabold text-[#046A38] flex items-center gap-1 shrink-0">
-                    <ShieldCheck size={13} className="text-[#046A38]" />
-                    <span>Rx Synced ({activeMedicines.length} Meds):</span>
-                  </span>
-                  <span className="text-[10px] font-semibold text-emerald-800 truncate">
-                    {activeMedicines.map(m => m.name).join(', ')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-                  <button
-                    type="button"
-                    onClick={() => handleSend("What are the potential adverse effects and precautions of my prescribed medicines?")}
-                    className="px-2 py-0.5 rounded-full bg-white border border-[#A8D7BD] text-[10px] font-bold text-[#046A38] hover:bg-emerald-100 transition whitespace-nowrap cursor-pointer"
-                  >
-                    ⚠️ Adverse Effects
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSend("What lifestyle and diet tips do you recommend for my medications?")}
-                    className="px-2 py-0.5 rounded-full bg-white border border-[#A8D7BD] text-[10px] font-bold text-[#046A38] hover:bg-emerald-100 transition whitespace-nowrap cursor-pointer"
-                  >
-                    🥗 Lifestyle & Diet
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSend("What is the daily schedule and timing for taking my medicines?")}
-                    className="px-2 py-0.5 rounded-full bg-white border border-[#A8D7BD] text-[10px] font-bold text-[#046A38] hover:bg-emerald-100 transition whitespace-nowrap cursor-pointer"
-                  >
-                    ⏰ Timing Routine
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* ── Messages Scroll Area ── */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FAF6EF] min-h-0">
               {messages.map((msg) => (

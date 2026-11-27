@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import {
-  Sparkles, ChevronRight, ChevronLeft, X, Play, CheckCircle,
+  ChevronRight, ChevronLeft, X, Play, CheckCircle,
   ArrowRight, UserCheck, Stethoscope, Pill, Shield
 } from 'lucide-react';
 
@@ -129,7 +129,7 @@ export default function GuidedDemo() {
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Sparkles size={16} />
+              <Play size={15} />
             </div>
             <div>
               <span className="text-xs font-bold text-primary uppercase tracking-wider block">Interactive Guided Tour</span>

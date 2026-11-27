@@ -10,95 +10,15 @@ import {
 } from 'lucide-react';
 import { addNotification, addSafetyEvent, addAuditEntry } from '../../services/dataService';
 
-// Fallback emergency contacts data
-const DEFAULT_CARETAKERS = [
-  {
-    id: 'ct-1',
-    name: 'Rajesh Sharma',
-    relationship: 'Spouse / Primary Caregiver',
-    priority: 'Primary Contact (1st Alert)',
-    phone: '+91 98401 23456',
-    altPhone: '+91 98401 98765',
-    address: '12/4, 4th Main Road, Anna Nagar West, Chennai',
-    isPrimary: true,
-    available24x7: true,
-  },
-  {
-    id: 'ct-2',
-    name: 'Ananya Sharma',
-    relationship: 'Daughter / Family Proxy',
-    priority: 'Secondary Escalation',
-    phone: '+91 94440 88765',
-    altPhone: '+91 94440 11223',
-    address: 'Kotturpuram, Chennai',
-    isPrimary: false,
-    available24x7: true,
-  },
-];
-
-// Verified emergency hospitals & trauma centers
-const NEARBY_HOSPITALS = [
-  {
-    id: 'hosp-1',
-    name: 'Apollo Hospitals & 24/7 Emergency Trauma Center',
-    branch: 'Greams Road Main Hospital',
-    distance: '1.2 km',
-    travelTime: '4 mins',
-    phone: '+91 44 2829 0200',
-    emergencyHotline: '1066',
-    address: 'No. 21, Greams Lane, Off Greams Road, Chennai - 600006',
-    openStatus: 'Open 24x7 • Active Trauma & Resuscitation Unit',
-    facilities: ['Acute Diabetic ICU', 'Emergency Insulin Stabilization', 'Rapid Cardiac & Stroke Unit', 'ICU Beds Available'],
-    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Apollo+Hospital+Emergency+Greams+Road+Chennai',
-    badge: 'Nearest Emergency Care',
-    badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-  },
-  {
-    id: 'hosp-2',
-    name: 'Fortis Malar Hospital — Critical Care Unit',
-    branch: 'Adyar Emergency Station',
-    distance: '2.8 km',
-    travelTime: '8 mins',
-    phone: '+91 44 4289 2222',
-    emergencyHotline: '+91 44 4289 2200',
-    address: 'No. 52, 1st Main Road, Gandhi Nagar, Adyar, Chennai - 600020',
-    openStatus: 'Open 24x7 • Intensive Care & Dialysis Ready',
-    facilities: ['DKA (Ketoacidosis) Crisis Ward', '24/7 Dialysis Facility', 'Emergency Diabetologist on Duty'],
-    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Fortis+Malar+Hospital+Adyar+Chennai',
-    badge: 'Specialized DKA Support',
-    badgeColor: 'bg-blue-100 text-blue-900 border-blue-300',
-  },
-  {
-    id: 'hosp-3',
-    name: 'Kauvery Hospital 24x7 Emergency Hub',
-    branch: 'Alwarpet Trauma Center',
-    distance: '3.5 km',
-    travelTime: '11 mins',
-    phone: '+91 44 4000 6000',
-    emergencyHotline: '1055',
-    address: 'No. 199, Luz Church Road, Mylapore / Alwarpet, Chennai - 600004',
-    openStatus: 'Open 24x7 • Resuscitation Bay Available',
-    facilities: ['Round-the-clock Emergency Physicians', 'Point-of-Care Lab & Blood Gas Analysis', 'Ambulance On Standby'],
-    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Kauvery+Hospital+Alwarpet+Chennai',
-    badge: 'Trauma & Resuscitation',
-    badgeColor: 'bg-purple-100 text-purple-900 border-purple-300',
-  },
-  {
-    id: 'hosp-4',
-    name: 'Government Multi Super Speciality Hospital (Omandurar)',
-    branch: 'Central Emergency Trauma Wing',
-    distance: '4.1 km',
-    travelTime: '13 mins',
-    phone: '+91 44 2530 5000',
-    emergencyHotline: '108',
-    address: 'Omandurar Government Estate, Anna Salai, Chennai - 600002',
-    openStatus: 'Open 24x7 • Free Government Emergency Services',
-    facilities: ['108 Direct Dispatch Hub', 'Comprehensive Trauma Care', 'Free Emergency Ward & Insulin Support'],
-    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Omandurar+Government+Hospital+Chennai',
-    badge: 'National 108 Hub',
-    badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
-  },
-];
+const EMPTY_CARETAKER = {
+  id: '',
+  name: '',
+  relationship: '',
+  phone: '',
+  altPhone: '',
+  address: '',
+  isPrimary: true,
+};
 
 // Audio tone synthesizer for simulated emergency siren/chime
 function playEmergencyAudio(type = 'alarm') {
@@ -151,9 +71,9 @@ export default function PatientSOS() {
   const [caretakers, setCaretakers] = useState(() => {
     try {
       const saved = localStorage.getItem('latrocore_caretakers');
-      return saved ? JSON.parse(saved) : DEFAULT_CARETAKERS;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return DEFAULT_CARETAKERS;
+      return [];
     }
   });
 
@@ -166,40 +86,37 @@ export default function PatientSOS() {
   const [rule15Seconds, setRule15Seconds] = useState(15 * 60); // 15 mins
   const rule15TimerRef = useRef(null);
 
-  // Hospital filter
+  // Hospital search query for live Google Maps lookup
   const [hospitalQuery, setHospitalQuery] = useState('');
 
-  // Patient Location (simulated verified location with browser fallback)
-  const [locationStatus, setLocationStatus] = useState('Anna Nagar West, Chennai (13.0827° N, 80.2707° E)');
+  // Patient Location (live browser geolocation)
+  const [coords, setCoords] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('Location not shared yet');
 
-  // Attending Doctor info
+  // Attending Doctor info (only real assigned user if present)
   const assignedDoctor = useMemo(() => {
     if (!data?.users) return null;
     const users = Array.isArray(data.users) ? data.users : Object.values(data.users);
-    return users.find(u => u.role === 'doctor' || u.id === currentUser?.assignedDoctor) || {
-      name: 'Dr. Arun Kumar',
-      degrees: 'MD (General Medicine), DM (Endocrinology)',
-      phone: '+91 44 2829 7800',
-      clinic: 'Apollo Sugar Clinics & Latrocore Network',
-    };
+    if (currentUser?.assignedDoctor) {
+      return users.find(u => u.id === currentUser.assignedDoctor) || null;
+    }
+    return users.find(u => u.role === 'doctor') || null;
   }, [data?.users, currentUser]);
 
-  // Assigned Clinical Pharmacist info
+  // Assigned Clinical Pharmacist info (only real assigned user if present)
   const assignedPharmacist = useMemo(() => {
     if (!data?.users) return null;
     const users = Array.isArray(data.users) ? data.users : Object.values(data.users);
-    return users.find(u => u.role === 'pharmacist' || u.id === currentUser?.assignedPharmacist) || {
-      name: 'Dr. K. Ramesh',
-      degrees: 'PharmD, BCPS',
-      phone: '+91 44 2829 7822',
-      clinic: 'Clinical Pharmacotherapy Support Desk',
-    };
+    if (currentUser?.assignedPharmacist) {
+      return users.find(u => u.id === currentUser.assignedPharmacist) || null;
+    }
+    return users.find(u => u.role === 'pharmacist') || null;
   }, [data?.users, currentUser]);
 
   // Latest glucose reading for emergency reporting
   const latestGlucose = useMemo(() => {
     const readings = (data?.glucoseReadings || []).filter(r => r.patientId === patientId);
-    if (!readings.length) return { value: 64, unit: 'mg/dL', status: 'Low / Hypoglycemia Warning' };
+    if (!readings.length) return null;
     const sorted = [...readings].sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
     return sorted[0];
   }, [data?.glucoseReadings, patientId]);
@@ -210,10 +127,11 @@ export default function PatientSOS() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
-          setLocationStatus(`Live GPS: ${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E (Near Anna Nagar, Chennai)`);
+          setCoords({ lat: latitude, lng: longitude });
+          setLocationStatus(`Live GPS: ${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E`);
         },
         () => {
-          // Keep verified default clinical address
+          setLocationStatus('Enable browser location to share GPS coordinates');
         },
         { timeout: 5000 }
       );
@@ -281,20 +199,22 @@ export default function PatientSOS() {
       const event = await addSafetyEvent({
         patientId,
         type: 'emergency_sos_broadcast',
-        triggerValue: latestGlucose?.value || 62,
+        triggerValue: latestGlucose?.value ?? null,
         unit: 'mg/dL',
         triggerTime: new Date().toISOString(),
         acknowledged: false,
         resolved: false,
-        notes: `Patient initiated one-tap SOS crisis signal. Location: ${locationStatus}. Designated caretakers and attending clinician notified.`,
+        notes: `Patient initiated one-tap SOS crisis signal. Location: ${locationStatus}.`,
       });
 
       // 2. Notify Caretaker & Doctor
       await addNotification({
         userId: patientId,
         type: 'safety',
-        title: '🚨 EMERGENCY SOS ACTIVE',
-        message: `Emergency signal dispatched. Caretakers Rajesh Sharma and Dr. Arun Kumar have been alerted with your location.`,
+        title: 'EMERGENCY SOS ACTIVE',
+        message: primaryCaretaker
+          ? `Emergency signal dispatched. ${primaryCaretaker.name} has been alerted with your location.`
+          : 'Emergency SOS signal dispatched with your location.',
         relatedId: event.id,
       });
 
@@ -361,7 +281,10 @@ export default function PatientSOS() {
   const handleSaveCaretaker = (e) => {
     e.preventDefault();
     if (!editingCaretaker) return;
-    const updated = caretakers.map(c => c.id === editingCaretaker.id ? editingCaretaker : c);
+    const exists = caretakers.some(c => c.id === editingCaretaker.id);
+    const updated = exists
+      ? caretakers.map(c => c.id === editingCaretaker.id ? editingCaretaker : c)
+      : [...caretakers, { ...editingCaretaker, id: editingCaretaker.id || `ct-${Date.now()}`, isPrimary: caretakers.length === 0 }];
     setCaretakers(updated);
     try {
       localStorage.setItem('latrocore_caretakers', JSON.stringify(updated));
@@ -370,27 +293,24 @@ export default function PatientSOS() {
     }
     setEditModalOpen(false);
     setEditingCaretaker(null);
-    addToast({ type: 'success', message: 'Caretaker emergency contact updated successfully.' });
+    addToast({ type: 'success', message: 'Emergency contact saved.' });
   };
 
-  // Filter hospitals
-  const filteredHospitals = useMemo(() => {
-    if (!hospitalQuery.trim()) return NEARBY_HOSPITALS;
-    const q = hospitalQuery.toLowerCase();
-    return NEARBY_HOSPITALS.filter(h =>
-      h.name.toLowerCase().includes(q) ||
-      h.branch.toLowerCase().includes(q) ||
-      h.facilities.some(f => f.toLowerCase().includes(q))
-    );
-  }, [hospitalQuery]);
+  const mapsHospitalSearchUrl = useMemo(() => {
+    const q = hospitalQuery.trim() || 'emergency hospital';
+    if (coords) {
+      return `https://www.google.com/maps/search/${encodeURIComponent(q)}/@${coords.lat},${coords.lng},14z`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q + ' near me')}`;
+  }, [hospitalQuery, coords]);
 
   // Pre-filled WhatsApp SOS text
-  const primaryCaretaker = caretakers[0] || DEFAULT_CARETAKERS[0];
+  const primaryCaretaker = caretakers[0] || null;
   const emergencyMessage = encodeURIComponent(
-    `🚨 EMERGENCY MEDICAL ALERT FROM LATROCORE 🚨\n\n` +
-    `Patient: ${currentUser?.name || 'Priya Sharma'}\n` +
+    `EMERGENCY MEDICAL ALERT FROM LATROCORE\n\n` +
+    `Patient: ${currentUser?.name || 'Patient'}\n` +
     `Current Status: Acute Medical Crisis / Severe Hypoglycemia\n` +
-    `Recent Glucose: ${latestGlucose?.value || '62'} mg/dL\n` +
+    `Recent Glucose: ${latestGlucose?.value ? `${latestGlucose.value} mg/dL` : 'Not recorded'}\n` +
     `Current Location: ${locationStatus}\n` +
     `Immediate Action Required: Please call me or send an ambulance to my location immediately.`
   );
@@ -516,7 +436,9 @@ export default function PatientSOS() {
                   </span>
                 </div>
                 <p className="text-sm font-bold text-rose-900 mt-1">
-                  Alert sent to {primaryCaretaker.name} ({primaryCaretaker.phone}) and Apollo Emergency Dispatch.
+                  {primaryCaretaker
+                    ? `Alert sent to ${primaryCaretaker.name} (${primaryCaretaker.phone}).`
+                    : 'Emergency SOS alert active. Share your location or call 108 / 112.'}
                 </p>
                 <p className="text-xs font-semibold text-rose-800 mt-0.5">
                   Remain calm. Sit down in a safe position. If conscious, consume fast-acting carbohydrates.
@@ -610,123 +532,156 @@ export default function PatientSOS() {
             </div>
             <button
               onClick={() => {
-                setEditingCaretaker({ ...primaryCaretaker });
+                setEditingCaretaker(primaryCaretaker ? { ...primaryCaretaker } : { ...EMPTY_CARETAKER, id: `ct-${Date.now()}` });
                 setEditModalOpen(true);
               }}
               className="btn-outline btn-sm text-xs font-bold"
             >
               <Edit3 size={14} />
-              <span>Edit Details</span>
+              <span>{primaryCaretaker ? 'Edit Details' : 'Add Contact'}</span>
             </button>
           </div>
 
           <div className="card-body p-4 sm:p-5 space-y-4 flex-1">
-            {caretakers.map((ct, idx) => (
-              <div
-                key={ct.id || idx}
-                className={`p-4 rounded-2xl border-2 transition-all ${
-                  ct.isPrimary
-                    ? 'border-emerald-300 bg-emerald-50/30'
-                    : 'border-slate-200 bg-slate-50/50'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                      <User size={20} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-extrabold text-base text-slate-950">{ct.name}</h3>
-                        {ct.isPrimary && (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-700 text-white">
-                            Primary Caretaker
-                          </span>
+            {caretakers.length === 0 ? (
+              <div className="p-6 rounded-2xl border-2 border-dashed border-[#E8DCC8] bg-[#FAF6EF]/50 text-center space-y-3">
+                <div className="w-11 h-11 rounded-xl bg-white border border-[#E8DCC8] text-[#046A38] flex items-center justify-center mx-auto">
+                  <User size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">No emergency contacts added yet</p>
+                  <p className="text-xs text-slate-600 mt-1">Add a family member or caregiver so you can reach them in one tap.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingCaretaker({ ...EMPTY_CARETAKER, id: `ct-${Date.now()}` });
+                    setEditModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white text-xs font-bold cursor-pointer transition-colors"
+                >
+                  <Edit3 size={13} />
+                  <span>Add Emergency Contact</span>
+                </button>
+              </div>
+            ) : (
+              caretakers.map((ct, idx) => (
+                <div
+                  key={ct.id || idx}
+                  className={`p-4 rounded-2xl border-2 transition-all ${
+                    ct.isPrimary
+                      ? 'border-emerald-300 bg-emerald-50/30'
+                      : 'border-slate-200 bg-slate-50/50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                        <User size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-extrabold text-base text-slate-950">{ct.name}</h3>
+                          {ct.isPrimary && (
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-700 text-white">
+                              Primary Caretaker
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-slate-600 mt-0.5">{ct.relationship}</p>
+                        <p className="text-xs font-bold text-slate-900 mt-1 flex items-center gap-1.5">
+                          <Phone size={13} className="text-emerald-700 shrink-0" />
+                          <span>{ct.phone}</span>
+                          {ct.altPhone && <span className="text-slate-500">• Alt: {ct.altPhone}</span>}
+                        </p>
+                        {ct.address && (
+                          <p className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1">
+                            <MapPin size={12} className="shrink-0" /> {ct.address}
+                          </p>
                         )}
                       </div>
-                      <p className="text-xs font-semibold text-slate-600 mt-0.5">{ct.relationship}</p>
-                      <p className="text-xs font-bold text-slate-900 mt-1 flex items-center gap-1.5">
-                        <Phone size={13} className="text-emerald-700 shrink-0" />
-                        <span>{ct.phone}</span>
-                        {ct.altPhone && <span className="text-slate-500">• Alt: {ct.altPhone}</span>}
-                      </p>
-                      {ct.address && (
-                        <p className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1">
-                          <MapPin size={12} className="shrink-0" /> {ct.address}
-                        </p>
+                    </div>
+                  </div>
+
+                  {/* Fast Action Buttons */}
+                  <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-200/80">
+                    <a
+                      href={`tel:${ct.phone.replace(/\s+/g, '')}`}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white text-xs font-bold shadow-xs transition-colors text-center"
+                    >
+                      <PhoneCall size={14} />
+                      <span>Call Now</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/${ct.phone.replace(/[^0-9]/g, '')}?text=${emergencyMessage}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-950 text-xs font-bold border border-emerald-300 transition-colors text-center"
+                    >
+                      <MessageSquare size={14} className="text-emerald-800" />
+                      <span>WhatsApp</span>
+                    </a>
+                    <a
+                      href={`sms:${ct.phone.replace(/\s+/g, '')}?body=${emergencyMessage}`}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold border border-slate-300 transition-colors text-center"
+                    >
+                      <Send size={14} className="text-slate-700" />
+                      <span>SMS Alert</span>
+                    </a>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {/* Clinician Direct Emergency Hotlines (only when assigned) */}
+            {(assignedDoctor || assignedPharmacist) && (
+              <div className="mt-4 p-4 rounded-2xl bg-[#FAF6EF] border border-[#E8DCC8]">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">
+                  Attending Care Team
+                </p>
+                <div className="space-y-3">
+                  {assignedDoctor && (
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Stethoscope size={16} className="text-[#046A38]" />
+                        <div>
+                          <p className="font-bold text-slate-950">{assignedDoctor.name}</p>
+                          <p className="text-[11px] text-slate-600">Attending Doctor</p>
+                        </div>
+                      </div>
+                      {assignedDoctor.phone && (
+                        <a
+                          href={`tel:${assignedDoctor.phone.replace(/\s+/g, '')}`}
+                          className="btn-outline btn-xs font-bold text-emerald-800 border-emerald-300"
+                        >
+                          <PhoneCall size={12} /> Call Clinic
+                        </a>
                       )}
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                {/* Fast Action Buttons */}
-                <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-200/80">
-                  <a
-                    href={`tel:${ct.phone.replace(/\s+/g, '')}`}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white text-xs font-bold shadow-xs transition-colors text-center"
-                  >
-                    <PhoneCall size={14} />
-                    <span>Call Now</span>
-                  </a>
-                  <a
-                    href={`https://wa.me/${ct.phone.replace(/[^0-9]/g, '')}?text=${emergencyMessage}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-950 text-xs font-bold border border-emerald-300 transition-colors text-center"
-                  >
-                    <MessageSquare size={14} className="text-emerald-800" />
-                    <span>WhatsApp</span>
-                  </a>
-                  <a
-                    href={`sms:${ct.phone.replace(/\s+/g, '')}?body=${emergencyMessage}`}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold border border-slate-300 transition-colors text-center"
-                  >
-                    <Send size={14} className="text-slate-700" />
-                    <span>SMS Alert</span>
-                  </a>
+                  {assignedPharmacist && (
+                    <div className={`flex items-center justify-between gap-3 text-xs ${assignedDoctor ? 'pt-2 border-t border-slate-200' : ''}`}>
+                      <div className="flex items-center gap-2">
+                        <Activity size={16} className="text-[#E34222]" />
+                        <div>
+                          <p className="font-bold text-slate-950">{assignedPharmacist.name}</p>
+                          <p className="text-[11px] text-slate-600">Clinical Pharmacist</p>
+                        </div>
+                      </div>
+                      {assignedPharmacist.phone && (
+                        <a
+                          href={`tel:${assignedPharmacist.phone.replace(/\s+/g, '')}`}
+                          className="btn-outline btn-xs font-bold text-slate-800 border-slate-300"
+                        >
+                          <PhoneCall size={12} /> Call Desk
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
-
-            {/* Clinician Direct Emergency Hotlines */}
-            <div className="mt-4 p-4 rounded-2xl bg-[#FAF6EF] border border-[#E8DCC8]">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">
-                Attending Healthcare Specialists
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Stethoscope size={16} className="text-[#046A38]" />
-                    <div>
-                      <p className="font-bold text-slate-950">{assignedDoctor.name}</p>
-                      <p className="text-[11px] text-slate-600">Attending Diabetologist</p>
-                    </div>
-                  </div>
-                  <a
-                    href={`tel:${assignedDoctor.phone?.replace(/\s+/g, '') || '1066'}`}
-                    className="btn-outline btn-xs font-bold text-emerald-800 border-emerald-300"
-                  >
-                    <PhoneCall size={12} /> Call Clinic
-                  </a>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 text-xs pt-2 border-t border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Activity size={16} className="text-[#E34222]" />
-                    <div>
-                      <p className="font-bold text-slate-950">{assignedPharmacist.name}</p>
-                      <p className="text-[11px] text-slate-600">Medication Safety Specialist (PharmD)</p>
-                    </div>
-                  </div>
-                  <a
-                    href={`tel:${assignedPharmacist.phone?.replace(/\s+/g, '') || '1066'}`}
-                    className="btn-outline btn-xs font-bold text-slate-800 border-slate-300"
-                  >
-                    <PhoneCall size={12} /> Call Desk
-                  </a>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -748,85 +703,69 @@ export default function PatientSOS() {
 
               {/* National Free Hotlines Pill */}
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-rose-100 text-rose-900 border border-rose-300">
+                <a href="tel:108" className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-rose-100 text-rose-900 border border-rose-300 hover:bg-rose-200 transition-colors">
                   Ambulance: <strong>108</strong>
-                </span>
-                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-blue-100 text-blue-900 border border-blue-300">
+                </a>
+                <a href="tel:112" className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-blue-100 text-blue-900 border border-blue-300 hover:bg-blue-200 transition-colors">
                   National SOS: <strong>112</strong>
-                </span>
+                </a>
               </div>
             </div>
 
-            {/* Quick search filter */}
+            {/* Quick search filter for Google Maps */}
             <div className="mt-3">
               <input
                 type="text"
                 value={hospitalQuery}
                 onChange={(e) => setHospitalQuery(e.target.value)}
-                placeholder="Search hospital name, DKA care, ICU..."
+                placeholder="Search nearby hospital, clinic, or city..."
                 className="input text-xs w-full bg-white border-slate-300"
               />
             </div>
           </div>
 
-          <div className="card-body p-4 sm:p-5 space-y-3.5 flex-1 overflow-y-auto max-h-[600px]">
-            {filteredHospitals.map(hosp => (
-              <div
-                key={hosp.id}
-                className="p-4 rounded-2xl border-2 border-slate-200 hover:border-[#046A38] bg-white hover:bg-slate-50/50 transition-all shadow-xs space-y-2.5"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-extrabold text-sm sm:text-base text-slate-950">{hosp.name}</h3>
-                      {hosp.badge && (
-                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${hosp.badgeColor}`}>
-                          {hosp.badge}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs font-semibold text-slate-600 mt-0.5">{hosp.branch}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">{hosp.address}</p>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 block">
-                      {hosp.distance} • {hosp.travelTime}
-                    </span>
-                    <span className="text-[10px] font-semibold text-slate-500 mt-0.5 block">Driving ETA</span>
-                  </div>
+          <div className="card-body p-4 sm:p-5 space-y-4 flex-1">
+            <div className="p-5 rounded-2xl border border-[#E8DCC8] bg-[#FAF6EF]/60 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white border border-[#E8DCC8] text-[#046A38] flex items-center justify-center shrink-0">
+                  <MapPin size={19} />
                 </div>
-
-                {/* Facility Tags */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {hosp.facilities.map((fac, i) => (
-                    <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-800">
-                      ✓ {fac}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Actions: Call & Map Directions */}
-                <div className="flex items-center gap-2.5 pt-2 border-t border-slate-100">
-                  <a
-                    href={`tel:${hosp.emergencyHotline.replace(/\s+/g, '')}`}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold shadow-xs transition-colors text-center"
-                  >
-                    <PhoneCall size={14} />
-                    <span>Call Emergency ({hosp.emergencyHotline})</span>
-                  </a>
-                  <a
-                    href={hosp.mapsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 hover:bg-[#E8F5EE] text-slate-900 hover:text-[#046A38] text-xs font-bold border border-slate-300 transition-colors text-center"
-                  >
-                    <Navigation size={14} />
-                    <span>Get Directions</span>
-                  </a>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-950">Find Nearest Emergency Room</h3>
+                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                    Open live Google Maps results based on your current location to get real-time directions and hospital phone numbers.
+                  </p>
                 </div>
               </div>
-            ))}
+
+              <a
+                href={mapsHospitalSearchUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                <Navigation size={14} />
+                <span>Search Nearby Hospitals on Google Maps</span>
+                <ExternalLink size={13} />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a
+                href="tel:108"
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                <PhoneCall size={15} />
+                <span>Call Ambulance (108)</span>
+              </a>
+              <a
+                href="tel:112"
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                <PhoneCall size={15} />
+                <span>Call National SOS (112)</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -957,7 +896,7 @@ export default function PatientSOS() {
                 onChange={(e) => setEditingCaretaker({ ...editingCaretaker, name: e.target.value })}
                 required
                 className="input text-xs w-full"
-                placeholder="e.g. Rajesh Sharma"
+                placeholder="Enter full name"
               />
             </div>
 
@@ -970,7 +909,7 @@ export default function PatientSOS() {
                   onChange={(e) => setEditingCaretaker({ ...editingCaretaker, relationship: e.target.value })}
                   required
                   className="input text-xs w-full"
-                  placeholder="e.g. Spouse / Son / Daughter"
+                  placeholder="e.g. Spouse / Parent / Sibling"
                 />
               </div>
 
@@ -982,7 +921,7 @@ export default function PatientSOS() {
                   onChange={(e) => setEditingCaretaker({ ...editingCaretaker, phone: e.target.value })}
                   required
                   className="input text-xs w-full"
-                  placeholder="+91 98401 23456"
+                  placeholder="+91 98765 43210"
                 />
               </div>
             </div>
@@ -995,7 +934,7 @@ export default function PatientSOS() {
                   value={editingCaretaker.altPhone || ''}
                   onChange={(e) => setEditingCaretaker({ ...editingCaretaker, altPhone: e.target.value })}
                   className="input text-xs w-full"
-                  placeholder="+91 98401 98765"
+                  placeholder="Optional alternate number"
                 />
               </div>
 
@@ -1006,7 +945,7 @@ export default function PatientSOS() {
                   value={editingCaretaker.address || ''}
                   onChange={(e) => setEditingCaretaker({ ...editingCaretaker, address: e.target.value })}
                   className="input text-xs w-full"
-                  placeholder="Anna Nagar, Chennai"
+                  placeholder="Street, City"
                 />
               </div>
             </div>

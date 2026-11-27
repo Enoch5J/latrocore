@@ -286,7 +286,7 @@ export default function Medications() {
             onClick={() => setUploadModalOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-white bg-[#0B3B2C] hover:bg-[#124d3b] shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
           >
-            <Sparkles size={16} className="text-emerald-300" />
+            <UploadCloud size={16} className="text-emerald-300" />
             <span>Upload Prescription (Gemini AI)</span>
           </button>
         </div>
@@ -353,9 +353,8 @@ export default function Medications() {
 
           
 
-          {/* Left Side: Today's Scheduled Dose Actions (7 cols) */}
-
-          <div className="lg:col-span-7 space-y-3.5">
+          {/* Left Side: Today's Scheduled Dose Actions (7 cols, sticky on desktop) */}
+          <div className="lg:col-span-7 lg:sticky lg:top-20 space-y-3.5">
 
             <div className="flex items-center justify-between pb-2 border-b-2 border-slate-200">
 
@@ -412,10 +411,10 @@ export default function Medications() {
                       : 'border-2 border-slate-200 bg-white hover:border-slate-300'
                   }`}
                 >
-                  <div className="card-body p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3.5">
+                  <div className="card-body p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
                       <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border-2 shadow-xs ${
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border-2 shadow-xs ${
                           dose.status === 'taken'
                             ? 'bg-emerald-600 border-emerald-500 text-white'
                             : dose.status === 'missed'
@@ -424,34 +423,29 @@ export default function Medications() {
                         }`}
                       >
                         {dose.status === 'taken' ? (
-                          <CheckCircle size={24} className="stroke-[2.5]" />
+                          <CheckCircle size={22} className="stroke-[2.5]" />
                         ) : dose.status === 'missed' ? (
-                          <X size={24} className="stroke-[2.5]" />
+                          <X size={22} className="stroke-[2.5]" />
                         ) : (
-                          <Clock size={22} />
+                          <Clock size={20} />
                         )}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-extrabold text-slate-950 text-base">{dose.medicineName}</p>
-                          {dose.status === 'taken' && (
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
-                              Verified Taken
-                            </span>
-                          )}
-                          {dose.status === 'missed' && (
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300">
-                              Not Taken (Missed)
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-extrabold text-slate-950 text-base leading-snug">{dose.medicineName}</p>
+                          {dose.status === 'pending' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap">
+                              <Clock size={10} /> Pending
                             </span>
                           )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                          <p className="text-xs font-bold text-slate-700">Scheduled: {formatTime(dose.scheduledTime)}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <p className="text-xs font-bold text-slate-700 whitespace-nowrap">Scheduled: {formatTime(dose.scheduledTime)}</p>
                           {matchedRx && matchedMed && (
                             <button
                               type="button"
                               onClick={() => openReminderEditor(matchedRx, matchedMed)}
-                              className="inline-flex items-center gap-1 rounded-md border border-[#A8D7BD] bg-[#E8F5EE]/70 px-2 py-0.5 text-[11px] font-bold text-[#03542C] hover:bg-[#D1EBDD] cursor-pointer transition-colors"
+                              className="inline-flex items-center gap-1 rounded-md border border-[#A8D7BD] bg-[#E8F5EE]/70 px-2 py-0.5 text-[11px] font-bold text-[#03542C] hover:bg-[#D1EBDD] cursor-pointer transition-colors whitespace-nowrap shrink-0"
                             >
                               <Pencil size={11} aria-hidden="true" />
                               <span>Edit time</span>
@@ -459,44 +453,40 @@ export default function Medications() {
                           )}
                         </div>
                         {dose.actualTime && (
-                          <p className="text-xs font-extrabold text-emerald-800 mt-0.5 flex items-center gap-1">
-                            <CheckCircle size={12} className="text-emerald-700" />
-                            Taken at: {formatTime(dose.actualTime)}
+                          <p className="text-xs font-extrabold text-emerald-800 mt-1 flex items-center gap-1">
+                            <CheckCircle size={12} className="text-emerald-700 shrink-0" />
+                            <span>Taken at: {formatTime(dose.actualTime)}</span>
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5 self-end sm:self-center">
-                      {/* Bold Distinct Status Badges and Clear Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
                       {dose.status === 'taken' && (
-                        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-600 text-white border-2 border-emerald-500 shadow-md">
-                          <CheckCircle size={15} /> TAKEN
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-600 text-white border border-emerald-500 shadow-xs whitespace-nowrap">
+                          <CheckCircle size={14} /> Taken
                         </span>
                       )}
                       {dose.status === 'missed' && (
-                        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-rose-600 text-white border-2 border-rose-500 shadow-md">
-                          <X size={15} /> NOT TAKEN
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-rose-600 text-white border border-rose-500 shadow-xs whitespace-nowrap">
+                          <X size={14} /> Missed
                         </span>
                       )}
                       {dose.status === 'pending' && (
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
-                            <Clock size={13} /> PENDING
-                          </span>
+                        <>
                           <button
                             onClick={() => setDoseModal({ dose, action: 'taken', note: '' })}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 text-white hover:bg-emerald-700 shadow-md border-2 border-emerald-500 cursor-pointer transition-all active:scale-95"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs cursor-pointer transition-all active:scale-95 whitespace-nowrap"
                           >
                             <CheckCircle size={14} /> Mark Taken
                           </button>
                           <button
                             onClick={() => setDoseModal({ dose, action: 'missed', note: '' })}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-rose-600 text-white hover:bg-rose-700 shadow-md border-2 border-rose-500 cursor-pointer transition-all active:scale-95"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer transition-all active:scale-95 whitespace-nowrap"
                           >
-                            <X size={14} /> Not Taken
+                            <X size={14} /> Missed
                           </button>
-                        </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -511,181 +501,85 @@ export default function Medications() {
           <div className="lg:col-span-5 space-y-3.5">
 
             <div className="flex items-center justify-between pb-2 border-b-2 border-slate-200">
-
               <div className="flex items-center gap-2">
-
                 <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center">
-
                   <FileText size={18} />
-
                 </div>
-
                 <div>
-
                   <h2 className="font-extrabold text-slate-950 text-base sm:text-lg">Active Prescriptions</h2>
-
-                  <p className="text-xs text-slate-600 font-medium">Doctor authorized instructions</p>
-
+                  <p className="text-xs text-slate-600 font-medium">
+                    {prescriptions[0]?.authorizedAt ? `Authorized ${formatDate(prescriptions[0].authorizedAt)}` : 'Prescribed medicines'}
+                  </p>
                 </div>
-
               </div>
-
               {prescriptions[0] && (
-
                 <button
-
                   onClick={() => setRxDetailModal(prescriptions[0])}
-
-                  className="btn-ghost btn-sm font-bold text-xs text-slate-800 hover:text-slate-950 flex items-center gap-1"
-
+                  className="btn-ghost btn-sm font-bold text-xs text-slate-800 hover:text-slate-950 flex items-center gap-1 cursor-pointer"
                 >
-
                   <FileText size={13} /> Details
-
                 </button>
-
               )}
-
             </div>
 
-
-
-            {prescriptions.length === 0 ? (
-
-              <EmptyState icon={FileText} title="No prescriptions" message="No active prescriptions found." />
-
-            ) : (
-
-              prescriptions.map(rx => (
-
-                <div key={rx.id} className="space-y-3">
-
-                  <div className="flex items-center justify-between bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-
-                    <span className="text-[11px] font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
-
-                      ACTIVE RX
-
-                    </span>
-
-                    <span className="text-[11px] font-bold text-slate-600">
-
-                      Authorized: {formatDate(rx.authorizedAt)}
-
-                    </span>
-
-                  </div>
-
-
-
-                  {(rx.medicines || []).map(med => (
-
-                    <div key={med.id} className="card border border-slate-200 bg-white p-3.5 space-y-2 rounded-xl shadow-xs">
-
-                      <div className="flex items-start justify-between gap-2">
-
-                        <div className="flex items-center gap-2.5">
-
-                          <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center shrink-0">
-
-                            <Pill size={16} />
-
+            <div className="lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto lg:pr-1.5 space-y-3.5">
+              {prescriptions.length === 0 ? (
+                <EmptyState icon={FileText} title="No prescriptions" message="No active prescriptions found." />
+              ) : (
+                prescriptions.map(rx => (
+                  <div key={rx.id} className="space-y-3">
+                    {(rx.medicines || []).map(med => (
+                      <div key={med.id} className="card border border-slate-200 bg-white p-3.5 space-y-2.5 rounded-xl shadow-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center shrink-0">
+                              <Pill size={16} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-slate-950 text-sm truncate">{med.name}</p>
+                              <p className="text-[11px] font-semibold text-slate-600">{formatMedicineMeta(med)}</p>
+                            </div>
                           </div>
-
-                          <div>
-
-                            <p className="font-extrabold text-slate-950 text-sm">{med.name}</p>
-
-                            <p className="text-[11px] font-bold text-slate-700">{formatMedicineMeta(med)}</p>
-
-                          </div>
-
-                        </div>
-
-                        <button
-
-                          onClick={() => setRefillModal(med)}
-
-                          className="text-[11px] font-bold text-slate-700 hover:text-teal-900 bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 px-2.5 py-1 rounded-lg transition flex items-center gap-1 shrink-0"
-
-                          title="Request Refill"
-
-                        >
-
-                          <RefreshCw size={11} /> Refill
-
-                        </button>
-
-                      </div>
-
-
-
-                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 space-y-1 text-xs">
-
-                        <p className="text-slate-800 font-semibold flex items-center gap-1.5">
-
-                          <span className="text-slate-500 font-medium">Timing:</span>
-
-                          <span>{formatMedicineTiming(med)}</span>
-
-                        </p>
-
-                        {med.instructions && (
-
-                          <p className="text-slate-600 text-[11px] italic bg-white p-1.5 rounded border border-slate-200">
-
-                            "{med.instructions}"
-
-                          </p>
-
-                        )}
-
-                        {med.reviewDate && (
-
-                          <p className="text-amber-800 font-bold text-[10px] pt-0.5">
-
-                            Surveillance Review: {formatDate(med.reviewDate)}
-
-                          </p>
-
-                        )}
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-2">
-                          <p className="text-xs font-semibold text-slate-700">
-                            Your reminder: {(med.reminderTimes || med.times || med.scheduleTimes || []).map(displayReminderTime).join(', ') || 'Not set'}
-                          </p>
                           <button
-                            type="button"
-                            onClick={() => openReminderEditor(rx, med)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#A8D7BD] bg-white px-2.5 py-1.5 text-xs font-bold text-[#03542C] transition-colors hover:bg-[#E8F5EE]"
+                            onClick={() => setRefillModal(med)}
+                            className="text-[11px] font-bold text-slate-700 hover:text-teal-900 bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 px-2.5 py-1 rounded-lg transition flex items-center gap-1 shrink-0 cursor-pointer"
+                            title="Request Refill"
                           >
-                            <Pencil size={13} />
-                            Edit reminder times
+                            <RefreshCw size={11} /> Refill
                           </button>
                         </div>
 
+                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 space-y-2 text-xs">
+                          {med.instructions && (
+                            <p className="text-slate-600 text-[11px] italic">
+                              {med.instructions}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-slate-700">
+                              Reminder: {(med.reminderTimes || med.times || med.scheduleTimes || []).map(displayReminderTime).join(', ') || 'Not set'}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => openReminderEditor(rx, med)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#A8D7BD] bg-white px-2.5 py-1 text-xs font-bold text-[#03542C] transition-colors hover:bg-[#E8F5EE] cursor-pointer whitespace-nowrap"
+                            >
+                              <Pencil size={12} />
+                              Edit time
+                            </button>
+                          </div>
+                        </div>
                       </div>
+                    ))}
 
-                    </div>
+                    {rx.notes && (
+                      <div className="text-[11px] font-medium text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                        <span className="font-bold text-slate-700">Doctor Note: </span>
+                        {rx.notes}
+                      </div>
+                    )}
 
-                  ))}
-
-
-
-                  {rx.notes && (
-
-                    <div className="text-[11px] font-medium text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-
-                      <span className="font-bold text-slate-700">Doctor Note: </span>
-
-                      {rx.notes}
-
-                    </div>
-
-                  )}
-
-
-
-                  {rx.dietPlan && (
+                    {rx.dietPlan && (
 
                     <div className="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-200 space-y-2">
 
@@ -756,13 +650,10 @@ export default function Medications() {
                     </div>
 
                   )}
-
                 </div>
-
               ))
-
             )}
-
+            </div>
           </div>
 
 

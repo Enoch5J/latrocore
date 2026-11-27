@@ -20,6 +20,21 @@ function sanitizeData(data) {
     modified = true;
   }
 
+  // Purge any simulated/fake CGM dummy glucose readings
+  if (Array.isArray(data.glucoseReadings)) {
+    const realReadings = data.glucoseReadings.filter((r) => {
+      const id = String(r?.id || '');
+      const notes = String(r?.notes || '');
+      if (notes.includes('Simulated CGM data')) return false;
+      if (/^gl-(f|pb|pl|pd|r2)-/.test(id)) return false;
+      return true;
+    });
+    if (realReadings.length !== data.glucoseReadings.length) {
+      data.glucoseReadings = realReadings;
+      modified = true;
+    }
+  }
+
   if (modified) saveData(data);
   return data;
 }
@@ -663,7 +678,30 @@ export async function setClinicalTargets(target) {
 }
 
 // ── Daily Health Progression Engine ─────────────────────────────────────
-export function calculateProgression(prog) {
+export const MEAL_WINDOW_GRACE_MINUTES = 180;
+
+export function parseMealTimeToday(timeStr, now = new Date()) {
+  const match = String(timeStr || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return null;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem === 'PM' && hour < 12) hour += 12;
+  if (meridiem === 'AM' && hour === 12) hour = 0;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  const dt = new Date(now);
+  dt.setHours(hour, minute, 0, 0);
+  return dt;
+}
+
+export function isMealWindowExpired(meal, now = new Date(), graceMinutes = MEAL_WINDOW_GRACE_MINUTES) {
+  if (!meal || meal.taken === true || meal.taken === false) return false;
+  const scheduled = parseMealTimeToday(meal.time, now);
+  if (!scheduled) return false;
+  return now.getTime() > scheduled.getTime() + graceMinutes * 60 * 1000;
+}
+
+export function calculateProgression(prog, now = new Date()) {
   if (!prog) return { score: 0, level: 1, levelName: 'Incomplete', deductions: [], bonuses: [] };
 
   let baseScore = 0;
@@ -673,8 +711,8 @@ export function calculateProgression(prog) {
   // 1. Food / Meals Progression (Max 30%)
   const meals = prog.meals || [];
   const takenMeals = meals.filter(m => m.taken === true);
-  const missedMeals = meals.filter(m => m.taken === false);
-  const pendingMeals = meals.filter(m => m.taken === null || m.taken === undefined);
+  const missedMeals = meals.filter(m => m.taken === false || (m.taken == null && isMealWindowExpired(m, now)));
+  const pendingMeals = meals.filter(m => m.taken == null && !isMealWindowExpired(m, now));
 
   // Points for taken meals (+10% per meal)
   baseScore += takenMeals.length * 10;
@@ -854,14 +892,21 @@ export function getProgressionData(patientId) {
       rx => rx.patientId === patientId && rx.status === 'active'
     );
     const activeTablets = [];
+    const todayDoses = (data.doseEvents || []).filter(
+      d => d.patientId === patientId && new Date(d.scheduledTime).toDateString() === new Date().toDateString()
+    );
     activePrescriptions.forEach(rx => {
       (rx.medicines || []).forEach(med => {
+        const matchingDose = todayDoses.find(d => d.medicineId === med.id || d.medicineName === med.name);
+        const doseTaken = matchingDose
+          ? (matchingDose.status === 'taken' ? true : matchingDose.status === 'missed' ? false : null)
+          : null;
         activeTablets.push({
           id: med.id || genId('tab'),
           name: med.name,
           dose: med.dose,
           slot: med.frequency || 'Daily',
-          taken: false,
+          taken: doseTaken,
           time: med.times?.[0] || '08:00 AM',
           reason: med.instructions || '',
         });

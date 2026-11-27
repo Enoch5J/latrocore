@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { applyAIPrescriptionToPatient } from '../../services/dataService';
@@ -22,7 +23,6 @@ import {
   Pill,
   RefreshCw,
   Salad,
-  Sparkles,
   UploadCloud,
   X,
 } from 'lucide-react';
@@ -610,7 +610,7 @@ function CarePlanReviewModalContent({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-950/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[70] bg-stone-950/65 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
       <div
         role="dialog"
         aria-modal="true"
@@ -622,7 +622,7 @@ function CarePlanReviewModalContent({
         <header className="bg-[#046A38] text-white px-4 sm:px-6 py-4 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center text-white shrink-0">
-              <Sparkles size={20} aria-hidden="true" />
+              <FileText size={20} aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <h2
@@ -841,7 +841,7 @@ function CarePlanReviewModalContent({
                   </>
                 ) : (
                   <>
-                    <Sparkles size={18} className="text-white" />
+                    <FileText size={18} className="text-white" />
                     <span>Extract Prescription</span>
                   </>
                 )}
@@ -969,7 +969,7 @@ export default function PrescriptionUploadModal({
     ? `rx-${initialPrescription._reviewInstanceId || initialPrescription.upload_id || initialPrescription.createdAt || 'review'}`
     : 'rx-upload';
 
-  return (
+  const modalNode = (
     <CarePlanReviewModalContent
       key={instanceKey}
       onClose={onClose}
@@ -978,4 +978,6 @@ export default function PrescriptionUploadModal({
       onApplyPrescription={onApplyPrescription}
     />
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 }

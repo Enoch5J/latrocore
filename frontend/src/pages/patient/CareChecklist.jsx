@@ -59,140 +59,113 @@ export default function CareChecklist({ embedded = false, onNavigateTab }) {
       {
         id: 'medication-adherence',
         title: 'Medication adherence ≥80%',
-        category: 'Pharmacotherapy',
-        frequency: 'Daily Continuous',
+        frequency: 'Daily',
         done: adherence ? adherence.pct >= 80 : false,
-        currentValue: adherence ? `${adherence.pct}% (${adherence.taken}/${adherence.total} doses taken)` : 'No active prescriptions',
-        detail: 'Monthly prescription adherence tracking',
-        clinicalRationale: 'Sustained medication compliance blunts glucose excursions and prevents cardiovascular and microvascular damage.',
+        currentValue: adherence ? `${adherence.pct}% (${adherence.taken}/${adherence.total} doses)` : 'No active prescriptions',
         icon: Pill,
-        iconBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-        actionLabel: 'View Medication Plan',
+        iconBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        actionLabel: 'View Medications',
         actionRoute: '/patient/medications',
-        target: '≥ 80% on-time doses',
-        lastChecked: adherence ? 'Logged today' : 'No prescriptions active',
+        target: '≥ 80% on-time',
       },
       {
         id: 'glucose-logging',
         title: 'Glucose logged today',
-        category: 'Glycemic Surveillance',
-        frequency: 'Daily (Fasting & Post-Meal)',
+        frequency: 'Daily',
         done: glucoseReadings.some(r => isToday(r.dateTime)),
         currentValue: glucoseReadings.some(r => isToday(r.dateTime))
-          ? `${latestGlucose?.value} mg/dL (${latestGlucose?.context})`
-          : 'Pending for today',
-        detail: 'Daily self-monitoring of blood glucose (SMBG)',
-        clinicalRationale: 'Regular glucose readings identify asymptomatic hypoglycemic dips and evaluate immediate post-meal meal carbohydrate tolerance.',
+          ? `${latestGlucose?.value} mg/dL (${latestGlucose?.context || 'logged'})`
+          : 'Pending today',
         icon: Droplets,
-        iconBg: 'bg-teal-100 text-teal-800 border-teal-300',
-        actionLabel: 'Log Glucose Reading',
+        iconBg: 'bg-teal-50 text-teal-700 border-teal-200',
+        actionLabel: 'Log Glucose',
         actionRoute: '/patient/metrics?tab=glucose&action=add',
-        target: '80 - 130 mg/dL Fasting',
-        lastChecked: latestGlucose ? formatDate(latestGlucose.dateTime) : 'Not logged today',
+        target: '80–130 mg/dL fasting',
       },
       {
         id: 'hba1c-quarterly',
         title: 'HbA1c recorded this quarter',
         category: 'Laboratory Review',
-        frequency: 'Every 3 Months',
+        frequency: 'Every 3 months',
         done: !!latestHbA1c,
-        currentValue: latestHbA1c ? `${latestHbA1c.value}% (${latestHbA1c.status || 'Good Control'})` : 'No test records',
-        detail: 'Quarterly glycated hemoglobin check',
-        clinicalRationale: 'HbA1c quantifies average blood glucose over the past 3 months. Essential for evaluating overall diabetes management strategy.',
-        icon: TrendingUp,
-        iconBg: 'bg-blue-100 text-blue-800 border-blue-300',
-        actionLabel: 'View Lab Investigations',
+        currentValue: latestHbA1c?.value != null && latestHbA1c.value !== ''
+          ? `${latestHbA1c.value}% (${latestHbA1c.status || 'Good Control'})`
+          : latestHbA1c
+            ? (latestHbA1c.status || 'Recorded')
+            : 'No test records',
+        actionLabel: 'View Lab Results',
         actionRoute: '/patient/metrics?tab=investigations',
-        target: '< 7.0% (individualized)',
-        lastChecked: latestHbA1c ? formatDate(latestHbA1c.date) : 'Pending schedule',
+        target: '< 7.0%',
+        icon: TrendingUp,
+        iconBg: 'bg-blue-50 text-blue-700 border-blue-200',
       },
       {
         id: 'bp-monthly',
-        title: 'Blood pressure recorded this month',
-        category: 'Cardiovascular Risk',
-        frequency: 'Monthly Check',
+        title: 'Blood pressure this month',
+        frequency: 'Monthly',
         done: healthEntries.some(e => e.type === 'blood_pressure' && new Date(e.date) > new Date(Date.now() - 30 * 86400000)),
         currentValue: latestBP?.value ? `${latestBP.value} mmHg` : 'No reading recorded',
-        detail: 'Monthly blood pressure measurement',
-        clinicalRationale: 'Tight BP control significantly reduces the rate of microvascular progression (nephropathy, retinopathy) and stroke risk.',
         icon: Activity,
-        iconBg: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-        actionLabel: 'Log Vitals / Blood Pressure',
+        iconBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        actionLabel: 'Log Blood Pressure',
         actionRoute: '/patient/lifestyle?action=add',
         target: '< 130/80 mmHg',
-        lastChecked: latestBP ? formatDate(latestBP.date) : 'Pending measurement',
       },
       {
         id: 'eye-screening',
         title: 'Eye screening current',
-        category: 'Microvascular Check',
-        frequency: 'At Least Annually',
+        frequency: 'Annual',
         done: screenings.some(s => s.type === 'Eye Examination' && s.status === 'completed'),
         currentValue: screenings.some(s => s.type === 'Eye Examination' && s.status === 'completed')
-          ? 'Completed (Retina Clear)'
+          ? 'Completed'
           : 'Due for annual exam',
-        detail: 'Dilated eye examination & retinal photography',
-        clinicalRationale: 'Detects proliferative or non-proliferative diabetic retinopathy before visual impairment or macular edema symptoms emerge.',
         icon: Eye,
-        iconBg: 'bg-amber-100 text-amber-800 border-amber-300',
-        actionLabel: 'Book Eye Examination',
+        iconBg: 'bg-amber-50 text-amber-700 border-amber-200',
+        actionLabel: 'Book Eye Exam',
         actionRoute: '/appointments?type=screening',
-        target: 'Annual Dilated Retinal Exam',
-        lastChecked: 'Overdue / Action Needed',
+        target: 'Dilated retinal exam',
       },
       {
         id: 'foot-exam',
         title: 'Foot examination current',
-        category: 'Neuropathy Surveillance',
-        frequency: 'At Least Annually',
+        frequency: 'Annual',
         done: screenings.some(s => s.type === 'Foot Examination' && s.status === 'completed'),
         currentValue: screenings.some(s => s.type === 'Foot Examination' && s.status === 'completed')
-          ? 'Completed (Intact Sensation)'
-          : 'Annual assessment due',
-        detail: '10g Monofilament, pulses, and skin inspection',
-        clinicalRationale: 'Identifies diabetic peripheral neuropathy, impaired circulation, calluses, or deformities to prevent foot ulceration and amputation.',
+          ? 'Completed'
+          : 'Annual check due',
         icon: ShieldCheck,
-        iconBg: 'bg-rose-100 text-rose-800 border-rose-300',
+        iconBg: 'bg-rose-50 text-rose-700 border-rose-200',
         actionLabel: 'Schedule Foot Check',
         actionRoute: '/appointments?type=screening',
-        target: 'Comprehensive Annual Foot Exam',
-        lastChecked: 'Pending Schedule',
+        target: 'Comprehensive foot exam',
       },
       {
         id: 'kidney-monitoring',
         title: 'Kidney monitoring current',
-        category: 'Renal Function',
-        frequency: 'At Least Annually',
+        frequency: 'Annual',
         done: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed'),
         currentValue: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed')
-          ? 'Urine ACR & eGFR verified normal'
-          : 'Annual assessment due',
-        detail: 'Spot urine albumin-to-creatinine ratio (uACR) + serum creatinine',
-        clinicalRationale: 'Microalbuminuria is the earliest clinical herald of diabetic nephropathy; early detection allows renal-protective ACEi/ARB initiation.',
+          ? 'Normal (uACR & eGFR)'
+          : 'Annual check due',
         icon: ClipboardCheck,
-        iconBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+        iconBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         actionLabel: 'Review Renal Panel',
         actionRoute: '/patient/metrics?tab=investigations',
-        target: 'uACR < 30 mg/g • eGFR > 60',
-        lastChecked: screenings.some(s => s.type === 'Kidney Assessment' && s.status === 'completed') ? 'Completed' : 'Pending Schedule',
+        target: 'uACR < 30 • eGFR > 60',
       },
       {
         id: 'physical-activity',
-        title: '30+ min activity this week',
-        category: 'Metabolic Fitness',
-        frequency: 'Weekly Target (≥ 150 min/wk)',
+        title: '30+ min activity today',
+        frequency: 'Weekly (≥150 min)',
         done: todayActivity >= 30,
         currentValue: todayActivity >= 30
-          ? `${todayActivity} min today (Goal Met)`
-          : `${todayActivity} min logged today (Target: 30 min)`,
-        detail: 'Moderate aerobic exercise or brisk walking',
-        clinicalRationale: 'Contracting muscle tissue utilizes glucose without insulin dependence, immediately driving down systemic glycemic levels.',
+          ? `${todayActivity} min today`
+          : `${todayActivity} min today`,
         icon: Heart,
-        iconBg: 'bg-orange-100 text-orange-800 border-orange-300',
-        actionLabel: 'Log Physical Activity',
+        iconBg: 'bg-orange-50 text-orange-700 border-orange-200',
+        actionLabel: 'Log Activity',
         actionRoute: '/patient/lifestyle?action=add',
-        target: '≥ 150 min moderate activity/week',
-        lastChecked: `${todayActivity} min today`,
+        target: '≥ 30 min/day',
       },
     ];
   }, [adherence, glucoseReadings, latestGlucose, latestHbA1c, latestBP, healthEntries, screenings, todayActivity]);
@@ -208,9 +181,9 @@ export default function CareChecklist({ embedded = false, onNavigateTab }) {
   }, [checklistData, filter]);
 
   return (
-    <div className={`space-y-6 sm:space-y-8 animate-fade-in ${embedded ? 'pb-2' : 'pb-12'}`}>
-      {/* Top Navigation & Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+    <div className={`space-y-5 animate-fade-in ${embedded ? 'pb-2' : 'pb-12'}`}>
+      {/* Header + Compact Progress */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
           {!embedded && (
             <button
@@ -218,270 +191,161 @@ export default function CareChecklist({ embedded = false, onNavigateTab }) {
               className="text-xs font-bold text-slate-600 hover:text-slate-950 flex items-center gap-1.5 mb-2 group cursor-pointer transition-colors"
             >
               <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-              <span>Back to Patient Dashboard</span>
+              <span>Back to Dashboard</span>
             </button>
           )}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0 shadow-inner">
-              <ClipboardCheck size={22} />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 border border-teal-200 flex items-center justify-center shrink-0">
+              <ClipboardCheck size={19} />
             </div>
             <div>
               {embedded ? (
-                <h2 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
-                  Clinical Care Checklist
+                <h2 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight">
+                  Care Checklist
                 </h2>
               ) : (
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
-                  Clinical Care Checklist
+                <h1 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">
+                  Care Checklist
                 </h1>
               )}
-              <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
-                Essential regular checkpoints for optimal glycemic control &amp; complication prevention
+              <p className="text-xs font-medium text-slate-500">
+                {completedCount} of {totalCount} checkpoints completed
               </p>
             </div>
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onNavigateTab ? onNavigateTab('glucose') : navigate('/patient/metrics?tab=glucose&action=add')}
-            className="btn-primary btn-sm"
-          >
-            <Droplets size={14} />
-            <span>Quick Log Glucose</span>
-          </button>
-          <button
-            onClick={() => navigate('/appointments')}
-            className="btn-outline btn-sm text-xs font-bold"
-          >
-            <CalendarDays size={14} />
-            <span>Book Clinical Visit</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Progress & Overview Banner */}
-      <div className="card p-5 sm:p-6 bg-gradient-to-br from-[#012513] via-[#03542C] to-[#046A38] text-white rounded-3xl shadow-md border-0 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-[#046A38]/30 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-white/10 text-[#A8D7BD] border border-white/20">
-                ADA Standards of Care 2026 Protocol
-              </span>
-              <span className="text-[11px] font-semibold text-slate-300">
-                Quarterly &amp; Annual Preventive Screening
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
-              {completedCount} of {totalCount} Checkpoints In Target ({progressPct}% Complete)
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-              {completedCount === totalCount
-                ? 'Excellent work! All preventative care checkpoints and routine diagnostics are fully up to date.'
-                : completedCount > 0
-                ? `You have achieved ${completedCount} of ${totalCount} clinical checkpoints. Complete remaining surveillance screenings to protect long-term glycemic and vascular health.`
-                : 'Stay ahead of diabetic complications by completing routine preventative tests and recording your daily vitals.'}
-            </p>
-          </div>
-
-          {/* Progress Bar & Stats */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/15 min-w-[260px] space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-300">Completion Score</span>
-              <span className="text-base font-black text-[#A8D7BD]">{progressPct}%</span>
-            </div>
-            <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden p-0.5 border border-white/20">
+        {/* Compact Progress Pill + Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2.5 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-[#72BC97] to-[#046A38] rounded-full transition-all duration-500"
+                className="h-full bg-[#046A38] rounded-full transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] pt-1">
-              <span className="text-emerald-300 font-bold flex items-center gap-1">
-                <CheckCircle size={12} /> {completedCount} Completed
-              </span>
-              <span className="text-amber-300 font-bold flex items-center gap-1">
-                <AlertCircle size={12} /> {totalCount - completedCount} Action Needed
-              </span>
-            </div>
+            <span className="text-xs font-black text-slate-900">{progressPct}%</span>
+          </div>
+
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filter === 'all'
+                  ? 'bg-white text-slate-950 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-950'
+              }`}
+            >
+              All ({totalCount})
+            </button>
+            <button
+              onClick={() => setFilter('completed')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filter === 'completed'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-emerald-800'
+              }`}
+            >
+              Done ({completedCount})
+            </button>
+            <button
+              onClick={() => setFilter('pending')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filter === 'pending'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-amber-800'
+              }`}
+            >
+              Due ({totalCount - completedCount})
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              filter === 'all'
-                ? 'bg-white text-slate-950 shadow-xs'
-                : 'text-slate-600 hover:text-slate-950'
-            }`}
-          >
-            All Checkpoints ({totalCount})
-          </button>
-          <button
-            onClick={() => setFilter('completed')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              filter === 'completed'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-emerald-800'
-            }`}
-          >
-            Completed ({completedCount})
-          </button>
-          <button
-            onClick={() => setFilter('pending')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              filter === 'pending'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-amber-800'
-            }`}
-          >
-            Action Needed ({totalCount - completedCount})
-          </button>
-        </div>
-
-        <span className="text-xs font-semibold text-slate-500">
-          Showing {filteredItems.length} of {totalCount} items
-        </span>
-      </div>
-
-      {/* ── 8 Individual Cards Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {/* 8 Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {filteredItems.map((item) => {
           const Icon = item.icon;
           return (
             <div
               key={item.id}
-              className={`rounded-2xl border-2 p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-xs hover:shadow-md ${
+              className={`rounded-2xl border p-4 flex flex-col justify-between transition-all duration-200 bg-white ${
                 item.done
-                  ? 'border-emerald-300/80 bg-white hover:border-emerald-500'
-                  : 'border-slate-200 bg-white hover:border-amber-400'
+                  ? 'border-emerald-200 hover:border-emerald-400'
+                  : 'border-slate-200 hover:border-amber-400'
               }`}
             >
-              <div className="space-y-3.5">
-                {/* Header: Category & Status */}
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                    {item.category}
-                  </span>
+              <div className="space-y-3">
+                {/* Top Row: Icon + Status */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${item.iconBg}`}>
+                    <Icon size={16} />
+                  </div>
                   {item.done ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-300">
-                      <CheckCircle size={11} className="text-emerald-700 shrink-0" />
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle size={12} className="shrink-0" />
                       <span>Completed</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                      <AlertCircle size={11} className="text-amber-700 shrink-0" />
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      <AlertCircle size={12} className="shrink-0" />
                       <span>Action Needed</span>
                     </span>
                   )}
                 </div>
 
-                {/* Title & Icon */}
-                <div className="flex items-start gap-2.5">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${item.iconBg}`}>
-                    <Icon size={16} />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-950 leading-snug">
-                      {item.title}
-                    </h3>
-                    <p className="text-[10px] font-bold text-slate-500 mt-0.5">
-                      {item.frequency}
-                    </p>
-                  </div>
+                {/* Title & Cadence */}
+                <div>
+                  <h3 className="font-bold text-sm text-slate-950 leading-snug">
+                    {item.title}
+                  </h3>
+                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                    {item.frequency}
+                  </p>
                 </div>
 
-                {/* Metric Box */}
-                <div className={`p-2.5 rounded-xl border ${item.done ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Current Status</p>
-                  <p className={`text-xs font-black mt-0.5 ${item.done ? 'text-emerald-950' : 'text-slate-900'}`}>
+                {/* Status Box */}
+                <div className={`px-3 py-2.5 rounded-xl border ${item.done ? 'bg-emerald-50/60 border-emerald-200/80' : 'bg-slate-50 border-slate-200/80'}`}>
+                  <p className={`text-xs font-bold ${item.done ? 'text-emerald-950' : 'text-slate-900'}`}>
                     {item.currentValue}
                   </p>
-                  <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">
                     Target: {item.target}
                   </p>
                 </div>
-
-                {/* Clinical Rationale */}
-                <p className="text-[11px] font-medium text-slate-600 leading-relaxed">
-                  {item.clinicalRationale}
-                </p>
               </div>
 
-              {/* Action Button Footer */}
-              <div className="pt-4 mt-4 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    if (onNavigateTab) {
-                      if (item.actionRoute.includes('tab=glucose') || item.actionRoute.includes('/glucose')) {
-                        onNavigateTab('glucose');
-                        return;
-                      }
-                      if (item.actionRoute.includes('tab=investigations') || item.actionRoute.includes('/investigations')) {
-                        onNavigateTab('investigations');
-                        return;
-                      }
-                      if (item.actionRoute.includes('tab=screening') || (item.actionRoute.includes('/screening') && !item.actionRoute.includes('appointments'))) {
-                        onNavigateTab('screening');
-                        return;
-                      }
+              {/* Action Button */}
+              <button
+                onClick={() => {
+                  if (onNavigateTab) {
+                    if (item.actionRoute.includes('tab=glucose') || item.actionRoute.includes('/glucose')) {
+                      onNavigateTab('glucose');
+                      return;
                     }
-                    navigate(item.actionRoute);
-                  }}
-                  className={`w-full py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    item.done
-                      ? 'bg-slate-100 hover:bg-emerald-100 text-slate-800 hover:text-emerald-950 border border-slate-200'
-                      : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-                  }`}
-                >
-                  <span>{item.actionLabel}</span>
-                  <ArrowRight size={13} />
-                </button>
-              </div>
+                    if (item.actionRoute.includes('tab=investigations') || item.actionRoute.includes('/investigations')) {
+                      onNavigateTab('investigations');
+                      return;
+                    }
+                    if (item.actionRoute.includes('tab=screening') || (item.actionRoute.includes('/screening') && !item.actionRoute.includes('appointments'))) {
+                      onNavigateTab('screening');
+                      return;
+                    }
+                  }
+                  navigate(item.actionRoute);
+                }}
+                className={`mt-4 w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  item.done
+                    ? 'bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-900 border border-slate-200'
+                    : 'bg-amber-600 hover:bg-amber-700 text-white'
+                }`}
+              >
+                <span>{item.actionLabel}</span>
+                <ArrowRight size={13} />
+              </button>
             </div>
           );
         })}
-      </div>
-
-      {/* ADA Standards Reference Banner */}
-      <div className="card p-5 bg-gradient-to-r from-blue-50 via-teal-50 to-indigo-50 border border-blue-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
-            <Stethoscope size={20} />
-          </div>
-          <div>
-            <h4 className="font-extrabold text-sm text-slate-950">
-              Need Assistance Meeting Your Targets?
-            </h4>
-            <p className="text-xs font-medium text-slate-700 mt-0.5">
-              Discuss pending checkpoints, test scheduling, or lab orders with your assigned Diabetologist or Clinical Pharmacist.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => navigate('/appointments')}
-            className="btn-outline btn-sm text-xs font-bold"
-          >
-            <CalendarDays size={13} />
-            <span>Book Review</span>
-          </button>
-          <button
-            onClick={() => navigate('/messages')}
-            className="btn-primary btn-sm bg-blue-700 hover:bg-blue-800 text-xs"
-          >
-            <span>Message Care Team</span>
-            <ArrowRight size={13} />
-          </button>
-        </div>
       </div>
     </div>
   );

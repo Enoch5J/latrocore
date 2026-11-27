@@ -4,7 +4,8 @@ import base64
 import json
 import os
 from typing import Optional, List, Dict, Any, Tuple
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from starlette.datastructures import UploadFile as StarletteUploadFile
@@ -506,3 +507,66 @@ async def send_message(
             "pii_scrubbed": ai_response.get("pii_scrubbed", False)
         }
     }
+
+
+ALLOWED_TTS_LANGS = {"en", "ta", "hi", "ml", "te", "kn"}
+
+
+class TtsRequest(BaseModel):
+    text: str
+    language: str = "en"
+
+
+def _split_tts_chunks(text: str, max_len: int = 180) -> List[str]:
+    clean = " ".join(str(text or "").split())[:1200]
+    if not clean:
+        return []
+    chunks: List[str] = []
+    while clean:
+        if len(clean) <= max_len:
+            chunks.append(clean)
+            break
+        split_at = max(
+            clean.rfind(". ", 0, max_len + 1),
+            clean.rfind("? ", 0, max_len + 1),
+            clean.rfind("! ", 0, max_len + 1),
+            clean.rfind(" ", 0, max_len + 1),
+        )
+        if split_at <= 0:
+            split_at = max_len
+        else:
+            split_at += 1
+        chunks.append(clean[:split_at].strip())
+        clean = clean[split_at:].strip()
+    return [c for c in chunks if c]
+
+
+@router.post("/ai/tts")
+async def synthesize_speech(payload: TtsRequest):
+    """Synthesize MP3 speech for English and Indic languages when browser TTS lacks local voices."""
+    lang = (payload.language or "en").strip().lower().split("-")[0]
+    if lang not in ALLOWED_TTS_LANGS:
+        lang = "en"
+
+    chunks = _split_tts_chunks(payload.text)
+    if not chunks:
+        raise HTTPException(status_code=400, detail="Text is required for speech synthesis.")
+
+    audio_parts: List[bytes] = []
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            for chunk in chunks:
+                resp = await client.get(
+                    "https://translate.googleapis.com/translate_tts",
+                    params={"ie": "UTF-8", "client": "tw-ob", "tl": lang, "q": chunk},
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+                if resp.status_code != 200 or not resp.content:
+                    raise HTTPException(status_code=502, detail="TTS service unavailable.")
+                audio_parts.append(resp.content)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Unable to synthesize speech.") from exc
+
+    return Response(content=b"".join(audio_parts), media_type="audio/mpeg")

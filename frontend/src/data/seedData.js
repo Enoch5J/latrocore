@@ -93,58 +93,9 @@ export function generatePrescriptions() {
   ];
 }
 
-// ── Glucose readings (30 days for primary patient) ──────────────────────
+// ── Glucose readings (start empty; real readings come from user/backend) ─
 export function generateGlucoseReadings() {
-  const readings = [];
-  const contexts = ['fasting', 'pre-meal', 'post-meal', 'random'];
-  const meals = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
-  const symptoms = ['None', 'Slight dizziness', 'Fatigue', 'Blurred vision', 'Sweating', 'None', 'None', 'None'];
-
-  for (let day = 30; day >= 0; day--) {
-    // Fasting reading
-    const fastingBase = 100 + Math.sin(day * 0.3) * 20 + (Math.random() - 0.5) * 30;
-    readings.push({
-      id: `gl-f-${day}`, patientId: 'pat-001', value: Math.round(fastingBase),
-      unit: 'mg/dL', dateTime: makeDate(-day, 6, 30), context: 'fasting',
-      mealContext: '', medicineTaken: day % 7 !== 3, activity: 'None',
-      symptoms: symptoms[day % symptoms.length], notes: day === 5 ? 'Felt slightly low before breakfast' : '',
-    });
-    // Post-breakfast
-    const postBfBase = 155 + Math.sin(day * 0.25) * 25 + (Math.random() - 0.5) * 40;
-    readings.push({
-      id: `gl-pb-${day}`, patientId: 'pat-001', value: Math.round(postBfBase),
-      unit: 'mg/dL', dateTime: makeDate(-day, 10, 0), context: 'post-meal',
-      mealContext: 'Breakfast', medicineTaken: true, activity: day % 3 === 0 ? '30 min walk' : 'None',
-      symptoms: 'None', notes: '',
-    });
-    // Pre-lunch
-    if (day % 2 === 0) {
-      readings.push({
-        id: `gl-pl-${day}`, patientId: 'pat-001', value: Math.round(110 + Math.random() * 30),
-        unit: 'mg/dL', dateTime: makeDate(-day, 12, 30), context: 'pre-meal',
-        mealContext: 'Lunch', medicineTaken: true, activity: 'None', symptoms: 'None', notes: '',
-      });
-    }
-    // Post-dinner
-    if (day % 3 !== 2) {
-      readings.push({
-        id: `gl-pd-${day}`, patientId: 'pat-001', value: Math.round(140 + Math.sin(day * 0.2) * 20 + Math.random() * 35),
-        unit: 'mg/dL', dateTime: makeDate(-day, 21, 30), context: 'post-meal',
-        mealContext: 'Dinner', medicineTaken: day % 5 !== 4, activity: 'None', symptoms: 'None', notes: '',
-      });
-    }
-  }
-
-  // Add some readings for pat-002
-  for (let day = 14; day >= 0; day--) {
-    readings.push({
-      id: `gl-r2-${day}`, patientId: 'pat-002', value: Math.round(120 + Math.random() * 50),
-      unit: 'mg/dL', dateTime: makeDate(-day, 7, 0), context: 'fasting',
-      mealContext: '', medicineTaken: true, activity: 'None', symptoms: 'None', notes: '',
-    });
-  }
-
-  return readings;
+  return [];
 }
 
 // ── Dose events ─────────────────────────────────────────────────────────

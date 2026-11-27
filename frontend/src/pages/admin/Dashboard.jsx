@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../auth/AuthContext';
 import { getDefaultDashboardRoute, normalizeRole } from '../../auth/ProtectedRoute';
 import { api } from '../../services/api';
+import PortalHeroBanner, { getTimeOfDayGreeting } from '../../components/common/PortalHeroBanner';
 import { StatCard, LoadingSpinner, Badge, SearchBar, Modal, ConfirmDialog, Tabs, Avatar } from '../../components/ui';
 import {
   Users,
@@ -364,46 +365,31 @@ export default function AdminDashboard({ initialTab }) {
 
   return (
     <div className="space-y-6 animate-fade-in pb-12 font-sans selection:bg-[#046A38] selection:text-white">
-      {/* ── Top Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-3xl border border-[#E8DCC8] p-6 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] uppercase font-black tracking-widest text-[#046A38] bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              Medical Governance & Platform Administration
-            </span>
-            <span className="text-xs text-stone-400">•</span>
-            <span className="text-xs font-semibold text-stone-500">
-              Role-Based Access Control (RBAC) Active
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#112228] tracking-tight">
-            System Administration
-          </h1>
-          <p className="text-xs sm:text-sm font-medium text-stone-600 mt-1">
-            Review and approve clinician and patient accounts, govern credentials, and monitor clinical audit trails.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 self-start md:self-auto">
-          <button
-            type="button"
-            onClick={loadAllData}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-200 transition-all cursor-pointer shadow-xs"
-          >
-            <RefreshCw size={14} />
-            <span>Refresh All Data</span>
-          </button>
-
+      {/* ── Top Hero Banner ─────────────────────────────────────────── */}
+      <PortalHeroBanner
+        title={`${getTimeOfDayGreeting()}, ${currentUser?.name || 'System Admin'}`}
+        subtitle="System Administration • Govern credentials, approvals, and clinical audit trails."
+        topAction={
           <button
             type="button"
             onClick={() => setShowReset(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition-all cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white/95 hover:bg-rose-50 px-3.5 py-1.5 text-xs font-bold text-rose-600 shadow-2xs transition-colors cursor-pointer"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={13} className="shrink-0" />
             <span>Reset Demo Data</span>
           </button>
-        </div>
-      </div>
+        }
+        actions={
+          <button
+            type="button"
+            onClick={loadAllData}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#0F4D2B] hover:bg-[#0B3B20] px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer"
+          >
+            <RefreshCw size={15} className="shrink-0" />
+            <span>Refresh All Data</span>
+          </button>
+        }
+      />
 
       {/* ── Top KPI Stat Cards ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -447,7 +447,7 @@ export default function Assistant() {
             onClick={() => setUploadModalOpen(true)}
             className="btn-outline btn-sm bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 flex items-center gap-1 font-extrabold cursor-pointer"
           >
-            <Sparkles size={14} className="text-emerald-600" />
+            <UploadCloud size={14} className="text-emerald-600" />
             <span>Upload Rx</span>
           </button>
           <button onClick={() => setShowTopics(true)} className="btn-outline btn-sm font-bold">Topics</button>

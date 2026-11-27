@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { formatDate, formatDateTime } from '../../data/demoDate';
 import { updateMedicationReview, updateCounsellingRequest, addNotification, addAuditEntry } from '../../services/dataService';
+import PortalHeroBanner, { getTimeOfDayGreeting } from '../../components/common/PortalHeroBanner';
 
 const INITIAL_INVENTORY = {
   'med-001': {
@@ -311,10 +312,30 @@ export default function PharmacistDashboard({ initialTab }) {
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Pharmacist / Pharm D Clinical Station</h1>
-        <p className="text-sm font-medium text-slate-700 mt-1">Active clinician session: <span className="font-bold text-slate-950">{currentUser?.name}</span></p>
-      </div>
+      <PortalHeroBanner
+        title={`${getTimeOfDayGreeting()}, ${currentUser?.name || 'Pharmacist'}`}
+        subtitle="Pharmacist / PharmD Clinical Station • Medication Safety & Dispensing"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => navigate('/pharmacist/prescriptions')}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#0F4D2B] hover:bg-[#0B3B20] px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer"
+            >
+              <ClipboardList size={15} className="shrink-0" />
+              <span>Prescriptions</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/pharmacist/patients')}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#9EC0AA] bg-[#FAF8F4] hover:bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-[#143E28] shadow-2xs transition-colors cursor-pointer"
+            >
+              <Users size={15} className="shrink-0" />
+              <span>Patient Panel</span>
+            </button>
+          </>
+        }
+      />
 
       {/* ── Core Clinical Stats Overview ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">

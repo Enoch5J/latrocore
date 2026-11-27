@@ -9,6 +9,7 @@ import {
   XCircle, Search, Filter, ShieldCheck, Stethoscope, ChevronRight, Eye
 } from 'lucide-react';
 import { formatDate, formatDateTime } from '../../data/demoDate';
+import PortalHeroBanner, { getTimeOfDayGreeting } from '../../components/common/PortalHeroBanner';
 
 export default function DoctorDashboard() {
   const { currentUser, data } = useApp();
@@ -89,22 +90,31 @@ export default function DoctorDashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">
-      {/* Clinician Header */}
-      <div className="pb-2 border-b-2 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">Clinician Command Center</h1>
-          <p className="text-sm sm:text-base font-semibold text-slate-700 mt-1">Welcome back, {currentUser?.name || authUser?.name} — Diabetology & Endocrinology</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/appointments')}
-            className="btn-outline btn-sm font-bold"
-          >
-            <CalendarDays size={15} />
-            <span>Consultation Schedule</span>
-          </button>
-        </div>
-      </div>
+      {/* Clinician Hero Banner */}
+      <PortalHeroBanner
+        title={`${getTimeOfDayGreeting()}, ${currentUser?.name || authUser?.name || 'Doctor'}`}
+        subtitle="Clinician Command Center • Diabetology & Endocrinology"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => navigate('/appointments')}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#0F4D2B] hover:bg-[#0B3B20] px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer"
+            >
+              <CalendarDays size={15} className="shrink-0" />
+              <span>Consultation Schedule</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/doctor/patients')}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#9EC0AA] bg-[#FAF8F4] hover:bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-[#143E28] shadow-2xs transition-colors cursor-pointer"
+            >
+              <Users size={15} className="shrink-0" />
+              <span>Patient Cohort</span>
+            </button>
+          </>
+        }
+      />
 
       {/* Pending Doctor Verification Alert */}
       {isDoctorPending && (

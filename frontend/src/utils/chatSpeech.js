@@ -189,10 +189,92 @@ export function getPlaybackUnavailableMessage(displayLang, targetLang, reason = 
   return missingByLang[uiLang] || missingByLang.en;
 }
 
+let activeServerAudio = null;
+let activeServerAudioUrl = null;
+
+function cleanupServerAudio() {
+  if (activeServerAudio) {
+    try {
+      activeServerAudio.onended = null;
+      activeServerAudio.onerror = null;
+      activeServerAudio.pause();
+    } catch {
+      // ignore audio cleanup errors
+    }
+    activeServerAudio = null;
+  }
+  if (activeServerAudioUrl && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+    URL.revokeObjectURL(activeServerAudioUrl);
+    activeServerAudioUrl = null;
+  }
+}
+
+async function tryServerTtsPlayback({
+  spokenText,
+  targetLang,
+  targetLocale,
+  uiLang,
+  checkCurrent,
+  onStart,
+  onEnd,
+  onError,
+}) {
+  if (
+    typeof fetch !== 'function' ||
+    typeof window === 'undefined' ||
+    typeof window.Audio !== 'function' ||
+    typeof URL === 'undefined' ||
+    typeof URL.createObjectURL !== 'function'
+  ) {
+    return false;
+  }
+
+  try {
+    const resp = await fetch('/api/v1/ai/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: spokenText, language: targetLang }),
+    });
+    if (!resp.ok || !checkCurrent()) return false;
+
+    const blob = await resp.blob();
+    if (!blob || blob.size === 0 || !checkCurrent()) return false;
+
+    cleanupServerAudio();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new window.Audio(audioUrl);
+    activeServerAudio = audio;
+    activeServerAudioUrl = audioUrl;
+
+    audio.onended = () => {
+      cleanupServerAudio();
+      if (checkCurrent()) onEnd?.();
+    };
+    audio.onerror = () => {
+      cleanupServerAudio();
+      if (checkCurrent()) {
+        onError?.(
+          getPlaybackUnavailableMessage(uiLang, targetLang, 'error'),
+          targetLang,
+          'error'
+        );
+      }
+    };
+
+    onStart?.(targetLang, targetLocale, { name: 'Latro AI Voice', lang: targetLocale });
+    await audio.play();
+    return true;
+  } catch {
+    cleanupServerAudio();
+    return false;
+  }
+}
+
 export function stopChatSpeech(playbackTokenRef) {
   if (playbackTokenRef && typeof playbackTokenRef.current === 'number') {
     playbackTokenRef.current += 1;
   }
+  cleanupServerAudio();
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
@@ -253,6 +335,19 @@ export async function speakChatText({
 
   const voice = selectVoiceForLanguage(voices, targetLang);
   if (!voice) {
+    const serverPlayed = await tryServerTtsPlayback({
+      spokenText,
+      targetLang,
+      targetLocale,
+      uiLang,
+      checkCurrent,
+      onStart,
+      onEnd,
+      onError,
+    });
+    if (serverPlayed) return true;
+    if (!checkCurrent()) return false;
+
     onUnavailable?.(
       getPlaybackUnavailableMessage(uiLang, targetLang, 'missing-voice'),
       targetLang,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2, Search, ChevronDown, ChevronLeft, ChevronRight, Trash2, User } from 'lucide-react';
 
 // ── Avatar Component (No Emojis, Pure Clinical Design) ─────────────────
@@ -110,8 +111,8 @@ export function Modal({ open, onClose, title, children, size = 'md', footer }) {
 
   const sizeClass = size === 'sm' ? 'max-w-md' : size === 'lg' ? 'max-w-3xl' : size === 'xl' ? 'max-w-5xl' : 'max-w-xl';
 
-  return (
-    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in" onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}>
+  const modalNode = (
+    <div ref={overlayRef} className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-fade-in" onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}>
       <div className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClass} max-h-[92vh] flex flex-col border border-slate-300 animate-slide-up`}>
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200">
           <h2 className="text-lg font-bold text-slate-950 tracking-tight">{title}</h2>
@@ -122,6 +123,8 @@ export function Modal({ open, onClose, title, children, size = 'md', footer }) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 }
 
 // ── Confirm Dialog ──────────────────────────────────────────────────────

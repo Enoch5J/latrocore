@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Modal, ConfirmDialog, LoadingSpinner, EmptyState, Badge, SearchBar, Tabs, Select, Tooltip } from '../../components/ui';
-import { Activity, Plus, Download, Upload, Table, BarChart3, Trash2, Edit, Filter, Search, FileDown, FileUp, AlertCircle, CheckCircle, X, Zap } from 'lucide-react';
+import { Activity, Plus, Download, Upload, Table, BarChart3, Trash2, Edit, Filter, Search, FileDown, FileUp, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { formatDate, formatTime, formatDateTime, toISODate, isToday } from '../../data/demoDate';
 import { addGlucoseReading, updateGlucoseReading, deleteGlucoseReading, addAuditEntry } from '../../services/dataService';
 import { genId } from '../../data/seedData';
@@ -106,25 +106,6 @@ export default function GlucoseMonitor({ embedded = false, onNavigateTab }) {
     addToast({ type: 'success', message: 'CSV exported' });
   };
 
-  const handleLoadSampleCGM = async () => {
-    const sampleData = [];
-    for (let i = 0; i < 48; i++) {
-      const d = new Date();
-      d.setMinutes(d.getMinutes() - (i * 30));
-      sampleData.push({
-        patientId, value: Math.round(100 + Math.sin(i * 0.3) * 30 + (Math.random() - 0.5) * 20),
-        unit: 'mg/dL', dateTime: d.toISOString(), context: 'random',
-        mealContext: '', medicineTaken: true, activity: '', symptoms: 'None',
-        notes: 'Simulated CGM data — not from an actual device',
-      });
-    }
-    for (const reading of sampleData) {
-      await addGlucoseReading(reading);
-    }
-    refreshData();
-    addToast({ type: 'info', title: 'Sample CGM Data Loaded', message: 'This is simulated data, not from an actual CGM device.' });
-  };
-
   if (loading) return <LoadingSpinner text="Loading glucose data..." />;
 
   return (
@@ -142,7 +123,6 @@ export default function GlucoseMonitor({ embedded = false, onNavigateTab }) {
           <button onClick={() => { setEditingReading(null); setShowForm(true); }} className="btn-primary text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2.5 font-bold"><Plus size={15} /> Log Reading</button>
           <button onClick={handleCsvExport} className="btn-outline text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2.5 font-bold"><FileDown size={15} /> Export CSV</button>
           <button onClick={() => setShowImport(true)} className="btn-outline text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2.5 font-bold"><FileUp size={15} /> Import CSV</button>
-          <button onClick={handleLoadSampleCGM} className="btn-ghost text-xs px-2 py-1.5 font-bold text-slate-800 hover:text-slate-950"><Zap size={13} /> Load Sample CGM</button>
         </div>
       </div>
 

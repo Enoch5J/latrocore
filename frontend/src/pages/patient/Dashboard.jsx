@@ -5,14 +5,15 @@ import { StatCard, LoadingSpinner, Badge, Modal } from '../../components/ui';
 import {
   Activity, Pill, FileText, Droplets, CalendarDays, Bot,
   Heart, TrendingUp, CheckCircle, ArrowRight, Salad,
-  AlertCircle, ClipboardCheck, Sparkles, User, Stethoscope,
+  AlertCircle, ClipboardCheck, UploadCloud, User, Stethoscope,
   Star, Phone, ShieldAlert, X, Video, Clock, ShieldCheck, Plus, MapPin, Calendar,
-  Paperclip, Send, Volume2, VolumeX, RefreshCw
+  Paperclip, Send, Volume2, VolumeX, RefreshCw, Siren, FilePlus2
 } from 'lucide-react';
 import PrescriptionUploadModal from '../../components/patient/PrescriptionUploadModal';
 import MetricsHub from '../../components/patient/MetricsHub';
 import { AIFaceAvatar } from '../../components/FloatingAIAssistant';
 import FormattedAIMessage from '../../components/common/FormattedAIMessage';
+import PortalHeroBanner, { getTimeOfDayGreeting } from '../../components/common/PortalHeroBanner';
 import doctorImg from '../../assets/images/doctor.png';
 import pharmacistImg from '../../assets/images/pharmacist.png';
 import { formatDate, formatTime, isToday, formatDateTime } from '../../data/demoDate';
@@ -509,7 +510,7 @@ export default function PatientDashboard() {
 
   const quickActions = [
     { label: 'Emergency SOS', icon: ShieldAlert, color: 'text-rose-700 bg-rose-100 border border-rose-300', onClick: () => navigate('/patient/sos') },
-    { label: 'Upload Rx (AI)', icon: Sparkles, color: 'text-emerald-700 bg-emerald-50', onClick: () => setUploadModalOpen(true) },
+    { label: 'Upload Rx (AI)', icon: UploadCloud, color: 'text-emerald-700 bg-emerald-50', onClick: () => setUploadModalOpen(true) },
     { label: 'Record Medication', icon: Pill, color: 'text-blue-600 bg-blue-50', onClick: () => navigate('/patient/medications') },
     { label: 'Add Health Entry', icon: Salad, color: 'text-green-600 bg-green-50', onClick: () => navigate('/patient/lifestyle?action=add') },
     { label: 'Log Glucose', icon: Droplets, color: 'text-teal-600 bg-teal-50', onClick: () => navigate('/patient/metrics?tab=glucose&action=add') },
@@ -517,14 +518,8 @@ export default function PatientDashboard() {
     { label: 'Request Counselling', icon: Heart, color: 'text-rose-600 bg-rose-50', onClick: () => setConsultModalOpen(true) },
   ];
 
-  // Greeting based on time of day and health
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-  const compliment = adherence && adherence.pct >= 80
-    ? "You're doing great with your medication adherence!"
-    : latestGlucose && latestGlucose.value <= 130
-    ? 'Your recent glucose reading looks good. Keep it up!'
-    : "Stay consistent with your health routine today.";
+  // Greeting based on time of day
+  const greeting = getTimeOfDayGreeting();
 
   if (loading) return <LoadingSpinner text="Loading dashboard..." />;
 
@@ -532,73 +527,43 @@ export default function PatientDashboard() {
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">
 
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* [TOP] Patient Welcome Card */}
+      {/* [TOP] Patient Welcome Banner */}
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <div className="card border-2 border-[#A8D7BD] bg-gradient-to-br from-white via-[#F7FBF9] to-[#E8F5EE] overflow-hidden">
-        <div className="p-5 sm:p-7">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-            {/* Avatar */}
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#0B3B2C] to-[#0D7A71] flex items-center justify-center text-white shadow-lg shrink-0">
-              <User size={40} />
-            </div>
-            {/* Details */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-extrabold text-teal-700 uppercase tracking-widest mb-1">{greeting}</p>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight leading-tight">
-                {currentUser?.name || 'Patient'}
-              </h1>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-bold text-slate-700">
-                {currentUser?.dateOfBirth && (
-                  <span className="flex items-center gap-1">
-                    <span className="text-slate-500">Age:</span>
-                    <span className="text-slate-900">{Math.floor((Date.now() - new Date(currentUser.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} years</span>
-                  </span>
-                )}
-                {currentUser?.patientDisplayId && (
-                  <span className="flex items-center gap-1">
-                    <span className="text-slate-500">ID:</span>
-                    <span className="text-slate-900 font-mono">{currentUser.patientDisplayId}</span>
-                  </span>
-                )}
-                {lastDoctor && (
-                  <span className="flex items-center gap-1">
-                    <Stethoscope size={12} className="text-teal-700" />
-                    <span className="text-slate-500">Last visited:</span>
-                    <span className="text-slate-900">{lastDoctor}</span>
-                  </span>
-                )}
-              </div>
-              <p className="text-sm font-semibold text-teal-800 mt-2.5 bg-teal-50 px-3 py-1.5 rounded-lg border border-teal-200 inline-block">
-                {compliment}
-              </p>
-            </div>
-            {/* Action buttons */}
-            <div className="flex flex-col gap-2 shrink-0">
-              <button
-                onClick={() => navigate('/patient/sos')}
-                className="btn-sm bg-rose-600 hover:bg-rose-700 text-white border border-rose-700 flex items-center justify-center gap-1.5 font-black shadow-xs cursor-pointer animate-pulse"
-              >
-                <ShieldAlert size={16} />
-                <span>Emergency SOS</span>
-              </button>
-              <button
-                onClick={() => setUploadModalOpen(true)}
-                className="btn-outline btn-sm bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 flex items-center gap-1.5 font-bold shadow-xs cursor-pointer"
-              >
-                <Sparkles size={16} className="text-emerald-600 animate-pulse" />
-                <span>Upload Prescription (AI)</span>
-              </button>
-              <button
-                onClick={() => navigate('/patient/metrics?tab=glucose&action=add')}
-                className="btn-primary btn-sm"
-              >
-                <Droplets size={16} />
-                <span>Log Blood Glucose</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PortalHeroBanner
+        title={`${greeting}, ${currentUser?.name || 'Patient'}`}
+        subtitle="What would you like to record today?"
+        topAction={
+          <button
+            type="button"
+            onClick={() => navigate('/patient/sos')}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white/95 hover:bg-rose-50 px-3.5 py-1.5 text-xs font-bold text-rose-600 shadow-2xs transition-colors cursor-pointer"
+          >
+            <Siren size={14} className="shrink-0" />
+            <span>Emergency SOS</span>
+          </button>
+        }
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => navigate('/patient/metrics?tab=glucose&action=add')}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#0F4D2B] hover:bg-[#0B3B20] px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-2xs transition-colors cursor-pointer"
+            >
+              <Droplets size={15} className="shrink-0" />
+              <span>Log blood glucose</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setUploadModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#9EC0AA] bg-[#FAF8F4] hover:bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-[#143E28] shadow-2xs transition-colors cursor-pointer"
+            >
+              <FilePlus2 size={15} className="shrink-0" />
+              <span>Upload prescription</span>
+            </button>
+          </>
+        }
+      />
 
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       {/* Safety Alerts (if any critical deductions) */}
@@ -754,7 +719,7 @@ export default function PatientDashboard() {
               onClick={() => setUploadModalOpen(true)}
               className="btn-primary btn-sm bg-[#046A38] hover:bg-[#03512b] border-none text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
-              <Sparkles size={14} />
+              <UploadCloud size={14} />
               <span>Upload Prescription</span>
             </button>
           </div>

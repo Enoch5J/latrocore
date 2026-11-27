@@ -22,7 +22,7 @@ import {
 
   addHealthEntry, updateHealthEntry, deleteHealthEntry,
 
-  getProgressionData, saveProgressionData, calculateProgression
+  getProgressionData, saveProgressionData, calculateProgression, isMealWindowExpired
 
 } from '../../services/dataService';
 
@@ -59,6 +59,8 @@ export default function Lifestyle() {
   const [editing, setEditing] = useState(null);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const [confirmTakenTarget, setConfirmTakenTarget] = useState(null);
 
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
@@ -152,9 +154,13 @@ export default function Lifestyle() {
 
 
 
-  // Handle Meal Toggle (Taken / Not Taken / Pending)
+  // Handle Meal Toggle (Taken / Not Taken / Pending) — once Taken, locked and non-editable
 
   const handleToggleMeal = (mealId, newStatus) => {
+
+    const existing = (progression.meals || []).find(m => m.id === mealId);
+
+    if (existing?.taken === true) return;
 
     const updatedMeals = (progression.meals || []).map(m => {
 
@@ -210,9 +216,13 @@ export default function Lifestyle() {
 
 
 
-  // Handle Tablet Toggle (Taken / Not Taken / Pending)
+  // Handle Tablet Toggle (Taken / Not Taken / Pending) — once Taken, locked and non-editable
 
   const handleToggleTablet = (tabletId, newStatus) => {
+
+    const existing = (progression.tablets || []).find(t => t.id === tabletId);
+
+    if (existing?.taken === true) return;
 
     const updatedTablets = (progression.tablets || []).map(t => {
 
@@ -348,44 +358,6 @@ export default function Lifestyle() {
 
 
 
-  // Quick Action: Mark All Taken (Restore 100%)
-
-  const handleMarkAllTaken = () => {
-
-    const allMealsTaken = (progression.meals || []).map(m => ({ ...m, taken: true }));
-
-    const allTabletsTaken = (progression.tablets || []).map(t => ({ ...t, taken: true }));
-
-    saveProgressionData(patientId, {
-
-      meals: allMealsTaken,
-
-      tablets: allTabletsTaken,
-
-      activityMinutes: 30,
-
-      glucoseChecked: true,
-
-    });
-
-    const fresh = getProgressionData(patientId);
-
-    setProgression(fresh);
-
-    refreshData();
-
-    addToast({
-
-      type: 'success',
-
-      message: `🎉 All items marked Taken! Daily Progression reached ${fresh.score}% (Level 4: Master Control)!`,
-
-    });
-
-  };
-
-
-
   // Preset Scenario Testing
 
   const handleSimulateScenario = (scenario) => {
@@ -482,7 +454,7 @@ export default function Lifestyle() {
 
   const tabs = [
 
-    { id: 'timeline', label: "Today's Progression & Timeline" },
+    { id: 'timeline', label: "Today's Timeline" },
 
     { id: 'meals', label: 'Meals', count: entries.filter(e => e.type === 'meal').length },
 
@@ -500,15 +472,9 @@ export default function Lifestyle() {
 
   const score = progression?.score ?? 75;
 
-  const level = progression?.level ?? 3;
-
-  const levelName = progression?.levelName ?? 'Target Control';
-
-  const colorClass = progression?.colorClass ?? 'teal';
+  const statusLabel = score >= 85 ? 'On Track' : score >= 65 ? 'In Progress' : 'Needs Attention';
 
   const deductions = progression?.deductions ?? [];
-
-  const bonuses = progression?.bonuses ?? [];
 
 
 
@@ -522,25 +488,21 @@ export default function Lifestyle() {
 
         <div>
 
-          <div className="flex items-center gap-2">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#046A38]">
 
-            <span className="text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 border border-teal-300">
+            Daily Care
 
-              Live Health Progression Engine
+          </p>
 
-            </span>
+          <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#093322] tracking-tight mt-0.5">
 
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight mt-1">
-
-            Lifestyle, Nutrition & Daily Progression
+            Lifestyle &amp; Daily Habits
 
           </h1>
 
-          <p className="text-sm font-semibold text-slate-700 mt-1">
+          <p className="text-sm font-medium text-[#48616A] mt-1">
 
-            Real-time tracking of food intake, tablet adherence, physical movement, and glycemic control
+            Track your meals, daily movement, sleep, weight, and blood pressure.
 
           </p>
 
@@ -556,11 +518,11 @@ export default function Lifestyle() {
 
               onClick={() => { setFormType(t.id); setEditing(null); setShowForm(true); }}
 
-              className="btn-outline btn-sm font-bold text-slate-900 border-slate-300 hover:bg-slate-100 flex items-center gap-1.5 shadow-xs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#E8DCC8] bg-white px-3 py-2 text-xs font-bold text-[#093322] shadow-2xs hover:border-[#046A38]/50 hover:bg-[#E8F5EE]/50 cursor-pointer transition-colors"
 
             >
 
-              <t.icon size={15} />
+              <t.icon size={15} className="text-[#046A38]" />
 
               <span>{t.label}</span>
 
@@ -574,21 +536,19 @@ export default function Lifestyle() {
 
 
 
-      {/* ── HERO: Dynamic Daily Health Progression Command Suite ── */}
+      {/* ── SUMMARY: Clean Daily Care Overview ── */}
 
-      <div className="card border-2 border-slate-200 overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-[#E8DCC8] bg-white overflow-hidden shadow-xs">
 
-        <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-950 text-white p-5 sm:p-6">
+        <div className="bg-[#FAF6EF] border-b border-[#E8DCC8] p-5 sm:p-6">
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
 
-            {/* Left: Overall Progression Gauge */}
+            {/* Left: Daily Completion Ring */}
 
-            <div className="flex items-center gap-4 sm:gap-6 min-w-0">
+            <div className="flex items-center gap-4 sm:gap-5 min-w-0">
 
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center">
-
-                {/* SVG Circular Progress Meter */}
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 flex items-center justify-center">
 
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
 
@@ -596,9 +556,9 @@ export default function Lifestyle() {
 
                     cx="50" cy="50" r="42"
 
-                    className="stroke-slate-800"
+                    className="stroke-[#E8F5EE]"
 
-                    strokeWidth="10"
+                    strokeWidth="9"
 
                     fill="transparent"
 
@@ -610,15 +570,15 @@ export default function Lifestyle() {
 
                     className={`transition-all duration-700 ${
 
-                      score >= 85 ? 'stroke-emerald-400' :
+                      score >= 85 ? 'stroke-[#046A38]' :
 
-                      score >= 65 ? 'stroke-teal-400' :
+                      score >= 65 ? 'stroke-[#1D8252]' :
 
-                      score >= 40 ? 'stroke-amber-400' : 'stroke-rose-500'
+                      score >= 40 ? 'stroke-amber-500' : 'stroke-rose-500'
 
                     }`}
 
-                    strokeWidth="10"
+                    strokeWidth="9"
 
                     strokeDasharray={264}
 
@@ -634,9 +594,9 @@ export default function Lifestyle() {
 
                 <div className="absolute flex flex-col items-center justify-center text-center">
 
-                  <span className="text-2xl sm:text-3xl font-black text-white leading-none">{score}%</span>
+                  <span className="text-xl sm:text-2xl font-extrabold text-[#093322] leading-none">{score}%</span>
 
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Progression</span>
+                  <span className="text-[10px] font-bold text-[#48616A] uppercase tracking-wider mt-0.5">Today</span>
 
                 </div>
 
@@ -648,29 +608,29 @@ export default function Lifestyle() {
 
                 <div className="flex items-center gap-2 flex-wrap">
 
-                  <span className={`text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
 
-                    score >= 85 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                    score >= 85 ? 'bg-[#E8F5EE] text-[#046A38] border-[#A8D7BD]' :
 
-                    score >= 65 ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40' :
+                    score >= 65 ? 'bg-[#E8F5EE]/70 text-[#03542C] border-[#D1EBDD]' :
 
-                    score >= 40 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                    score >= 40 ? 'bg-amber-50 text-amber-800 border-amber-200' :
 
-                    'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    'bg-rose-50 text-rose-700 border-rose-200'
 
                   }`}>
 
-                    Level {level}: {levelName}
+                    {statusLabel}
 
                   </span>
 
                   {deductions.some(d => d.severity === 'high' || d.severity === 'critical') && (
 
-                    <span className="flex items-center gap-1 text-[11px] font-extrabold bg-rose-900/80 text-rose-200 border border-rose-500/60 px-2 py-0.5 rounded-full animate-pulse">
+                    <span className="flex items-center gap-1 text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full">
 
                       <ShieldAlert size={12} />
 
-                      Level Reduced Due to Missed Dose/Food
+                      Skipped meal or dose noted
 
                     </span>
 
@@ -680,23 +640,23 @@ export default function Lifestyle() {
 
 
 
-                <h2 className="text-lg sm:text-xl font-extrabold text-white mt-1.5 leading-tight">
+                <h2 className="font-serif text-xl sm:text-2xl font-semibold text-[#093322] mt-1.5 leading-tight">
 
-                  Daily Health & Adherence Progression
+                  Today&apos;s Care Summary
 
                 </h2>
 
-                <p className="text-xs sm:text-sm font-medium text-slate-300 mt-1 max-w-xl">
+                <p className="text-xs sm:text-sm font-medium text-[#48616A] mt-1 max-w-xl">
 
                   {score >= 85
 
-                    ? 'Excellent progress! Your meal schedule, tablet timings, and activity are fully synchronized for optimal glycemic control.'
+                    ? 'Great job today. Your meals and daily activity are on track.'
 
                     : score >= 65
 
-                    ? 'Solid progression today. Maintain your scheduled evening meals and medications to reach master level.'
+                    ? 'Good progress today. Keep up with your remaining meals and movement.'
 
-                    : 'Caution: Progression level has dropped. Skipped meals or missed tablets significantly jeopardize blood glucose stability.'}
+                    : 'A skipped meal or missed activity was logged today. Try to stay on schedule.'}
 
                 </p>
 
@@ -704,28 +664,27 @@ export default function Lifestyle() {
 
                 {/* Micro stats banner */}
 
-                <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3 text-xs font-bold text-slate-300">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3 text-xs font-semibold text-[#24383F]">
 
-                  <span className="flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-[#E8DCC8] px-2.5 py-1">
 
-                    <Salad size={14} className="text-emerald-400" />
+                    <Salad size={14} className="text-[#046A38]" />
 
-                    Food: {progression?.stats?.mealsTaken}/{progression?.stats?.mealsTotal} Taken
+                    Meals: {progression?.stats?.mealsTaken}/{progression?.stats?.mealsTotal} taken
 
                     {progression?.stats?.mealsMissed > 0 && (
 
-                      <span className="text-rose-400 font-black">({progression.stats.mealsMissed} Skipped)</span>
+                      <span className="text-rose-600 font-bold">({progression.stats.mealsMissed} skipped)</span>
 
                     )}
 
                   </span>
 
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-[#E8DCC8] px-2.5 py-1">
 
-                  <span className="flex items-center gap-1.5">
+                    <Heart size={14} className="text-[#046A38]" />
 
-                    <Heart size={14} className="text-blue-400" />
-
-                    Activity: {progression?.stats?.activityMinutes}/30 min ({progression?.stats?.activityPct}%)
+                    Activity: {progression?.stats?.activityMinutes}/30 min
 
                   </span>
 
@@ -736,28 +695,6 @@ export default function Lifestyle() {
             </div>
 
 
-
-            {/* Right: Quick Action Controls & Simulator */}
-
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-800 pt-4 lg:pt-0 lg:pl-6">
-
-              <button
-
-                onClick={handleMarkAllTaken}
-
-                className="btn-primary text-xs font-black py-2.5 px-4 shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-
-              >
-
-                <Sparkles size={15} />
-
-                <span>Mark All Taken (100% Master)</span>
-
-              </button>
-
-
-
-            </div>
 
           </div>
 
@@ -811,20 +748,6 @@ export default function Lifestyle() {
 
               </div>
 
-              <button
-
-                onClick={handleMarkAllTaken}
-
-                className="btn-outline btn-sm border-rose-300 bg-white hover:bg-rose-100 text-rose-900 font-extrabold shrink-0 cursor-pointer"
-
-              >
-
-                <span>Restore & Mark Taken</span>
-
-                <CheckCircle2 size={14} />
-
-              </button>
-
             </div>
 
           </div>
@@ -855,9 +778,9 @@ export default function Lifestyle() {
 
                   <div>
 
-                    <h3 className="font-extrabold text-sm text-slate-950">Food Meal Preparation</h3>
+                    <h3 className="font-bold text-base text-[#093322]">Daily Meals</h3>
 
-                    <p className="text-[11px] font-semibold text-slate-600">30% Total Progression</p>
+                    <p className="text-xs font-medium text-[#48616A]">Check off your scheduled meals</p>
 
                   </div>
 
@@ -889,7 +812,12 @@ export default function Lifestyle() {
 
                 ) : (
 
-                  (progression.meals || []).map(m => (
+                  (progression.meals || []).map(m => {
+
+                    const windowExpired = isMealWindowExpired(m);
+                    const isMissed = m.taken === false || (m.taken == null && windowExpired);
+
+                    return (
 
                   <div
 
@@ -901,9 +829,9 @@ export default function Lifestyle() {
 
                         ? 'bg-emerald-50/60 border-emerald-200'
 
-                        : m.taken === false
+                        : isMissed
 
-                        ? 'bg-rose-50 border-rose-300 shadow-xs'
+                        ? 'bg-rose-50/75 border-rose-200'
 
                         : 'bg-slate-50 border-slate-200'
 
@@ -915,87 +843,79 @@ export default function Lifestyle() {
 
                       <div className="min-w-0">
 
-                        <p className="text-xs font-extrabold text-slate-950 truncate">
+                        <p className="text-sm font-bold text-[#093322] truncate">
 
-                          {m.type}: <span className="font-semibold text-slate-700">{m.label}</span>
+                          {m.type}
+
+                          {m.label && m.label.toLowerCase() !== String(m.type || '').toLowerCase() && (
+
+                            <span className="font-medium text-[#48616A]">: {m.label}</span>
+
+                          )}
 
                         </p>
 
-                        <p className="text-[10px] font-medium text-slate-500">
+                        <p className="text-xs font-medium text-[#48616A]">
 
-                          {m.time} • {m.calories} kcal
+                          {m.time}{m.calories ? ` • ${m.calories} kcal` : ''}
 
                         </p>
 
                       </div>
 
+                      <div className="flex items-center gap-1.5 shrink-0">
 
+                        {m.taken === true ? (
 
-                      {/* Interactive Taken / Not Taken buttons */}
+                          <Badge variant="success">Taken</Badge>
 
-                      <div className="flex items-center gap-1 shrink-0">
+                        ) : isMissed ? (
 
-                        <button
+                          <Badge variant="danger">Missed</Badge>
 
-                          onClick={() => handleToggleMeal(m.id, true)}
+                        ) : (
 
-                          className={`p-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                          <button
 
-                            m.taken === true
+                            type="button"
 
-                              ? 'bg-emerald-700 text-white shadow-xs'
+                            onClick={() =>
 
-                              : 'bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              setConfirmTakenTarget({
 
-                          }`}
+                                kind: 'meal',
 
-                          title="Mark Food Taken (+10% progression)"
+                                id: m.id,
 
-                        >
+                                label: m.type || m.label || 'Meal',
 
-                          <Check size={13} />
+                                sublabel: m.time || '',
 
-                          <span className="hidden sm:inline">Taken</span>
+                              })
 
-                        </button>
+                            }
 
-                        <button
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#046A38] hover:bg-[#03542C] text-white transition cursor-pointer flex items-center gap-1 whitespace-nowrap"
 
-                          onClick={() => handleToggleMeal(m.id, false)}
+                          >
 
-                          className={`p-1.5 rounded-lg text-xs font-black transition cursor-pointer flex items-center gap-1 ${
+                            <Check size={13} />
 
-                            m.taken === false
+                            <span>Mark as Taken</span>
 
-                              ? 'bg-rose-600 text-white shadow-xs'
+                          </button>
 
-                              : 'bg-white hover:bg-rose-100 text-rose-800 border border-rose-300'
-
-                          }`}
-
-                          title="Mark Food NOT Taken (Reduces progression level!)"
-
-                        >
-
-                          <X size={13} />
-
-                          <span className="hidden sm:inline">Not Taken</span>
-
-                        </button>
+                        )}
 
                       </div>
 
                     </div>
 
+                    {isMissed && (
 
+                      <p className="text-[11px] font-medium text-rose-700 mt-1">
 
-                    {m.taken === false && (
-
-                      <p className="text-[10px] font-bold text-rose-700 mt-1.5 flex items-center gap-1">
-
-                        <AlertTriangle size={11} />
-
-                        Progression reduced by -12% (Missing food causes hypoglycemia)
+                        Meal window passed — marked as missed
 
                       </p>
 
@@ -1003,7 +923,9 @@ export default function Lifestyle() {
 
                   </div>
 
-                ))
+                    );
+
+                  })
 
               )}
 
@@ -1013,15 +935,15 @@ export default function Lifestyle() {
 
 
 
-            <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+            <div className="pt-3 mt-3 border-t border-[#E8DCC8] flex items-center justify-between text-xs text-[#48616A]">
 
-              <span>Rule: Skipping meals penalizes level</span>
+              <span>Log any extra snacks or meals</span>
 
               <button
 
                 onClick={() => { setFormType('meal'); setEditing(null); setShowForm(true); }}
 
-                className="font-bold text-teal-800 hover:underline cursor-pointer"
+                className="font-bold text-[#046A38] hover:underline cursor-pointer"
 
               >
 
@@ -1053,9 +975,9 @@ export default function Lifestyle() {
 
                   <div>
 
-                    <h3 className="font-extrabold text-sm text-slate-950">Active Preparation (Exercise)</h3>
+                    <h3 className="font-bold text-base text-[#093322]">Daily Activity</h3>
 
-                    <p className="text-[11px] font-semibold text-slate-600">20% Total Progression</p>
+                    <p className="text-xs font-medium text-[#48616A]">Recommended 30 min daily movement</p>
 
                   </div>
 
@@ -1213,7 +1135,7 @@ export default function Lifestyle() {
 
                 >
 
-                  {progression.glucoseChecked ? '✓ 118 mg/dL (+10%)' : 'Click to Log'}
+                  {progression.glucoseChecked ? '118 mg/dL Logged' : 'Mark Checked'}
 
                 </button>
 
@@ -1223,11 +1145,11 @@ export default function Lifestyle() {
 
 
 
-            <div className="pt-3 mt-3 border-t border-slate-100 text-[11px] text-slate-600 flex justify-between items-center">
+            <div className="pt-3 mt-3 border-t border-[#E8DCC8] text-xs text-[#48616A] flex justify-between items-center">
 
-              <span>Enhances muscle insulin uptake</span>
+              <span>Helps support healthy blood sugar</span>
 
-              <span className="font-bold text-blue-800">+20% points</span>
+              <span className="font-semibold text-[#046A38]">Daily goal: 30 min</span>
 
             </div>
 
@@ -1253,9 +1175,9 @@ export default function Lifestyle() {
 
             <div>
 
-              <h3 className="font-extrabold text-slate-950 text-base">
+              <h3 className="font-bold text-[#093322] text-base">
 
-                Today's Chronological Health Timeline & Progression Events
+                Today&apos;s Health Timeline
 
               </h3>
 
@@ -1269,9 +1191,9 @@ export default function Lifestyle() {
 
             <div className="flex items-center gap-2">
 
-              <span className="text-xs font-black text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+              <span className="text-xs font-bold text-[#093322] bg-white px-3 py-1 rounded-lg border border-[#E8DCC8]">
 
-                Score: <span className="text-teal-850 font-black">{score}%</span> (Level {level})
+                {statusLabel} • {score}%
 
               </span>
 
@@ -1307,7 +1229,7 @@ export default function Lifestyle() {
 
                 <Badge variant={progression.glucoseChecked ? 'success' : 'secondary'}>
 
-                  {progression.glucoseChecked ? '✓ Completed (+10%)' : 'Pending'}
+                  {progression.glucoseChecked ? 'Completed' : 'Pending'}
 
                 </Badge>
 
@@ -1317,15 +1239,13 @@ export default function Lifestyle() {
 
 
 
-            {/* Dynamic Prescription Tablets from Gemini AI */}
+            {/* Dynamic Prescription Tablets */}
 
             {(progression.tablets || []).map((tab, idx) => (
 
               <div key={tab.id || idx} className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
 
-                tab.taken === true ? 'bg-white border-teal-200' :
-
-                tab.taken === false ? 'bg-rose-50/80 border-rose-300' : 'bg-white border-slate-200'
+                tab.taken === true ? 'bg-white border-emerald-200' : 'bg-white border-slate-200 hover:border-slate-300'
 
               }`}>
 
@@ -1339,55 +1259,59 @@ export default function Lifestyle() {
 
                 <div className="flex-1 min-w-0">
 
-                  <div className="flex items-center gap-2">
+                  <p className="text-sm font-extrabold text-slate-950 truncate">
 
-                    <p className="text-sm font-extrabold text-slate-950">{tab.name} {tab.dose ? `(${tab.dose})` : ''}</p>
+                    {tab.name}{tab.dose && tab.dose !== 'unclear' ? ` (${tab.dose})` : ''}
 
-                    {tab.taken === false && (
+                  </p>
 
-                      <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+                  <p className="text-xs font-medium text-slate-500 truncate">
 
-                        Progression Reduced (-15%)
+                    {(tab.reason && tab.reason !== 'not specified') ? tab.reason : (tab.slot || 'Scheduled dose')}
 
-                      </span>
-
-                    )}
-
-                  </div>
-
-                  <p className="text-xs font-semibold text-slate-600">{tab.reason || tab.slot || 'Prescription dose'}</p>
+                  </p>
 
                 </div>
 
-                <div className="shrink-0 flex items-center gap-1.5">
+                <div className="shrink-0 flex items-center gap-2">
 
-                  <button
+                  {tab.taken === true ? (
 
-                    onClick={() => handleToggleTablet(tab.id, true)}
+                    <Badge variant="success">Taken</Badge>
 
-                    className={`btn-sm text-xs font-bold ${tab.taken === true ? 'btn-primary' : 'btn-outline'}`}
+                  ) : (
 
-                  >
+                    <button
 
-                    <Check size={13} />
+                      type="button"
 
-                    <span>Taken</span>
+                      onClick={() =>
 
-                  </button>
+                        setConfirmTakenTarget({
 
-                  <button
+                          kind: 'tablet',
 
-                    onClick={() => handleToggleTablet(tab.id, false)}
+                          id: tab.id,
 
-                    className={`btn-sm text-xs font-bold ${tab.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
+                          label: `${tab.name}${tab.dose && tab.dose !== 'unclear' ? ` (${tab.dose})` : ''}`,
 
-                  >
+                          sublabel: tab.time || '08:00 AM',
 
-                    <X size={13} />
+                        })
 
-                    <span>Not Taken</span>
+                      }
 
-                  </button>
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#046A38] hover:bg-[#03542C] text-white transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-2xs"
+
+                    >
+
+                      <Check size={13} />
+
+                      <span>Mark as Taken</span>
+
+                    </button>
+
+                  )}
 
                 </div>
 
@@ -1397,15 +1321,13 @@ export default function Lifestyle() {
 
 
 
-            {/* Dynamic Diet Plan Meals from Gemini AI */}
+            {/* Dynamic Diet Plan Meals */}
 
             {(progression.meals || []).map((meal, idx) => (
 
               <div key={meal.id || idx} className={`flex items-center gap-3.5 p-3.5 rounded-xl border transition shadow-xs ${
 
-                meal.taken === true ? 'bg-white border-emerald-200' :
-
-                meal.taken === false ? 'bg-rose-50/80 border-rose-300' : 'bg-white border-slate-200'
+                meal.taken === true ? 'bg-white border-emerald-200' : 'bg-white border-slate-200 hover:border-slate-300'
 
               }`}>
 
@@ -1421,17 +1343,7 @@ export default function Lifestyle() {
 
                   <div className="flex items-center gap-2">
 
-                    <p className="text-sm font-extrabold text-slate-950">{meal.type || meal.label}</p>
-
-                    {meal.taken === false && (
-
-                      <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
-
-                        Progression Reduced (-12%)
-
-                      </span>
-
-                    )}
+                    <p className="text-sm font-extrabold text-slate-950 truncate">{meal.type || meal.label}</p>
 
                     {meal.carbs && (
 
@@ -1445,39 +1357,49 @@ export default function Lifestyle() {
 
                   </div>
 
-                  <p className="text-xs font-semibold text-slate-600">{meal.foods || meal.instructions || 'Diabetic nutritional plan'}</p>
+                  <p className="text-xs font-medium text-slate-500 truncate">{meal.foods || meal.instructions || 'Diabetic nutritional plan'}</p>
 
                 </div>
 
-                <div className="shrink-0 flex items-center gap-1.5">
+                <div className="shrink-0 flex items-center gap-2">
 
-                  <button
+                  {meal.taken === true ? (
 
-                    onClick={() => handleToggleMeal(meal.id, true)}
+                    <Badge variant="success">Taken</Badge>
 
-                    className={`btn-sm text-xs font-bold ${meal.taken === true ? 'btn-primary' : 'btn-outline'}`}
+                  ) : (
 
-                  >
+                    <button
 
-                    <Check size={13} />
+                      type="button"
 
-                    <span>Taken</span>
+                      onClick={() =>
 
-                  </button>
+                        setConfirmTakenTarget({
 
-                  <button
+                          kind: 'meal',
 
-                    onClick={() => handleToggleMeal(meal.id, false)}
+                          id: meal.id,
 
-                    className={`btn-sm text-xs font-bold ${meal.taken === false ? 'bg-rose-600 text-white' : 'btn-outline text-rose-700 border-rose-200'}`}
+                          label: meal.type || meal.label || 'Meal',
 
-                  >
+                          sublabel: meal.time || '08:00 AM',
 
-                    <X size={13} />
+                        })
 
-                    <span>Not Taken</span>
+                      }
 
-                  </button>
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#046A38] hover:bg-[#03542C] text-white transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-2xs"
+
+                    >
+
+                      <Check size={13} />
+
+                      <span>Mark as Taken</span>
+
+                    </button>
+
+                  )}
 
                 </div>
 
@@ -1698,6 +1620,46 @@ export default function Lifestyle() {
         message="This entry will be permanently deleted from your health records."
 
         confirmText="Delete"
+
+      />
+
+      <ConfirmDialog
+
+        open={!!confirmTakenTarget}
+
+        onClose={() => setConfirmTakenTarget(null)}
+
+        onConfirm={() => {
+
+          if (!confirmTakenTarget) return;
+
+          if (confirmTakenTarget.kind === 'tablet') {
+
+            handleToggleTablet(confirmTakenTarget.id, true);
+
+          } else {
+
+            handleToggleMeal(confirmTakenTarget.id, true);
+
+          }
+
+        }}
+
+        variant="primary"
+
+        title="Mark as Taken?"
+
+        message={
+
+          confirmTakenTarget
+
+            ? `Confirm that you have taken ${confirmTakenTarget.label}${confirmTakenTarget.sublabel ? ` (${confirmTakenTarget.sublabel})` : ''}. Once marked as taken, it cannot be changed.`
+
+            : ''
+
+        }
+
+        confirmText="Mark as Taken"
 
       />
 
