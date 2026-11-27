@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  Compass,
   LayoutGrid,
   Lock,
   LogOut,
   Mail,
   Menu,
   Settings,
+  Sparkles,
   User,
   X,
 } from 'lucide-react';
@@ -19,8 +21,14 @@ import { getRoleDisplayLabel, getUserInitial } from '../../utils/userProfile';
 import UserProfileDropdown from '../common/UserProfileDropdown';
 import latrocoreLogo from '../../assets/Latrocore Medical Monogram Logo.png';
 
+const SECTION_NAV_ITEMS = [
+  { label: 'Latro AI', targetId: 'ai-companion-explore', icon: Sparkles },
+  { label: 'Our Solutions', targetId: 'care-continuum', icon: Compass },
+];
+
 export default function PublicHeader({
   isHome = false,
+  onAnchorClick,
 }) {
   const { data, setUser, addToast } = useApp();
   const { isAuthenticated, user: authUser, logout } = useAuth();
@@ -61,6 +69,24 @@ export default function PublicHeader({
     addToast?.({ type: 'info', message: 'Signed out successfully' });
   };
 
+  const handleSectionAnchor = (event, targetId) => {
+    setMobileMenuOpen(false);
+    if (typeof onAnchorClick === 'function') {
+      onAnchorClick(event, targetId);
+      return;
+    }
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    event.preventDefault();
+    target.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+    if (window.location.hash !== `#${targetId}`) {
+      window.history.replaceState(null, '', `#${targetId}`);
+    }
+  };
+
   const brandContent = (
     <>
       <img
@@ -68,7 +94,7 @@ export default function PublicHeader({
         alt="LATROCORE Emblem"
         width={104}
         height={104}
-        className="        h-12 w-12 min-[400px]:h-18 min-[400px]:w-18 sm:h-22 sm:w-22 lg:h-26 lg:w-26 -translate-y-0.5 sm:-translate-y-1 object-contain mix-blend-multiply drop-shadow-xs group-hover:scale-105 transition-transform shrink-0"
+        className="h-12 w-12 min-[400px]:h-18 min-[400px]:w-18 sm:h-22 sm:w-22 lg:h-26 lg:w-26 -translate-y-0.5 sm:-translate-y-1 object-contain mix-blend-multiply drop-shadow-xs group-hover:scale-105 transition-transform shrink-0"
       />
       <div className="flex flex-col justify-center">
         <span className="font-serif font-black text-[#046A38] tracking-tight text-[17px] min-[400px]:text-[22px] sm:text-[26px] lg:text-[34px] leading-none">
@@ -80,6 +106,12 @@ export default function PublicHeader({
       </div>
     </>
   );
+
+  const desktopLinkClass =
+    'text-base font-semibold text-[#093322] no-underline transition-colors hover:text-[#046A38] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#046A38]';
+
+  const mobileLinkClass =
+    'flex items-center gap-2.5 px-3 py-3 rounded-xl text-base font-semibold text-[#112228] hover:bg-[#FAF6EF] no-underline';
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FAF6EF]/95 backdrop-blur-md border-b border-[#E8DCC8] shadow-xs">
@@ -107,11 +139,28 @@ export default function PublicHeader({
           </NavLink>
         )}
 
-        <nav aria-label="Main navigation" className="hidden lg:flex items-center justify-end gap-6 shrink-0">
-          <NavLink
-            to="/contact"
-            className="text-sm font-semibold text-[#093322] no-underline transition-colors hover:text-[#046A38] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#046A38]"
-          >
+        <nav aria-label="Main navigation" className="hidden lg:flex items-center justify-end gap-7 shrink-0">
+          {SECTION_NAV_ITEMS.map((item) =>
+            isHome ? (
+              <a
+                key={item.targetId}
+                href={`#${item.targetId}`}
+                onClick={(e) => handleSectionAnchor(e, item.targetId)}
+                className={desktopLinkClass}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <NavLink
+                key={item.targetId}
+                to={`/#${item.targetId}`}
+                className={desktopLinkClass}
+              >
+                {item.label}
+              </NavLink>
+            )
+          )}
+          <NavLink to="/contact" className={desktopLinkClass}>
             Contact
           </NavLink>
           {isAuthenticated && authUser ? (
@@ -136,7 +185,7 @@ export default function PublicHeader({
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black text-white bg-[#046A38] hover:bg-[#03542C] shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 whitespace-nowrap"
             >
               <Lock size={15} className="text-[#F9EBD7]" />
-              <span>Login</span>
+              <span>Log In</span>
               <ArrowRight size={14} />
             </button>
           )}
@@ -214,28 +263,52 @@ export default function PublicHeader({
                 </div>
               </div>
             ) : null}
-            <div className={`flex ${isAuthenticated && authUser ? 'flex-col border-t border-[#E8DCC8] pt-2' : 'flex-col gap-2'}`}>
+            <div className={`flex ${isAuthenticated && authUser ? 'flex-col border-t border-[#E8DCC8] pt-2' : 'flex-col gap-1'}`}>
+              {SECTION_NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return isHome ? (
+                  <a
+                    key={item.targetId}
+                    href={`#${item.targetId}`}
+                    onClick={(e) => handleSectionAnchor(e, item.targetId)}
+                    className={mobileLinkClass}
+                  >
+                    <Icon size={16} className="text-[#046A38]" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </a>
+                ) : (
+                  <NavLink
+                    key={item.targetId}
+                    to={`/#${item.targetId}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={mobileLinkClass}
+                  >
+                    <Icon size={16} className="text-[#046A38]" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                );
+              })}
               <NavLink
                 to="/contact"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-sm font-semibold text-[#112228] hover:bg-[#FAF6EF] no-underline"
+                className={mobileLinkClass}
               >
                 <Mail size={16} className="text-[#046A38]" aria-hidden="true" />
                 <span>Contact</span>
               </NavLink>
               {!isAuthenticated || !authUser ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/login');
-                }}
-                className="w-full py-3 rounded-xl text-sm font-black text-white bg-[#046A38] flex items-center justify-center gap-2 shadow-md cursor-pointer"
-              >
-                <Lock size={15} className="text-[#F9EBD7]" />
-                <span>Login</span>
-                <ArrowRight size={15} />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/login');
+                  }}
+                  className="mt-1 w-full py-3 rounded-xl text-sm font-black text-white bg-[#046A38] flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                >
+                  <Lock size={15} className="text-[#F9EBD7]" />
+                  <span>Log In</span>
+                  <ArrowRight size={15} />
+                </button>
               ) : null}
             </div>
           </div>

@@ -1,24 +1,112 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700" preserveAspectRatio="none">
   <defs>
-    <radialGradient id="mint-glow" cx="73%" cy="47%" r="46%">
-      <stop offset="0" stop-color="#E8F5EE" stop-opacity=".9"/>
-      <stop offset=".58" stop-color="#E8F5EE" stop-opacity=".48"/>
+    <style>
+      .wave-primary {
+        animation: flow-forward 4.5s linear infinite;
+      }
+      .wave-secondary {
+        animation: flow-reverse 6s linear infinite;
+      }
+      .wave-accent {
+        animation: flow-accent 8s linear infinite;
+      }
+      .wave-node {
+        animation: node-pulse 4s ease-in-out infinite alternate;
+      }
+      @keyframes flow-forward {
+        to {
+          stroke-dashoffset: -102;
+        }
+      }
+      @keyframes flow-reverse {
+        to {
+          stroke-dashoffset: 96;
+        }
+      }
+      @keyframes flow-accent {
+        to {
+          stroke-dashoffset: -128;
+        }
+      }
+      @keyframes node-pulse {
+        0% {
+          opacity: 0.2;
+        }
+        100% {
+          opacity: 0.45;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .wave-primary,
+        .wave-secondary,
+        .wave-accent,
+        .wave-node {
+          animation: none;
+        }
+      }
+    </style>
+    <radialGradient id="mint-glow" cx="73%" cy="47%" r="48%">
+      <stop offset="0" stop-color="#E4F4EB" stop-opacity=".95"/>
+      <stop offset=".55" stop-color="#E8F5EE" stop-opacity=".5"/>
       <stop offset="1" stop-color="#E8F5EE" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="wave-fade" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#83B99A" stop-opacity=".22"/>
-      <stop offset=".34" stop-color="#83B99A" stop-opacity=".34"/>
-      <stop offset=".72" stop-color="#6EA987" stop-opacity=".66"/>
-      <stop offset="1" stop-color="#6EA987" stop-opacity=".78"/>
+    <radialGradient id="mint-glow-left" cx="14%" cy="18%" r="36%">
+      <stop offset="0" stop-color="#E8F5EE" stop-opacity=".52"/>
+      <stop offset="1" stop-color="#E8F5EE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wave-fade-primary" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6FA987" stop-opacity=".34"/>
+      <stop offset=".35" stop-color="#5E9E79" stop-opacity=".48"/>
+      <stop offset=".72" stop-color="#478D66" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#3F855E" stop-opacity=".82"/>
+    </linearGradient>
+    <linearGradient id="wave-fade-secondary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7BB594" stop-opacity=".42"/>
+      <stop offset=".5" stop-color="#69A784" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#51956F" stop-opacity=".56"/>
+    </linearGradient>
+    <linearGradient id="wave-fade-accent" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#87BEA0" stop-opacity=".24"/>
+      <stop offset=".55" stop-color="#5E9E79" stop-opacity=".44"/>
+      <stop offset="1" stop-color="#3F855E" stop-opacity=".58"/>
     </linearGradient>
   </defs>
+
   <rect width="1600" height="700" fill="url(#mint-glow)"/>
-  <g fill="none" stroke="url(#wave-fade)" stroke-linecap="round" stroke-dasharray=".1 8">
-    <path d="M-50 548 C190 454 282 496 450 493 C652 490 746 427 904 359 C1086 281 1244 286 1392 232 C1491 196 1566 147 1650 91" stroke-width="2.2" opacity=".82"/>
-    <path d="M-50 565 C178 474 288 514 458 510 C660 507 754 443 916 375 C1092 301 1250 302 1402 247 C1500 212 1574 163 1650 108" stroke-width="2" opacity=".7"/>
-    <path d="M-50 530 C202 432 278 477 442 476 C642 475 738 411 891 343 C1078 261 1232 269 1382 217 C1482 181 1555 132 1650 75" stroke-width="1.8" opacity=".66"/>
-    <path d="M-50 584 C168 492 302 531 470 527 C673 522 771 459 930 391 C1104 319 1263 317 1416 262 C1510 229 1583 181 1650 127" stroke-width="1.7" opacity=".57"/>
-    <path d="M-50 510 C213 411 269 458 433 459 C633 460 726 394 878 327 C1068 244 1218 252 1368 201 C1471 165 1543 117 1650 59" stroke-width="1.5" opacity=".5"/>
-    <path d="M-50 601 C158 510 316 547 483 543 C685 538 788 474 946 407 C1120 337 1277 334 1432 278 C1520 247 1592 199 1650 146" stroke-width="1.4" opacity=".45"/>
+  <rect width="1600" height="700" fill="url(#mint-glow-left)"/>
+
+  <!-- Primary sweeping dotted wave ribbon -->
+  <g class="wave-primary" fill="none" stroke="url(#wave-fade-primary)" stroke-linecap="round" stroke-dasharray="1.2 9">
+    <path d="M-50 510 C213 411 269 458 433 459 C633 460 726 394 878 327 C1068 244 1218 252 1368 201 C1471 165 1543 117 1650 59" stroke-width="1.9" opacity=".62"/>
+    <path d="M-50 530 C202 432 278 477 442 476 C642 475 738 411 891 343 C1078 261 1232 269 1382 217 C1482 181 1555 132 1650 75" stroke-width="2.2" opacity=".74"/>
+    <path d="M-50 548 C190 454 282 496 450 493 C652 490 746 427 904 359 C1086 281 1244 286 1392 232 C1491 196 1566 147 1650 91" stroke-width="2.6" opacity=".88"/>
+    <path d="M-50 565 C178 474 288 514 458 510 C660 507 754 443 916 375 C1092 301 1250 302 1402 247 C1500 212 1574 163 1650 108" stroke-width="2.3" opacity=".78"/>
+    <path d="M-50 584 C168 492 302 531 470 527 C673 522 771 459 930 391 C1104 319 1263 317 1416 262 C1510 229 1583 181 1650 127" stroke-width="2" opacity=".66"/>
+    <path d="M-50 601 C158 510 316 547 483 543 C685 538 788 474 946 407 C1120 337 1277 334 1432 278 C1520 247 1592 199 1650 146" stroke-width="1.8" opacity=".54"/>
+    <path d="M-50 619 C148 530 330 565 498 560 C700 554 804 491 962 424 C1136 355 1292 350 1448 295 C1532 266 1602 218 1650 166" stroke-width="1.5" opacity=".42"/>
+  </g>
+
+  <!-- Secondary upper-left to lower-right counter-flowing dotted arcs -->
+  <g class="wave-secondary" fill="none" stroke="url(#wave-fade-secondary)" stroke-linecap="round" stroke-dasharray="1 11">
+    <path d="M-60 98 C160 162 340 122 548 188 C756 254 912 362 1140 392 C1340 418 1488 378 1660 442" stroke-width="2.1" opacity=".58"/>
+    <path d="M-60 122 C152 184 334 144 542 210 C750 276 904 384 1134 414 C1336 440 1484 402 1660 464" stroke-width="1.9" opacity=".5"/>
+    <path d="M-60 146 C144 206 328 166 536 232 C744 298 896 406 1128 436 C1332 462 1480 426 1660 486" stroke-width="1.7" opacity=".42"/>
+    <path d="M-60 74 C168 140 348 100 554 166 C762 232 920 340 1146 370 C1344 396 1492 354 1660 420" stroke-width="1.6" opacity=".36"/>
+  </g>
+
+  <!-- Delicate telemetry dash-dot accent lines & soft nodes -->
+  <g class="wave-accent" fill="none" stroke="url(#wave-fade-accent)" stroke-linecap="round" stroke-dasharray="2 10 10 10">
+    <path d="M40 658 C260 612 490 648 730 582 C960 518 1190 540 1630 390" stroke-width="1.6" opacity=".56"/>
+    <path d="M620 42 C840 94 1030 58 1240 118 C1400 164 1520 140 1640 198" stroke-width="1.6" opacity=".52"/>
+  </g>
+
+  <g fill="#5E9E79">
+    <circle class="wave-node" cx="248" cy="148" r="3.5" opacity=".28"/>
+    <circle class="wave-node" cx="546" cy="188" r="4" opacity=".3"/>
+    <circle class="wave-node" cx="891" cy="343" r="4.5" opacity=".34"/>
+    <circle class="wave-node" cx="1138" cy="392" r="4" opacity=".32"/>
+    <circle class="wave-node" cx="1392" cy="232" r="4.5" opacity=".36"/>
+    <circle class="wave-node" cx="1240" cy="118" r="3.5" opacity=".3"/>
+    <circle class="wave-node" cx="730" cy="582" r="3.5" opacity=".26"/>
   </g>
 </svg>

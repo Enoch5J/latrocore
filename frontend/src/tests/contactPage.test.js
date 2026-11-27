@@ -173,7 +173,8 @@ describe('Public Contact Latrocore Page & Homepage CTA', () => {
     expect(ctaHtml).toContain('Contact our team');
     expect(ctaHtml).toContain('href="/contact"');
     expect(ctaHtml).toContain('bg-[#046A38]');
-    expect(ctaHtml).toContain('src="/doctor-avatar.png"');
+    expect(ctaHtml).toContain('text-center');
+    expect(ctaHtml).not.toContain('src="/doctor-avatar.png"');
 
     const homeHtml = renderToStaticMarkup(
       React.createElement(

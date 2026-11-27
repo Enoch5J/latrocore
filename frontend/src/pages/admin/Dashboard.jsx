@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../auth/AuthContext';
@@ -72,49 +72,29 @@ export default function AdminDashboard({ initialTab }) {
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
 
-  const loadAllData = async () => {
-    if (!isAdmin) return;
+  const isFetchingRef = useRef(false);
+
+  const loadAllData = useCallback(async () => {
+    if (!isAdmin || isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
-      const [summaryRes, docsRes, pharmsRes, patsRes, usersRes] = await Promise.allSettled([
-        api.getApprovalsSummary(),
-        api.getPendingDoctors(),
-        api.getPendingPharmacists(),
-        api.getPendingPatients(),
-        api.getAllUsers()
-      ]);
-
-      if (summaryRes.status === 'fulfilled' && summaryRes.value) {
-        setApprovalsSummary(summaryRes.value);
-      }
-      if (docsRes.status === 'fulfilled' && Array.isArray(docsRes.value)) {
-        setPendingDoctors(docsRes.value);
-      }
-      if (pharmsRes.status === 'fulfilled' && Array.isArray(pharmsRes.value)) {
-        setPendingPharmacists(pharmsRes.value);
-      }
-      if (patsRes.status === 'fulfilled' && Array.isArray(patsRes.value)) {
-        setPendingPatients(patsRes.value);
-      }
-      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
-        setDirectoryUsers(usersRes.value);
-      }
-
-      const rejected = [summaryRes, docsRes, pharmsRes, patsRes, usersRes].find(
-        (r) => r.status === 'rejected'
-      );
-      if (rejected) {
-        addToast({
-          type: 'error',
-          title: 'Admin Data Load Notice',
-          message: rejected.reason?.message || 'Unable to load some administration records.'
-        });
-      }
+      const res = await api.getAdminDashboard();
+      if (res?.summary) setApprovalsSummary(res.summary);
+      if (Array.isArray(res?.pendingDoctors)) setPendingDoctors(res.pendingDoctors);
+      if (Array.isArray(res?.pendingPharmacists)) setPendingPharmacists(res.pendingPharmacists);
+      if (Array.isArray(res?.pendingPatients)) setPendingPatients(res.pendingPatients);
+      if (Array.isArray(res?.users)) setDirectoryUsers(res.users);
     } catch (err) {
-      console.warn('Admin data load warning:', err.message);
+      addToast({
+        type: 'error',
+        title: 'Admin Data Load Notice',
+        message: err?.message || 'Unable to load administration records.'
+      });
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
-  };
+  }, [isAdmin, addToast]);
 
   useEffect(() => {
     if (!authLoading && isAdmin) {
@@ -122,7 +102,7 @@ export default function AdminDashboard({ initialTab }) {
     } else if (!authLoading && !isAdmin) {
       setLoading(false);
     }
-  }, [authLoading, isAdmin]);
+  }, [authLoading, isAdmin, loadAllData]);
 
   const copyToClipboard = (text, id) => {
     navigator.clipboard?.writeText(text);

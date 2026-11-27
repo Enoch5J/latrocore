@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrefersReducedMotion } from '../../hooks/useScrollMotion';
 import { openAICompanionWithDraft } from '../../utils/aiCompanionChat';
@@ -7,12 +7,27 @@ import { HERO_SLIDES, getNextHeroIndex } from './heroCarouselSlides';
 import './HeroCarousel.css';
 
 const SLIDE_COUNT = HERO_SLIDES.length;
+const AUTO_ADVANCE_MS = 2500;
 
 export default function HeroCarousel({ onAskLatroAI }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocusedWithin, setIsFocusedWithin] = useState(false);
   const navigate = useNavigate();
   const prefersReducedMotion = usePrefersReducedMotion();
   const tabRefs = useRef([]);
+
+  useEffect(() => {
+    if (prefersReducedMotion || isHovered || isFocusedWithin) {
+      return undefined;
+    }
+
+    const timerId = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % SLIDE_COUNT);
+    }, AUTO_ADVANCE_MS);
+
+    return () => window.clearInterval(timerId);
+  }, [activeIndex, isHovered, isFocusedWithin, prefersReducedMotion]);
 
   const selectSlide = useCallback((nextIndex, focusTab = false) => {
     setActiveIndex(nextIndex);
@@ -20,6 +35,12 @@ export default function HeroCarousel({ onAskLatroAI }) {
       tabRefs.current[nextIndex]?.focus();
     }
   }, []);
+
+  const handleHeroBlur = (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setIsFocusedWithin(false);
+    }
+  };
 
   const handleTabKeyDown = (event) => {
     if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
@@ -48,6 +69,10 @@ export default function HeroCarousel({ onAskLatroAI }) {
     <section
       id="hero-carousel"
       aria-label="Latrocore diabetes care highlights"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocus={() => setIsFocusedWithin(true)}
+      onBlur={handleHeroBlur}
       className="latro-hero-section home-band-cream w-full pt-6 pb-6 sm:pt-9 sm:pb-8 lg:pt-12 lg:pb-10"
     >
       <div className="latro-hero-background" aria-hidden="true">

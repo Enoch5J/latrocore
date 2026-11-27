@@ -105,6 +105,29 @@ class BatchApproveRequest(BaseModel):
     patientIds: List[str] = []
 
 
+class AdminDashboardOut(BaseModel):
+    summary: ApprovalSummaryOut
+    pendingDoctors: List[PendingDoctorOut]
+    pendingPharmacists: List[PendingPharmacistOut]
+    pendingPatients: List[PendingPatientOut]
+    users: List[AdminUserOut]
+
+
+@router.get("/dashboard", response_model=AdminDashboardOut)
+def get_admin_dashboard(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(require_role("admin"))
+):
+    """Retrieve consolidated admin dashboard summary, pending queues, and user directory in one call."""
+    return AdminDashboardOut(
+        summary=get_approvals_summary(db=db, admin_user=admin_user),
+        pendingDoctors=get_pending_doctors(db=db, admin_user=admin_user),
+        pendingPharmacists=get_pending_pharmacists(db=db, admin_user=admin_user),
+        pendingPatients=get_pending_patients(db=db, admin_user=admin_user),
+        users=get_all_admin_users(db=db, admin_user=admin_user),
+    )
+
+
 # ── Summary Endpoint ────────────────────────────────────────────────
 
 @router.get("/approvals/summary", response_model=ApprovalSummaryOut)

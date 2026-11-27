@@ -119,9 +119,9 @@ describe('Homepage About Latrocore Section', () => {
     const html = renderToStaticMarkup(React.createElement(AboutSection));
 
     expect(html).toContain('ABOUT LATROCORE');
-    expect(html).toContain('font-sans');
-    expect(html).toContain('text-[#0D261C] block">Diabetes care');
-    expect(html).toContain('text-[#169B53] block">between visits.');
+    expect(html).toContain('home-section-heading');
+    expect(html).toContain('text-[#0D261C] inline">Diabetes care');
+    expect(html).toContain('text-[#046A38] inline">between visits.');
     expect(html).toContain(
       'Most diabetes care happens at home. That’s where readings get written down, medicines are taken, and questions come up.'
     );
@@ -129,6 +129,7 @@ describe('Homepage About Latrocore Section', () => {
       'We built Latrocore to keep those details together, so you can bring a clear record to your next appointment.'
     );
     expect(html).toContain('href="#care-continuum"');
+    expect(html).toContain('bg-[#046A38]');
     expect(html).toContain('Explore our solutions');
     expect(html).toContain('→');
     expect(html).toContain('home-band-mint');

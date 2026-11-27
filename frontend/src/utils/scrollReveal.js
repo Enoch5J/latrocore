@@ -304,8 +304,8 @@ export function initScrollReveals(root) {
     if (atBottom && rect.top < viewportHeight && rect.bottom > stickyTop) {
       return true;
     }
-    if (atTop && rect.bottom > 0 && rect.top < viewportHeight) {
-      return true;
+    if (atTop) {
+      return rect.bottom > 0 && rect.top <= viewportHeight * 0.82;
     }
 
     const edgeAllowance = Math.min(

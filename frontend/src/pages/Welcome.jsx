@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
@@ -8,6 +8,8 @@ import AboutSection from '../components/home/AboutSection';
 import CareActionCarousel from '../components/home/CareActionCarousel';
 import ExploreAICompanion from '../components/home/ExploreAICompanion';
 import DailyCareCompanion from '../components/home/DailyCareCompanion';
+import TrustPillarsSection from '../components/home/TrustPillarsSection';
+import HowWeWorkSection from '../components/home/HowWeWorkSection';
 import FaqSection from '../components/home/FaqSection';
 import ContactCtaSection from '../components/home/ContactCtaSection';
 import PublicHeader from '../components/home/PublicHeader';
@@ -19,9 +21,7 @@ import doctorImg from '../assets/images/doctor.png';
 import pharmacistImg from '../assets/images/pharmacist.png';
 import adminImg from '../assets/images/admin.png';
 import {
-  Upload, ShieldCheck, Pill,
-  ArrowRight, FileText, X,
-  Award, ThermometerSnowflake
+  Upload, ArrowRight, FileText, X,
 } from 'lucide-react';
 
 // ── WORKSTATIONS (ROLE-BASED CLINICAL LAUNCHPAD) ────────────────────────
@@ -164,7 +164,11 @@ export default function Welcome() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div data-reveal="section" className="text-center max-w-2xl mx-auto mb-10">
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#093322] tracking-tight">
+            <p className="inline-flex items-center justify-center gap-2.5 text-xs sm:text-sm font-bold uppercase tracking-[0.16em] text-[#046A38] font-['Inter',system-ui,sans-serif] mb-2.5">
+              <span className="h-[2px] w-5 sm:w-6 bg-[#046A38]/75 rounded-full" aria-hidden="true" />
+              <span>CARE TEAM PORTALS</span>
+            </p>
+            <h2 className="home-section-heading text-3xl sm:text-4xl lg:text-[42px] text-[#093322]">
               Clinical Workstations
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1.5">
@@ -214,63 +218,11 @@ export default function Welcome() {
 
 
 
-      {/* ── WHY CHOOSE LATROCORE (APOLLO TRUST PILLARS) ───────────────── */}
-      <section id="trust-pillars" className="home-scroll-target home-band-cream py-12 sm:py-16 border-b border-[#E8DCC8]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── CARE YOU CAN FOLLOW BETWEEN VISITS (TRUST PILLARS) ─────────── */}
+      <TrustPillarsSection />
 
-          <div data-reveal="section" className="text-center max-w-2xl mx-auto mb-10">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Why Patients & Physicians Trust LATROCORE
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1">
-              Engineered to clinical compliance benchmarks with zero tolerance for diagnostic errors.
-            </p>
-          </div>
-
-          <div data-reveal-grid="trust-pillars" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div data-reveal="card" className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] flex items-center justify-center text-[#046A38] mb-3">
-                <Award size={20} />
-              </div>
-              <h3 className="font-black text-sm text-slate-900 mb-1">Structured Lab Tracking</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Organized HbA1c, lipid, and diagnostic investigation records linked directly to your care timeline.
-              </p>
-            </div>
-
-            <div data-reveal="card" className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-[#FAF6EF] flex items-center justify-center text-[#E34222] border border-[#E8DCC8] mb-3">
-                <ThermometerSnowflake size={20} />
-              </div>
-              <h3 className="font-black text-sm text-slate-900 mb-1">Longitudinal Trends</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Clear glycemic and biomarker trends help doctors and patients spot patterns early between visits.
-              </p>
-            </div>
-
-            <div data-reveal="card" className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-[#E8F5EE] flex items-center justify-center text-[#046A38] mb-3">
-                <ShieldCheck size={20} />
-              </div>
-              <h3 className="font-black text-sm text-slate-900 mb-1">Zero-Trust Cryptography</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Argon2id password hashing, ephemeral token rotations, and role-based access controls for every portal.
-              </p>
-            </div>
-
-            <div data-reveal="card" className="bg-white p-5 rounded-2xl border border-[#E8DCC8] shadow-xs">
-              <div className="w-10 h-10 rounded-xl bg-[#FDECE8] flex items-center justify-center text-[#E34222] mb-3">
-                <Pill size={20} />
-              </div>
-              <h3 className="font-black text-sm text-slate-900 mb-1">Pharm D DDI Scanner</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Real-time surveillance detects dangerous drug-drug interactions before prescription dispensing takes place.
-              </p>
-            </div>
-          </div>
-
-        </div>
-      </section>
+      {/* ── HOW WE WORK ───────────────────────────────────────────────── */}
+      <HowWeWorkSection />
 
       {/* ── FREQUENTLY ASKED QUESTIONS ────────────────────────────────── */}
       <FaqSection />

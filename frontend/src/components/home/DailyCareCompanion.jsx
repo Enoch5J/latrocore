@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
-import { usePrefersReducedMotion } from '../../hooks/useScrollMotion';
 
 import medicineIllustration from '../../assets/herosection-images/Friendly Medicine Reminder Companion-1.png';
 import aiAssistantIllustration from '../../assets/herosection-images/Friendly woman and health assistant robot-2.png';
@@ -12,8 +10,8 @@ const FEATURES = [
     id: 1,
     key: 'medicine',
     title: 'Medicine reminders',
-    subtitle: 'Keep your prescribed routine on track.',
-    description: 'Thoughtful daily alerts synchronized with your prescription routine to prevent missed doses.',
+    subtitle: 'Keep your daily routine on track.',
+    description: 'Get timely reminders for each dose and see when your refills are coming up.',
     image: medicineIllustration,
     imageAlt: 'Patient managing daily prescribed medicines with companion pill organiser',
     route: '/patient/medications',
@@ -22,8 +20,8 @@ const FEATURES = [
     id: 2,
     key: 'ai-support',
     title: 'AI health support',
-    subtitle: 'Ask questions. Understand your care.',
-    description: 'Instant educational clarity on diabetic lab terms, dietary glycemic index, and lifestyle habits.',
+    subtitle: 'Ask questions in plain language.',
+    description: 'Get clear explanations for your lab results, everyday meals, and diabetes care.',
     image: aiAssistantIllustration,
     imageAlt: 'Patient discussing questions with friendly AI health assistant robot',
     route: '/patient/assistant',
@@ -33,7 +31,7 @@ const FEATURES = [
     key: 'progress-tracking',
     title: 'Progress tracking',
     subtitle: 'See your health trends over time.',
-    description: 'Continuous glycemic telemetry curves, Time-in-Range tracking, and longitudinal milestones.',
+    description: 'Follow your blood sugar readings and daily habits to stay ready for your next visit.',
     image: progressTrackingIllustration,
     imageAlt: 'Healthcare doctor reviewing patient glucose trends and longitudinal clinical progress',
     route: '/patient/metrics?tab=glucose',
@@ -42,8 +40,7 @@ const FEATURES = [
 
 export default function DailyCareCompanion({ isAuthenticated }) {
   const navigate = useNavigate();
-  const prefersReducedMotion = usePrefersReducedMotion();
-  // Default active card is index 1 (AI health support), exactly matching the user's screenshot
+  // Default active card is index 1 (AI health support)
   const [activeCard, setActiveCard] = useState(1);
 
   const handleCardClick = (feature) => {
@@ -71,11 +68,11 @@ export default function DailyCareCompanion({ isAuthenticated }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div data-reveal="section" className="text-center max-w-3xl mx-auto mb-10 sm:mb-12">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#E8F5EE] border border-[#A8D7BD] text-xs font-bold text-[#046A38] uppercase tracking-wider mb-2.5 shadow-2xs">
-            <Sparkles size={13} className="text-[#046A38]" />
-            <span>Connected Health Companion</span>
-          </span>
-          <h2 className="font-serif font-black text-2xl sm:text-3xl lg:text-4xl text-[#093322] tracking-tight leading-tight">
+          <p className="inline-flex items-center justify-center gap-2.5 text-xs sm:text-sm font-bold uppercase tracking-[0.16em] text-[#046A38] font-['Inter',system-ui,sans-serif] mb-2.5">
+            <span className="h-[2px] w-5 sm:w-6 bg-[#046A38]/75 rounded-full" aria-hidden="true" />
+            <span>CONNECTED HEALTH COMPANION</span>
+          </p>
+          <h2 className="home-section-heading text-3xl sm:text-4xl lg:text-[42px] text-[#093322]">
             A little help, throughout your day.
           </h2>
           <p className="mt-2 text-xs sm:text-sm lg:text-base font-medium text-[#45556C] max-w-xl mx-auto leading-relaxed">
@@ -111,36 +108,6 @@ export default function DailyCareCompanion({ isAuthenticated }) {
                       : 'border border-[#E8DCC8] hover:border-[#046A38]/50 shadow-xs hover:shadow-md hover:-translate-y-0.5'
                   }`}
                 >
-                  {/* ── CARD 2 OVERLAY: Top-Left AI Query Badge (User Screenshot Match) ── */}
-                  {feature.key === 'ai-support' && (
-                    <div
-                      className={`absolute top-3.5 left-3.5 sm:top-4 sm:left-4 z-20 max-w-[215px] p-2 sm:p-2.5 rounded-2xl bg-white/95 backdrop-blur-md border border-[#A8D7BD] shadow-md transition-all duration-300 pointer-events-none ${
-                        isActive ? 'opacity-100 scale-100' : 'opacity-85 scale-95'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-[#E8F5EE] text-[#046A38] flex items-center justify-center shrink-0 mt-0.5">
-                          <Sparkles size={13} className="text-[#046A38]" />
-                        </div>
-                        <div className="leading-tight">
-                          <p className="text-[11px] font-black text-slate-900">
-                            “What does HbA1c mean?”
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="inline-block px-1.5 py-0.5 rounded bg-[#FAF6EF] border border-[#E8DCC8] text-[8.5px] font-black text-[#046A38] uppercase">
-                              Educational guidance
-                            </span>
-                            <span className="flex items-center gap-0.5">
-                              <span className={`w-1 h-1 rounded-full bg-[#046A38] ${!prefersReducedMotion ? 'animate-pulse' : ''}`} />
-                              <span className={`w-1 h-1 rounded-full bg-[#046A38] ${!prefersReducedMotion ? 'animate-pulse delay-100' : ''}`} />
-                              <span className={`w-1 h-1 rounded-full bg-[#046A38] ${!prefersReducedMotion ? 'animate-pulse delay-200' : ''}`} />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* 2.5D Illustration Stage */}
                   <div className="relative w-full h-[220px] sm:h-[240px] flex items-center justify-center overflow-visible mt-2 mb-2">
                     <img
@@ -154,14 +121,14 @@ export default function DailyCareCompanion({ isAuthenticated }) {
                   </div>
 
                   {/* Card Editorial Details */}
-                  <div className="pt-4 border-t border-[#E8DCC8]/70 mt-auto flex flex-col">
+                  <div className="pt-4 border-t border-[#E8DCC8]/70 mt-auto flex flex-col items-center text-center">
                     <h3 className="font-serif font-bold text-xl sm:text-[22px] text-[#093322] tracking-tight leading-snug group-hover:text-[#046A38] transition-colors">
                       {feature.title}
                     </h3>
-                    <p className="text-xs sm:text-[13px] font-bold text-[#046A38] mt-1 leading-snug">
+                    <p className="text-[13px] sm:text-sm font-bold text-[#046A38] mt-1 leading-snug">
                       {feature.subtitle}
                     </p>
-                    <p className="text-xs sm:text-[13px] text-[#45556C] font-normal leading-relaxed mt-1.5">
+                    <p className="text-[13px] sm:text-sm text-[#45556C] font-medium leading-relaxed mt-1.5 max-w-[34ch]">
                       {feature.description}
                     </p>
                   </div>

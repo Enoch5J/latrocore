@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AUTH_LOGOUT_EVENT,
@@ -161,6 +161,10 @@ export async function logoutAuthSessionFlow({ setUser, setRefreshError, setLogou
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(getInitialAuthLoading);
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -186,7 +190,7 @@ export function AuthProvider({ children }) {
       setRefreshError(null);
       setSessionExpired(true);
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        navigate('/login', { replace: true });
+        navigateRef.current('/login', { replace: true });
       }
     };
 
@@ -219,7 +223,7 @@ export function AuthProvider({ children }) {
         window.removeEventListener(AUTH_NETWORK_ERROR_EVENT, onWindowNetworkError);
       }
     };
-  }, [navigate, restoreSession]);
+  }, [restoreSession]);
 
   const login = async (identifier, password) =>
     loginAuthSessionFlow(identifier, password, {

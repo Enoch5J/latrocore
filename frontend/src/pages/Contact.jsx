@@ -129,7 +129,7 @@ function ContactTopicDropdown({ value, onChange, error }) {
 
   return (
     <div ref={containerRef} className="relative">
-      <label id="contact-topic-label" className="block text-xs font-bold text-[#093322] mb-1.5">
+      <label id="contact-topic-label" className="block text-[13px] sm:text-sm font-semibold text-[#093322] mb-1.5">
         Enquiry topic <span className="text-[#046A38]" aria-hidden="true">*</span>
       </label>
       <button
@@ -152,7 +152,7 @@ function ContactTopicDropdown({ value, onChange, error }) {
             setIsOpen(false);
           }
         }}
-        className={`w-full rounded-xl bg-white border px-3.5 py-2.5 pr-10 text-left text-sm font-['Inter',system-ui,sans-serif] transition-all focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 focus:outline-none ${
+        className={`w-full rounded-xl bg-white border px-4 py-3 pr-10 text-left text-[15px] font-['Inter',system-ui,sans-serif] transition-all focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 focus:outline-none ${
           error ? 'border-[#E34222]' : 'border-[#D8C6AC]'
         } ${value ? 'text-[#112228]' : 'text-slate-400'}`}
       >
@@ -291,7 +291,7 @@ export default function Contact({ contactInfoOverride = null }) {
   };
 
   const inputBaseClass =
-    "w-full rounded-xl bg-white border px-3.5 py-2.5 text-sm font-['Inter',system-ui,sans-serif] text-[#112228] placeholder:text-slate-400 transition-colors focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 focus:outline-none";
+    "w-full rounded-xl bg-white border px-4 py-3 text-[15px] font-['Inter',system-ui,sans-serif] text-[#112228] placeholder:text-slate-400 transition-colors focus:border-[#046A38] focus:ring-2 focus:ring-[#046A38]/20 focus:outline-none";
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-clip bg-[#FAF6EF] text-[#112228] flex flex-col font-['Inter',system-ui,sans-serif] antialiased selection:bg-[#F9EBD7] selection:text-[#046A38]">
@@ -348,10 +348,10 @@ export default function Contact({ contactInfoOverride = null }) {
           prefersReducedMotion ? '' : 'contact-page-enter'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            {/* Left Column (~2/3): Enquiry Form Card */}
-            <div className="lg:col-span-8 bg-white border border-[#E8DCC8] rounded-3xl p-6 sm:p-8 lg:p-9 shadow-xs">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            {/* Left Column: Compact Enquiry Form Card */}
+            <div className="lg:col-span-7 bg-white border border-[#E8DCC8] rounded-3xl p-6 sm:p-8 shadow-xs max-w-2xl w-full mx-auto lg:mx-0">
               <div className="mb-6">
                 <h2 className="font-serif font-bold text-2xl sm:text-[26px] text-[#093322] tracking-tight leading-tight">
                   Send us a message
@@ -396,101 +396,101 @@ export default function Contact({ contactInfoOverride = null }) {
                   />
                 </div>
 
-                {/* Row 1: Full name + Email address */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="contact-full-name"
-                      className="block text-xs font-bold text-[#093322] mb-1.5"
-                    >
-                      Full name <span className="text-[#046A38]" aria-hidden="true">*</span>
-                    </label>
-                    <input
-                      id="contact-full-name"
-                      name="full_name"
-                      type="text"
-                      required
-                      aria-required="true"
-                      aria-invalid={Boolean(fieldErrors.full_name)}
-                      aria-describedby={fieldErrors.full_name ? 'contact-full-name-error' : undefined}
-                      value={formData.full_name}
-                      onChange={handleFieldChange('full_name')}
-                      placeholder="Your full name"
-                      className={`${inputBaseClass} ${
-                        fieldErrors.full_name ? 'border-[#E34222]' : 'border-[#D8C6AC]'
-                      }`}
-                    />
-                    {fieldErrors.full_name && (
-                      <p id="contact-full-name-error" className="mt-1 text-xs font-medium text-[#CA3517]">
-                        {fieldErrors.full_name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="contact-email"
-                      className="block text-xs font-bold text-[#093322] mb-1.5"
-                    >
-                      Email address <span className="text-[#046A38]" aria-hidden="true">*</span>
-                    </label>
-                    <input
-                      id="contact-email"
-                      name="email"
-                      type="email"
-                      required
-                      maxLength={254}
-                      aria-required="true"
-                      aria-invalid={Boolean(fieldErrors.email)}
-                      aria-describedby={fieldErrors.email ? 'contact-email-error' : undefined}
-                      value={formData.email}
-                      onChange={handleFieldChange('email')}
-                      placeholder="you@example.com"
-                      className={`${inputBaseClass} ${
-                        fieldErrors.email ? 'border-[#E34222]' : 'border-[#D8C6AC]'
-                      }`}
-                    />
-                    {fieldErrors.email && (
-                      <p id="contact-email-error" className="mt-1 text-xs font-medium text-[#CA3517]">
-                        {fieldErrors.email}
-                      </p>
-                    )}
-                  </div>
+                {/* Row 1: Full name */}
+                <div>
+                  <label
+                    htmlFor="contact-full-name"
+                    className="block text-[13px] sm:text-sm font-semibold text-[#093322] mb-1.5"
+                  >
+                    Full name <span className="text-[#046A38]" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="contact-full-name"
+                    name="full_name"
+                    type="text"
+                    required
+                    aria-required="true"
+                    aria-invalid={Boolean(fieldErrors.full_name)}
+                    aria-describedby={fieldErrors.full_name ? 'contact-full-name-error' : undefined}
+                    value={formData.full_name}
+                    onChange={handleFieldChange('full_name')}
+                    placeholder="Your full name"
+                    className={`${inputBaseClass} ${
+                      fieldErrors.full_name ? 'border-[#E34222]' : 'border-[#D8C6AC]'
+                    }`}
+                  />
+                  {fieldErrors.full_name && (
+                    <p id="contact-full-name-error" className="mt-1 text-xs font-medium text-[#CA3517]">
+                      {fieldErrors.full_name}
+                    </p>
+                  )}
                 </div>
 
-                {/* Row 2: Phone number + Enquiry topic */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <PhoneInputWithCountry
-                      id="contact-phone"
-                      label="Phone number (Optional)"
-                      value={formData.phone}
-                      onChange={handleFieldChange('phone')}
-                      countryCode={countryCode}
-                      onCountryCodeChange={(nextCountryCode) => {
-                        setCountryCode(nextCountryCode);
-                        if (formData.phone) {
-                          const error = validateCountryPhone(nextCountryCode, formData.phone);
-                          setFieldErrors((previous) => ({
-                            ...previous,
-                            ...(error ? { phone: error } : { phone: undefined }),
-                          }));
-                        }
-                      }}
-                      error={fieldErrors.phone}
-                      onBlur={() => {
-                        if (formData.phone.trim()) {
-                          const error = validateCountryPhone(countryCode, formData.phone);
-                          setFieldErrors((previous) => ({
-                            ...previous,
-                            ...(error ? { phone: error } : { phone: undefined }),
-                          }));
-                        }
-                      }}
-                      required={false}
-                    />
-                  </div>
+                {/* Row 2: Email address */}
+                <div>
+                  <label
+                    htmlFor="contact-email"
+                    className="block text-[13px] sm:text-sm font-semibold text-[#093322] mb-1.5"
+                  >
+                    Email address <span className="text-[#046A38]" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="contact-email"
+                    name="email"
+                    type="email"
+                    required
+                    maxLength={254}
+                    aria-required="true"
+                    aria-invalid={Boolean(fieldErrors.email)}
+                    aria-describedby={fieldErrors.email ? 'contact-email-error' : undefined}
+                    value={formData.email}
+                    onChange={handleFieldChange('email')}
+                    placeholder="you@example.com"
+                    className={`${inputBaseClass} ${
+                      fieldErrors.email ? 'border-[#E34222]' : 'border-[#D8C6AC]'
+                    }`}
+                  />
+                  {fieldErrors.email && (
+                    <p id="contact-email-error" className="mt-1 text-xs font-medium text-[#CA3517]">
+                      {fieldErrors.email}
+                    </p>
+                  )}
+                </div>
 
+                {/* Row 3: Phone number */}
+                <div>
+                  <PhoneInputWithCountry
+                    id="contact-phone"
+                    label="Phone number (Optional)"
+                    value={formData.phone}
+                    onChange={handleFieldChange('phone')}
+                    countryCode={countryCode}
+                    onCountryCodeChange={(nextCountryCode) => {
+                      setCountryCode(nextCountryCode);
+                      if (formData.phone) {
+                        const error = validateCountryPhone(nextCountryCode, formData.phone);
+                        setFieldErrors((previous) => ({
+                          ...previous,
+                          ...(error ? { phone: error } : { phone: undefined }),
+                        }));
+                      }
+                    }}
+                    error={fieldErrors.phone}
+                    onBlur={() => {
+                      if (formData.phone.trim()) {
+                        const error = validateCountryPhone(countryCode, formData.phone);
+                        setFieldErrors((previous) => ({
+                          ...previous,
+                          ...(error ? { phone: error } : { phone: undefined }),
+                        }));
+                      }
+                    }}
+                    required={false}
+                  />
+                </div>
+
+                {/* Row 4: Enquiry topic */}
+                <div>
                   <ContactTopicDropdown
                     value={formData.topic}
                     onChange={(value) => {
@@ -509,12 +509,12 @@ export default function Contact({ contactInfoOverride = null }) {
                   />
                 </div>
 
-                {/* Row 3: Message + Privacy note */}
+                {/* Row 5: Message + Privacy note */}
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-1.5">
                     <label
                       htmlFor="contact-message"
-                      className="block text-xs font-bold text-[#093322]"
+                      className="block text-[13px] sm:text-sm font-semibold text-[#093322]"
                     >
                       Message <span className="text-[#046A38]" aria-hidden="true">*</span>
                     </label>
@@ -575,8 +575,8 @@ export default function Contact({ contactInfoOverride = null }) {
               </form>
             </div>
 
-            {/* Right Column (~1/3): Get In Touch Sidebar */}
-            <aside aria-labelledby="get-in-touch-heading" className="lg:col-span-4 space-y-4">
+            {/* Right Column: Sticky Get In Touch Sidebar */}
+            <aside aria-labelledby="get-in-touch-heading" className="lg:col-span-5 lg:sticky lg:top-36 space-y-4">
               <h2
                 id="get-in-touch-heading"
                 className="text-xs font-bold uppercase tracking-[0.14em] text-[#046A38]"

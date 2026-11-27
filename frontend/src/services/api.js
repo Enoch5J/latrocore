@@ -151,6 +151,7 @@ export const api = {
   getAuthStatus: () => request('/auth/status'),
 
   // Admin Clinical Approval & User Governance
+  getAdminDashboard: () => request('/admin/dashboard'),
   getApprovalsSummary: () => request('/admin/approvals/summary'),
   getPendingDoctors: () => request('/admin/doctors/pending'),
   approveDoctor: (profileId) =>

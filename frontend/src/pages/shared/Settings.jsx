@@ -1,21 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Settings as SettingsIcon, Bell, Shield, KeyRound, Globe,
-  CheckCircle2, ArrowRight, User, LogOut, LockKeyhole
-} from 'lucide-react';
+import { Bell, Globe, KeyRound, LogOut } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
-import { normalizeRole } from '../../auth/ProtectedRoute';
-import { getRoleDisplayLabel } from '../../utils/userProfile';
 
 const PREFS_STORAGE_KEY = 'latrocore_user_preferences';
 
 const DEFAULT_PREFS = {
   clinicalAlerts: true,
   medicationReminders: true,
-  digestEmails: false,
   preferredLanguage: 'en',
 };
 
@@ -29,8 +23,8 @@ const LANGUAGE_OPTIONS = [
 ];
 
 export default function Settings() {
-  const { user: authUser, logout } = useAuth();
-  const { currentUser, setUser, addToast } = useApp();
+  const { logout } = useAuth();
+  const { setUser, addToast } = useApp();
   const navigate = useNavigate();
 
   const [prefs, setPrefs] = useState(() => {
@@ -42,6 +36,7 @@ export default function Settings() {
     }
     return DEFAULT_PREFS;
   });
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -57,10 +52,6 @@ export default function Settings() {
     }
   }, [prefs]);
 
-  const activeUser = authUser || currentUser || {};
-  const normalizedRole = normalizeRole(activeUser.role);
-  const roleLabel = getRoleDisplayLabel(activeUser.role);
-
   const togglePref = (key, label) => {
     setPrefs((prev) => {
       const nextValue = !prev[key];
@@ -73,9 +64,8 @@ export default function Settings() {
   };
 
   const handleLanguageChange = (e) => {
-    const nextLang = e.target.value;
-    setPrefs((prev) => ({ ...prev, preferredLanguage: nextLang }));
-    addToast?.({ type: 'success', message: 'Preferred assistant language updated.' });
+    setPrefs((prev) => ({ ...prev, preferredLanguage: e.target.value }));
+    addToast?.({ type: 'success', message: 'Assistant language updated.' });
   };
 
   const handleSignOut = async () => {
@@ -105,78 +95,50 @@ export default function Settings() {
         newPassword: passwordForm.newPassword,
       });
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      addToast?.({ type: 'success', message: 'Password changed. Please sign in again with your new password.' });
+      addToast?.({ type: 'success', message: 'Password updated. Please sign in again.' });
       await handleSignOut();
     } catch (error) {
-      addToast?.({ type: 'error', message: error.message || 'Unable to change your password.' });
+      addToast?.({ type: 'error', message: error.message || 'Unable to change password.' });
     } finally {
       setChangingPassword(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
-      {/* Page Header */}
-      <div className="bg-white rounded-3xl border border-[#E8DCC8] p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5EE] border border-[#A8D7BD] text-[11px] font-extrabold uppercase tracking-wider text-[#046A38] mb-2">
-            <SettingsIcon size={13} />
-            <span>Account &amp; Workspace Preferences</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#112228] tracking-tight">Settings</h1>
-          <p className="text-xs sm:text-sm font-medium text-slate-600 mt-1">
-            Manage notification alerts, assistant language, and session security for {activeUser.name || activeUser.email}.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => navigate('/profile')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#FAF6EF] hover:bg-[#F9EBD7] text-[#112228] border border-[#E8DCC8] transition-colors cursor-pointer self-start sm:self-auto"
-        >
-          <User size={15} />
-          <span>View My Profile</span>
-        </button>
+    <div className="max-w-3xl mx-auto space-y-6 pb-12">
+      <div>
+        <h1 className="text-2xl font-bold text-[#112228]">Settings</h1>
+        <p className="text-sm text-slate-600 mt-1">Manage your notifications, language, and password.</p>
       </div>
 
-      {/* Notification & Language Preferences */}
-      <div className="bg-white rounded-3xl border border-[#E8DCC8] p-6 sm:p-8 shadow-xs space-y-5">
+      {/* Preferences */}
+      <div className="bg-white rounded-2xl border border-[#E8DCC8] p-6 shadow-xs space-y-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#E8F5EE] text-[#046A38] flex items-center justify-center">
-            <Bell size={18} />
-          </div>
-          <div>
-            <h2 className="text-lg font-extrabold text-[#112228]">Notification &amp; Care Preferences</h2>
-            <p className="text-xs text-slate-600">Control how LATROCORE surfaces alerts and assistant guidance.</p>
-          </div>
+          <Bell size={18} className="text-[#046A38]" />
+          <h2 className="text-base font-bold text-[#112228]">Preferences</h2>
         </div>
 
         <div className="space-y-3">
           {[
             {
               key: 'clinicalAlerts',
-              title: 'Clinical Safety Alerts',
-              desc: 'Highlight abnormal glucose trends, drug interaction flags, and escalation notices.',
+              title: 'Safety Alerts',
+              desc: 'Alerts for abnormal glucose readings and drug interactions.',
             },
             {
               key: 'medicationReminders',
-              title: 'Medication & Refill Reminders',
-              desc: 'Receive timely schedule cues and upcoming refill prompts.',
-            },
-            {
-              key: 'digestEmails',
-              title: 'Weekly Care Summary Digest',
-              desc: 'Receive periodic summary updates on account activity and care milestones.',
+              title: 'Medicine & Refill Reminders',
+              desc: 'Daily reminders for scheduled doses and upcoming refills.',
             },
           ].map((item) => {
             const enabled = !!prefs[item.key];
             return (
               <div
                 key={item.key}
-                className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-[#FAF6EF]/70 border border-[#E8DCC8]"
+                className="flex items-center justify-between gap-4 p-4 rounded-xl bg-[#FAF6EF]/60 border border-[#E8DCC8]"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-[#112228]">{item.title}</p>
+                  <p className="text-sm font-semibold text-[#112228]">{item.title}</p>
                   <p className="text-xs text-slate-600 mt-0.5">{item.desc}</p>
                 </div>
                 <button
@@ -198,19 +160,19 @@ export default function Settings() {
             );
           })}
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#FAF6EF]/70 border border-[#E8DCC8]">
-            <div className="flex items-start gap-3">
-              <Globe size={18} className="text-[#046A38] mt-0.5 shrink-0" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-[#FAF6EF]/60 border border-[#E8DCC8]">
+            <div className="flex items-start gap-2.5">
+              <Globe size={17} className="text-[#046A38] mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-bold text-[#112228]">Preferred Assistant Language</p>
-                <p className="text-xs text-slate-600 mt-0.5">Default language for multilingual diabetes guidance.</p>
+                <p className="text-sm font-semibold text-[#112228]">Assistant Language</p>
+                <p className="text-xs text-slate-600 mt-0.5">Preferred language for Latro AI.</p>
               </div>
             </div>
             <select
               value={prefs.preferredLanguage}
               onChange={handleLanguageChange}
-              aria-label="Preferred Assistant Language"
-              className="px-3.5 py-2 rounded-xl border border-[#E8DCC8] bg-white text-xs font-bold text-[#112228] focus:outline-none focus:border-[#046A38] cursor-pointer"
+              aria-label="Assistant Language"
+              className="px-3.5 py-2 rounded-xl border border-[#E8DCC8] bg-white text-sm font-medium text-[#112228] focus:outline-none focus:border-[#046A38] cursor-pointer"
             >
               {LANGUAGE_OPTIONS.map((lang) => (
                 <option key={lang.code} value={lang.code}>
@@ -222,43 +184,22 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Security & Session Card */}
-      <div className="bg-white rounded-3xl border border-[#E8DCC8] p-6 sm:p-8 shadow-xs space-y-4">
+      {/* Password & Sign Out */}
+      <div className="bg-white rounded-2xl border border-[#E8DCC8] p-6 shadow-xs space-y-5">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#E8F5EE] text-[#046A38] flex items-center justify-center">
-            <Shield size={18} />
-          </div>
-          <div>
-            <h2 className="text-lg font-extrabold text-[#112228]">Security &amp; Session Governance</h2>
-            <p className="text-xs text-slate-600">Current role access: {roleLabel}</p>
-          </div>
+          <KeyRound size={18} className="text-[#046A38]" />
+          <h2 className="text-base font-bold text-[#112228]">Change Password</h2>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#E8F5EE]/60 border border-[#D1EBDD]">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 size={18} className="text-[#046A38] shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-[#112228]">Protected Session Active</p>
-              <p className="text-xs text-slate-600">
-                Signed in as <span className="font-semibold text-[#112228]">{activeUser.email}</span> with HttpOnly refresh rotation.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <form onSubmit={handlePasswordChange} className="space-y-4 rounded-2xl border border-[#E8DCC8] bg-[#FAF6EF]/70 p-4">
-          <div className="flex items-center gap-2">
-            <LockKeyhole size={17} className="text-[#046A38]" />
-            <h3 className="text-sm font-bold text-[#112228]">Change Password</h3>
-          </div>
+        <form onSubmit={handlePasswordChange} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { key: 'currentPassword', label: 'Current password', autoComplete: 'current-password' },
               { key: 'newPassword', label: 'New password', autoComplete: 'new-password' },
-              { key: 'confirmPassword', label: 'Confirm new password', autoComplete: 'new-password' },
+              { key: 'confirmPassword', label: 'Confirm password', autoComplete: 'new-password' },
             ].map((field) => (
-              <label key={field.key} className="space-y-1.5">
-                <span className="text-xs font-bold text-slate-700">{field.label}</span>
+              <label key={field.key} className="space-y-1.5 block">
+                <span className="text-xs font-semibold text-slate-700">{field.label}</span>
                 <input
                   type="password"
                   autoComplete={field.autoComplete}
@@ -267,48 +208,32 @@ export default function Settings() {
                   maxLength={128}
                   value={passwordForm[field.key]}
                   onChange={(event) => setPasswordForm((form) => ({ ...form, [field.key]: event.target.value }))}
-                  className="w-full rounded-xl border border-[#E8DCC8] bg-white px-3.5 py-3 text-sm text-[#112228] focus:outline-none focus:border-[#046A38]"
+                  className="w-full rounded-xl border border-[#E8DCC8] bg-white px-3.5 py-2.5 text-sm text-[#112228] focus:outline-none focus:border-[#046A38]"
                 />
               </label>
             ))}
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <p className="text-xs text-slate-600">Use a unique passphrase between 12 and 128 characters. You’ll be asked to sign in again.</p>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <p className="text-xs text-slate-500">Use 12 to 128 characters.</p>
             <button
               type="submit"
               disabled={changingPassword}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#046A38] px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#03542C] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#046A38] px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#03542C] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
-              <KeyRound size={14} />
-              <span>{changingPassword ? 'Changing...' : 'Change Password'}</span>
+              <span>{changingPassword ? 'Updating...' : 'Update Password'}</span>
             </button>
           </div>
         </form>
 
-        {normalizedRole === 'admin' && (
-          <button
-            type="button"
-            onClick={() => navigate('/admin/config')}
-            className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#FAF6EF] hover:bg-[#F9EBD7]/60 border border-[#E8DCC8] transition-colors cursor-pointer text-left"
-          >
-            <div>
-              <p className="text-sm font-bold text-[#112228]">Platform System Configuration</p>
-              <p className="text-xs text-slate-600 mt-0.5">
-                Open Admin runtime security parameters, RBAC policies, and demonstration dataset controls.
-              </p>
-            </div>
-            <ArrowRight size={16} className="text-[#046A38] shrink-0" />
-          </button>
-        )}
-
-        <div className="pt-2 flex justify-end">
+        <div className="pt-4 border-t border-[#E8DCC8] flex justify-end">
           <button
             type="button"
             onClick={handleSignOut}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
           >
-            <LogOut size={15} />
-            <span>Log Out of Session</span>
+            <LogOut size={14} />
+            <span>Sign Out</span>
           </button>
         </div>
       </div>

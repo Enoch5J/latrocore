@@ -17,7 +17,7 @@ const CARE_ACTIONS = [
 
 // Three copies keep ultra-wide viewports filled while wrapping seamlessly across one set width.
 const TRACK_COPIES = [0, 1, 2];
-const MARQUEE_SPEED_PX_PER_SEC = 40;
+const MARQUEE_SPEED_PX_PER_SEC = 120;
 
 export default function CareActionCarousel() {
   const trackRef = useRef(null);
@@ -114,16 +114,21 @@ export default function CareActionCarousel() {
       className="home-scroll-target home-band-cream border-y border-[#E8DCC8] py-6 sm:py-7"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-4">
+        <div data-reveal="section" className="mb-4">
+          <p className="inline-flex items-center gap-2.5 text-xs sm:text-sm font-bold uppercase tracking-[0.16em] text-[#046A38] font-['Inter',system-ui,sans-serif] mb-2">
+            <span className="h-[2px] w-5 sm:w-6 bg-[#046A38]/75 rounded-full" aria-hidden="true" />
+            <span>QUICK CARE ACTIONS</span>
+          </p>
           <h2
             id="care-actions-heading"
-            className="font-serif text-xl sm:text-2xl font-bold leading-tight tracking-tight text-[#093322]"
+            className="home-section-heading text-3xl sm:text-4xl lg:text-[42px] text-[#093322]"
           >
             What would you like to do?
           </h2>
         </div>
 
         <div
+          data-reveal="section"
           role="region"
           aria-label="Patient care actions"
           onMouseEnter={() => setIsHovered(true)}

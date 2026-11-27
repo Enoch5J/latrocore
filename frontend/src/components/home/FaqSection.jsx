@@ -54,14 +54,25 @@ function FaqCard({ item, isOpen, onToggle, reducedMotion }) {
 
   return (
     <div
-      className={`faq-card bg-white rounded-2xl border font-['Inter',system-ui,sans-serif] ${
-        reducedMotion ? '' : 'transition-colors duration-200'
+      data-reveal="card"
+      className={`faq-card group/card relative overflow-hidden rounded-2xl border backdrop-blur-md font-['Inter',system-ui,sans-serif] ${
+        reducedMotion ? '' : 'transition-all duration-300 ease-out'
       } ${
         isOpen
-          ? 'border-[#046A38] shadow-sm'
-          : 'border-[#E8DCC8] hover:border-[#046A38]/40 shadow-2xs'
+          ? 'bg-white/95 border-[#046A38]/75 ring-4 ring-[#046A38]/10 shadow-[0_16px_36px_-14px_rgba(4,106,56,0.25)]'
+          : 'bg-white/75 border-white/90 ring-1 ring-[#046A38]/10 shadow-[0_4px_20px_-8px_rgba(9,51,34,0.10)] hover:bg-white/92 hover:border-[#046A38]/45 hover:ring-[#046A38]/15 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-12px_rgba(4,106,56,0.22)]'
       }`}
     >
+      {/* Subtle left accent bar on hover / open */}
+      <span
+        aria-hidden="true"
+        className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-[#046A38] transition-all duration-300 ${
+          isOpen
+            ? 'opacity-100 scale-y-100'
+            : 'opacity-0 scale-y-50 group-hover/card:opacity-60 group-hover/card:scale-y-75'
+        }`}
+      />
+
       <h3 className="m-0 font-['Inter',system-ui,sans-serif]">
         <button
           type="button"
@@ -73,23 +84,27 @@ function FaqCard({ item, isOpen, onToggle, reducedMotion }) {
             isOpen ? 'pb-3 sm:pb-3.5' : ''
           }`}
         >
-          <span className="font-['Inter',system-ui,sans-serif] font-semibold text-sm sm:text-[15px] leading-snug text-[#093322] pr-2">
+          <span
+            className={`font-['Inter',system-ui,sans-serif] font-semibold text-[15px] sm:text-base leading-snug pr-2 transition-colors duration-200 ${
+              isOpen ? 'text-[#046A38]' : 'text-[#093322] group-hover:text-[#046A38]'
+            }`}
+          >
             {item.question}
           </span>
           <span
             aria-hidden="true"
-            className={`faq-icon-badge shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-              reducedMotion ? '' : 'transition-colors duration-200'
+            className={`faq-icon-badge shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+              reducedMotion ? '' : 'transition-all duration-300 ease-out'
             } ${
               isOpen
-                ? 'bg-[#E8F5EE] text-[#046A38]'
-                : 'bg-stone-100 text-slate-600 group-hover:bg-[#E8F5EE] group-hover:text-[#046A38]'
+                ? 'bg-[#E8F5EE] text-[#046A38] ring-2 ring-[#046A38]/20 rotate-180 scale-105'
+                : 'bg-white/90 text-slate-600 border border-[#E8DCC8]/80 group-hover:bg-[#E8F5EE] group-hover:text-[#046A38] group-hover:border-[#046A38]/30 group-hover:scale-105'
             }`}
           >
             {isOpen ? (
-              <Minus size={14} strokeWidth={2.25} />
+              <Minus size={14} strokeWidth={2.3} />
             ) : (
-              <Plus size={14} strokeWidth={2.25} />
+              <Plus size={14} strokeWidth={2.3} />
             )}
           </span>
         </button>
@@ -105,9 +120,11 @@ function FaqCard({ item, isOpen, onToggle, reducedMotion }) {
         style={reducedMotion ? { transition: 'none' } : undefined}
       >
         <div className="faq-answer-inner">
-          <p className="px-5 sm:px-6 pb-5 pt-0 font-['Inter',system-ui,sans-serif] text-xs sm:text-[14px] leading-relaxed text-[#24383F] font-normal">
-            {item.answer}
-          </p>
+          <div className="mx-5 sm:mx-6 mb-5 pt-3 border-t border-[#E5EFE8]">
+            <p className="font-['Inter',system-ui,sans-serif] text-[15px] sm:text-base leading-relaxed text-black font-normal">
+              {item.answer}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -126,24 +143,30 @@ export default function FaqSection() {
     <section
       id="faq"
       aria-labelledby="faq-heading"
-      className="home-scroll-target home-band-mint py-12 sm:py-16"
+      className="home-scroll-target home-band-mint relative overflow-hidden py-12 sm:py-16"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Subtle ambient depth behind glassmorphic FAQ cards */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 left-1/4 h-72 w-72 rounded-full bg-[#046A38]/8 blur-3xl" />
+        <div className="absolute -bottom-20 right-1/4 h-72 w-72 rounded-full bg-white/50 blur-3xl" />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div data-reveal="section" className="text-center max-w-3xl mx-auto mb-9 sm:mb-11">
-          <p className="inline-flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#046A38] font-['Inter',system-ui,sans-serif] mb-2.5">
-            <span className="h-[1.5px] w-4 bg-[#046A38]/75 rounded-full" aria-hidden="true" />
+          <p className="inline-flex items-center justify-center gap-2.5 text-xs sm:text-sm font-bold uppercase tracking-[0.16em] text-[#046A38] font-['Inter',system-ui,sans-serif] mb-2.5">
+            <span className="h-[2px] w-5 sm:w-6 bg-[#046A38]/75 rounded-full" aria-hidden="true" />
             <span>FREQUENTLY ASKED QUESTIONS</span>
           </p>
           <h2
             id="faq-heading"
-            className="font-serif font-bold text-2xl sm:text-3xl lg:text-[34px] tracking-tight leading-tight text-[#093322]"
+            className="font-serif home-section-heading text-3xl sm:text-4xl lg:text-[42px] text-[#093322]"
           >
             How can Latrocore help <span className="text-[#046A38]">between visits?</span>
           </h2>
         </div>
 
         {/* Two independent vertical stacks so expanding left cards keeps right cards in place */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div data-reveal-grid="faq" className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           <div data-faq-column="left" className="flex flex-col gap-4">
             {LEFT_FAQ_ITEMS.map((item) => (
               <FaqCard

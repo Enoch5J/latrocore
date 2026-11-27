@@ -145,8 +145,10 @@ describe('Homepage HeroCarousel', () => {
 
     // Navbar elements remain intact
     expect(html).toContain('id="header-login-btn"');
+    expect(html).toContain('Latro AI');
+    expect(html).toContain('Our Solutions');
     expect(html).toContain('Contact');
-    expect(html).toContain('>Login</span>');
+    expect(html).toContain('>Log In</span>');
     expect(html).toContain('aria-label="Main navigation"');
     expect(html).not.toContain('Search specialists');
     expect(html).not.toContain('href="/#workstations"');

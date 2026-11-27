@@ -203,9 +203,13 @@ export default function ExploreAICompanion({ onAskQuestion }) {
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading & Subtitle */}
         <div data-reveal="section" className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+          <p className="inline-flex items-center justify-center gap-2.5 text-xs sm:text-sm font-bold uppercase tracking-[0.16em] text-[#046A38] font-['Inter',system-ui,sans-serif] mb-2.5">
+            <span className="h-[2px] w-5 sm:w-6 bg-[#046A38]/75 rounded-full" aria-hidden="true" />
+            <span>LATRO AI ASSISTANT</span>
+          </p>
           <h2
             id="explore-ai-companion-heading"
-            className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-[#093322] tracking-tight leading-tight"
+            className="home-section-heading text-3xl sm:text-4xl lg:text-[42px] text-[#093322]"
           >
             Explore the Latrocore AI companion
           </h2>
@@ -245,7 +249,7 @@ export default function ExploreAICompanion({ onAskQuestion }) {
                 ? 'transition-none'
                 : 'transition-all duration-300 ease-out';
 
-              const sharedCardClasses = `ai-companion-card absolute top-2 sm:top-3 left-1/2 -ml-[calc(var(--ai-card-w)/2)] w-[var(--ai-card-w)] rounded-3xl bg-white flex flex-col text-center origin-center ${transitionClass} ${layout.visibilityClass}`;
+              const sharedCardClasses = `ai-companion-card group absolute top-2 sm:top-3 left-1/2 -ml-[calc(var(--ai-card-w)/2)] w-[var(--ai-card-w)] rounded-3xl bg-white flex flex-col text-center origin-center ${transitionClass} ${layout.visibilityClass}`;
 
               return (
                 <article
@@ -321,7 +325,7 @@ export default function ExploreAICompanion({ onAskQuestion }) {
                         height={topic.imageHeight}
                         loading={isActive ? 'eager' : 'lazy'}
                         draggable={false}
-                        className="w-full h-full object-contain drop-shadow-[0_10px_18px_rgba(9,51,34,0.10)]"
+                        className="w-full h-full object-contain drop-shadow-[0_10px_18px_rgba(9,51,34,0.10)] transition-transform duration-300 ease-out group-hover:scale-105 motion-reduce:transition-none motion-reduce:transform-none"
                       />
                     </div>
                   </div>

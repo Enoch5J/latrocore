@@ -138,6 +138,12 @@ function AuthStatusBanner() {
 function AppRoutes() {
   const { toasts, removeToast } = useApp();
   const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname, location.search, location.hash]);
+
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify', '/waiting-approval'].some(
     (path) => location.pathname.toLowerCase().startsWith(path)
   );
