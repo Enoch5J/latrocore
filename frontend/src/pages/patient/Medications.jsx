@@ -6,13 +6,33 @@ import { useApp } from '../../context/AppContext';
 
 import { Modal, ConfirmDialog, LoadingSpinner, Badge, Tabs, Tooltip, EmptyState } from '../../components/ui';
 
-import { Pill, Clock, CheckCircle, AlertTriangle, X, FileText, RefreshCw, Calendar, Info, Syringe, BookOpen, Sparkles, Salad, UploadCloud, ShieldCheck } from 'lucide-react';
+import { Pill, Clock, CheckCircle, AlertTriangle, X, FileText, RefreshCw, Calendar, Info, Syringe, BookOpen, Sparkles, Salad, UploadCloud, ShieldCheck, Pencil, Plus, Save, Bell, BellRing } from 'lucide-react';
 
 import PrescriptionUploadModal from '../../components/patient/PrescriptionUploadModal';
 
 import { formatDate, formatTime, formatDateTime, isToday, getDemoToday } from '../../data/demoDate';
 
-import { recordDose, addCounsellingRequest, addNotification, addAuditEntry } from '../../services/dataService';
+import { recordDose, addCounsellingRequest, addNotification, addAuditEntry, updatePatientMedicationReminderTimes } from '../../services/dataService';
+
+function toInputTime(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return '';
+  let hour = Number(match[1]);
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem === 'PM' && hour < 12) hour += 12;
+  if (meridiem === 'AM' && hour === 12) hour = 0;
+  if (hour < 0 || hour > 23 || Number(match[2]) > 59) return '';
+  return `${String(hour).padStart(2, '0')}:${match[2]}`;
+}
+
+function displayReminderTime(value) {
+  const time = toInputTime(value);
+  if (!time) return value;
+  return new Date(`1970-01-01T${time}:00`).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 
 
@@ -31,8 +51,15 @@ export default function Medications() {
   const [refillModal, setRefillModal] = useState(null);
 
   const [rxDetailModal, setRxDetailModal] = useState(null);
-
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [reminderEditor, setReminderEditor] = useState(null);
+  const [reminderTimes, setReminderTimes] = useState([]);
+  const [savingReminderTimes, setSavingReminderTimes] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState(() =>
+    typeof window !== 'undefined' && 'Notification' in window
+      ? window.Notification.permission
+      : 'unsupported'
+  );
 
 
 
@@ -130,6 +157,59 @@ export default function Medications() {
 
   };
 
+  const openReminderEditor = (prescription, medicine) => {
+    const savedTimes = medicine.reminderTimes || medicine.times || medicine.scheduleTimes || [];
+    setReminderTimes(savedTimes.map(toInputTime).filter(Boolean));
+    setReminderEditor({ prescriptionId: prescription.id, medicine });
+  };
+
+  const handleSaveReminderTimes = async () => {
+    if (!reminderEditor || !patientId) return;
+    const cleanedTimes = [...new Set(reminderTimes.filter(Boolean))].sort();
+    setSavingReminderTimes(true);
+    try {
+      await updatePatientMedicationReminderTimes(
+        patientId,
+        reminderEditor.prescriptionId,
+        reminderEditor.medicine.id,
+        cleanedTimes
+      );
+      refreshData();
+      setReminderEditor(null);
+      addToast({
+        type: 'success',
+        message: `Reminder times updated for ${reminderEditor.medicine.name}. Your prescription instructions were not changed.`,
+      });
+    } catch (error) {
+      addToast({ type: 'error', message: error.message || 'Unable to update reminder times.' });
+    } finally {
+      setSavingReminderTimes(false);
+    }
+  };
+
+  const handleEnableBrowserReminders = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setNotificationPermission('unsupported');
+      return;
+    }
+    try {
+      const permission = await window.Notification.requestPermission();
+      setNotificationPermission(permission);
+      window.dispatchEvent(new Event('latrocore:notification-permission-changed'));
+      addToast({
+        type: permission === 'granted' ? 'success' : 'warning',
+        message: permission === 'granted'
+          ? 'Browser medication alerts are enabled while LATROCORE is open.'
+          : 'Allow notifications in your browser settings to receive medication alerts.',
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        message: error.message || 'The browser could not enable medication notifications.',
+      });
+    }
+  };
+
 
 
   if (loading) return <LoadingSpinner text="Loading medications..." />;
@@ -162,19 +242,33 @@ export default function Medications() {
 
         </div>
 
-        <button
-
-          onClick={() => setUploadModalOpen(true)}
-
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-white bg-[#0B3B2C] hover:bg-[#124d3b] shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
-
-        >
-
-          <Sparkles size={16} className="text-emerald-300" />
-
-          <span>Upload Prescription (Gemini AI)</span>
-
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {notificationPermission !== 'unsupported' && (
+            <button
+              type="button"
+              onClick={handleEnableBrowserReminders}
+              disabled={notificationPermission === 'granted' || notificationPermission === 'denied'}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#A8D7BD] bg-white px-3.5 py-2.5 text-xs font-bold text-[#03542C] transition-colors hover:bg-[#E8F5EE] disabled:cursor-default disabled:opacity-70"
+              title={notificationPermission === 'denied' ? 'Allow notifications in your browser site settings' : undefined}
+            >
+              {notificationPermission === 'granted' ? <BellRing size={15} /> : <Bell size={15} />}
+              <span>
+                {notificationPermission === 'granted'
+                  ? 'Alerts enabled'
+                  : notificationPermission === 'denied'
+                    ? 'Alerts blocked in browser'
+                    : 'Enable browser alerts'}
+              </span>
+            </button>
+          )}
+          <button
+            onClick={() => setUploadModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-white bg-[#0B3B2C] hover:bg-[#124d3b] shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+          >
+            <Sparkles size={16} className="text-emerald-300" />
+            <span>Upload Prescription (Gemini AI)</span>
+          </button>
+        </div>
 
       </div>
 
@@ -490,7 +584,7 @@ export default function Medications() {
 
                           <span className="text-slate-500 font-medium">Timing:</span>
 
-                          <span>{med.foodInstruction} ({med.times?.join(', ')})</span>
+                          <span>{med.foodInstruction} ({(med.reminderTimes || med.times || med.scheduleTimes || []).map(displayReminderTime).join(', ') || 'No times set'})</span>
 
                         </p>
 
@@ -513,6 +607,19 @@ export default function Medications() {
                           </p>
 
                         )}
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-2">
+                          <p className="text-xs font-semibold text-slate-700">
+                            Your reminder: {(med.reminderTimes || med.times || med.scheduleTimes || []).map(displayReminderTime).join(', ') || 'Not set'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => openReminderEditor(rx, med)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#A8D7BD] bg-white px-2.5 py-1.5 text-xs font-bold text-[#03542C] transition-colors hover:bg-[#E8F5EE]"
+                          >
+                            <Pencil size={13} />
+                            Edit reminder times
+                          </button>
+                        </div>
 
                       </div>
 
@@ -718,7 +825,7 @@ export default function Medications() {
 
                         <p className="text-xs font-bold text-slate-800 mt-0.5">{med.dose} • {med.route} • {med.frequency}</p>
 
-                        <p className="text-xs font-semibold text-slate-700 mt-0.5">Administer at: {(med.times || []).join(', ')}</p>
+                        <p className="text-xs font-semibold text-slate-700 mt-0.5">Your reminder: {(med.reminderTimes || med.times || med.scheduleTimes || []).map(displayReminderTime).join(', ') || 'Not set'}</p>
 
                         <p className="text-xs font-medium text-slate-700 mt-1">{med.instructions}</p>
 
@@ -779,6 +886,75 @@ export default function Medications() {
       )}
 
 
+
+      {/* Medication Reminder Time Editor */}
+      {reminderEditor && (
+        <Modal
+          open={!!reminderEditor}
+          onClose={() => setReminderEditor(null)}
+          title={`Reminder times: ${reminderEditor.medicine.name}`}
+          size="sm"
+          footer={(
+            <>
+              <button type="button" className="btn-outline" onClick={() => setReminderEditor(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleSaveReminderTimes}
+                disabled={savingReminderTimes}
+              >
+                <Save size={15} />
+                {savingReminderTimes ? 'Saving...' : 'Save reminder times'}
+              </button>
+            </>
+          )}
+        >
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed text-slate-700">
+              Choose when you want this portal to schedule your daily reminders. Browser alerts require permission and LATROCORE to stay open. This changes your reminder schedule only—not the prescribed dose, frequency, or clinician instructions.
+            </p>
+            {reminderTimes.map((time, index) => (
+              <div key={`${index}-${time}`} className="flex items-center gap-3">
+                <label className="flex-1 space-y-1.5">
+                  <span className="text-xs font-bold text-slate-800">Reminder {index + 1}</span>
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(event) => setReminderTimes((values) =>
+                      values.map((value, valueIndex) => valueIndex === index ? event.target.value : value)
+                    )}
+                    className="input w-full text-slate-950"
+                  />
+                </label>
+                <button
+                  type="button"
+                  aria-label={`Remove reminder ${index + 1}`}
+                  onClick={() => setReminderTimes((values) => values.filter((_, valueIndex) => valueIndex !== index))}
+                  className="mt-5 rounded-lg border border-rose-200 p-2 text-rose-700 transition-colors hover:bg-rose-50"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              disabled={reminderTimes.length >= 8}
+              onClick={() => setReminderTimes((values) => [...values, '08:00'])}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#A8D7BD] px-3 py-2 text-sm font-bold text-[#03542C] transition-colors hover:bg-[#E8F5EE] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus size={16} />
+              Add a time
+            </button>
+            {reminderTimes.length === 0 && (
+              <p className="text-xs font-medium text-slate-700">
+                No times selected. Saving turns off reminders for this medicine.
+              </p>
+            )}
+          </div>
+        </Modal>
+      )}
 
       {/* Record Dose Modal */}
 
@@ -901,4 +1077,3 @@ export default function Medications() {
   );
 
 }
-

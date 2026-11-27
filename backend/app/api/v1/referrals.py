@@ -136,7 +136,7 @@ def list_tickets(
     """List tickets — care team sees assigned, admin sees all."""
     query = db.query(Ticket)
     
-    if current_user.role == "care_team":
+    if current_user.role in ("pharmacist", "care_team"):
         query = query.filter(
             (Ticket.assignee_id == current_user.id) | (Ticket.assignee_id.is_(None))
         )

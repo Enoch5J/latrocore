@@ -59,6 +59,82 @@ function saveData(data) {
   } catch (e) { console.error('Failed to save data:', e); }
 }
 
+function normalizeReminderTimes(times = []) {
+  return [...new Set(times.map((value) => {
+    const match = String(value).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!match) return null;
+    let hour = Number(match[1]);
+    const minute = Number(match[2]);
+    const meridiem = match[3]?.toUpperCase();
+    if (minute > 59 || hour > (meridiem ? 12 : 23) || hour < (meridiem ? 1 : 0)) return null;
+    if (meridiem === 'PM' && hour < 12) hour += 12;
+    if (meridiem === 'AM' && hour === 12) hour = 0;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }).filter(Boolean))].sort();
+}
+
+function isSameLocalDay(dateA, dateB) {
+  return dateA.getFullYear() === dateB.getFullYear()
+    && dateA.getMonth() === dateB.getMonth()
+    && dateA.getDate() === dateB.getDate();
+}
+
+function createDoseReminder(patientId, prescriptionId, medicine, time, date) {
+  const [hour, minute] = time.split(':').map(Number);
+  const scheduledAt = new Date(date);
+  scheduledAt.setHours(hour, minute, 0, 0);
+  return {
+    id: genId('dose'),
+    patientId,
+    prescriptionId,
+    medicineId: medicine.id,
+    medicineName: medicine.name,
+    dose: medicine.dose,
+    scheduledTime: scheduledAt.toISOString(),
+    status: 'pending',
+    actualTime: null,
+    foodInstruction: medicine.foodInstruction,
+    note: medicine.instructions || '',
+  };
+}
+
+function ensureTodayMedicationReminders(data) {
+  const now = new Date();
+  const todaysEvents = data.doseEvents || (data.doseEvents = []);
+  let changed = false;
+
+  for (const prescription of data.prescriptions || []) {
+    if (prescription.status !== 'active') continue;
+    for (const medicine of prescription.medicines || []) {
+      if (!medicine.id || !prescription.patientId) continue;
+      const times = normalizeReminderTimes(
+        medicine.reminderTimes || medicine.times || medicine.scheduleTimes || []
+      );
+      if (times.length === 0) continue;
+
+      for (const time of times) {
+        const [hour, minute] = time.split(':').map(Number);
+        const existing = todaysEvents.some((event) => {
+          if (
+            event.patientId !== prescription.patientId
+            || event.medicineId !== medicine.id
+            || !isSameLocalDay(new Date(event.scheduledTime), now)
+          ) return false;
+          const scheduled = new Date(event.scheduledTime);
+          return scheduled.getHours() === hour && scheduled.getMinutes() === minute;
+        });
+        if (!existing) {
+          todaysEvents.push(createDoseReminder(
+            prescription.patientId, prescription.id, medicine, time, now
+          ));
+          changed = true;
+        }
+      }
+    }
+  }
+  return changed;
+}
+
 export function initializeData() {
   let data = loadData();
   if (!data) {
@@ -67,6 +143,7 @@ export function initializeData() {
   } else {
     data = sanitizeData(data);
   }
+  if (ensureTodayMedicationReminders(data)) saveData(data);
   return data;
 }
 
@@ -282,6 +359,61 @@ export async function recordDose(id, status, actualTime, note) {
       d.doseEvents[idx].recordedAt = new Date().toISOString();
     }
   });
+}
+
+export async function updatePatientMedicationReminderTimes(patientId, prescriptionId, medicineId, times) {
+  await delay(150);
+  const reminderTimes = normalizeReminderTimes(times);
+  if (reminderTimes.length > 8) {
+    throw new Error('You can set up to 8 reminder times per medicine.');
+  }
+
+  let updatedMedicine = null;
+  update((data) => {
+    const prescription = (data.prescriptions || []).find(
+      (item) => item.id === prescriptionId
+        && item.patientId === patientId
+        && item.status === 'active'
+    );
+    const medicine = prescription?.medicines?.find((item) => item.id === medicineId);
+    if (!prescription || !medicine) {
+      throw new Error('This active medication could not be found in your account.');
+    }
+
+    medicine.reminderTimes = reminderTimes;
+    updatedMedicine = medicine;
+
+    const now = new Date();
+    const doseEvents = data.doseEvents || (data.doseEvents = []);
+    const pendingToday = doseEvents.filter((event) =>
+      event.patientId === patientId
+        && event.medicineId === medicineId
+        && event.status === 'pending'
+        && isSameLocalDay(new Date(event.scheduledTime), now)
+    ).sort((a, b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
+
+    const [matchedEvents, extraEvents] = [
+      pendingToday.slice(0, reminderTimes.length),
+      pendingToday.slice(reminderTimes.length),
+    ];
+    for (const event of extraEvents) {
+      const index = doseEvents.findIndex((item) => item.id === event.id);
+      if (index !== -1) doseEvents.splice(index, 1);
+    }
+
+    reminderTimes.forEach((time, index) => {
+      const existing = matchedEvents[index];
+      if (existing) {
+        const [hour, minute] = time.split(':').map(Number);
+        const scheduledAt = new Date(now);
+        scheduledAt.setHours(hour, minute, 0, 0);
+        existing.scheduledTime = scheduledAt.toISOString();
+      } else {
+        doseEvents.push(createDoseReminder(patientId, prescriptionId, medicine, time, now));
+      }
+    });
+  });
+  return { ...updatedMedicine, reminderTimes };
 }
 
 // ── Investigations ──────────────────────────────────────────────────────
@@ -799,11 +931,13 @@ export function applyAIPrescriptionToPatient(patientId, aiPrescription) {
     const medicines = (aiPrescription.medicines || []).map((m, idx) => ({
       id: `med-ai-${idx}-${Date.now()}`,
       name: m.name,
-      dose: m.dose,
+      dose: m.dose || 'not specified',
       route: m.route || 'Oral',
-      frequency: m.frequency,
-      times: m.schedule_times && m.schedule_times.length > 0 ? m.schedule_times : ['08:00 AM'],
-      foodInstruction: m.meal_timing || m.instructions || 'With meals',
+      frequency: m.frequency || 'not specified',
+      scheduleTimes: Array.isArray(m.schedule_times) ? m.schedule_times : [],
+      times: m.schedule_times && m.schedule_times.length > 0 ? m.schedule_times : [],
+      mealTiming: m.meal_timing || null,
+      foodInstruction: m.meal_timing || m.instructions || '',
       instructions: m.instructions || '',
       isInsulin: !!m.is_insulin,
       reviewDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),

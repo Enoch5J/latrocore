@@ -8,6 +8,7 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import WaitingApproval from './pages/WaitingApproval';
 import ProjectOverview from './pages/ProjectOverview';
+import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 import { AppProvider, useApp } from './context/AppContext';
 import AppLayout from './layouts/AppLayout';
@@ -52,6 +53,8 @@ import Messages from './pages/shared/Messages';
 import Notifications from './pages/shared/Notifications';
 import CareSummary from './pages/shared/CareSummary';
 import Doctors from './pages/shared/Doctors';
+import Profile from './pages/shared/Profile';
+import Settings from './pages/shared/Settings';
 
 function RoleDashboardRedirect() {
   const { user, loading } = useAuth();
@@ -78,7 +81,7 @@ function RoleDashboardRedirect() {
 
   const role = normalizeRole(user?.role);
   const userEmail = (user?.email || '').toLowerCase().trim();
-  const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
+  const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
 
   const requiresApproval = ['doctor', 'pharmacist'].includes(role);
   const isPending = !isDemo && requiresApproval && (user?.status === 'pending' || user?.approvalStatus === 'pending');
@@ -91,6 +94,47 @@ function RoleDashboardRedirect() {
   return <Navigate to="/" replace />;
 }
 
+function AuthStatusBanner() {
+  const {
+    refreshError,
+    clearRefreshError,
+    retrySessionRefresh,
+    logoutError,
+    setLogoutError,
+    retryLogout,
+  } = useAuth();
+
+  if (!refreshError && !logoutError) return null;
+
+  const isLogout = Boolean(logoutError);
+  const message = isLogout ? logoutError : refreshError;
+
+  return (
+    <div
+      role="alert"
+      className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[calc(100vw-2rem)] bg-white border border-amber-300 shadow-xl rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-xs text-stone-900"
+    >
+      <p className="font-semibold leading-snug">{message}</p>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          onClick={() => (isLogout ? retryLogout() : retrySessionRefresh())}
+          className="px-3 py-1.5 rounded-lg bg-[#046A38] hover:bg-[#03542C] text-white font-bold cursor-pointer transition"
+        >
+          Retry
+        </button>
+        <button
+          type="button"
+          onClick={() => (isLogout ? setLogoutError(null) : clearRefreshError())}
+          className="px-2 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold cursor-pointer transition"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { toasts, removeToast } = useApp();
   const location = useLocation();
@@ -100,6 +144,7 @@ function AppRoutes() {
 
   return (
     <>
+      <AuthStatusBanner />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       {!isAuthPage && <FloatingAIAssistant />}
 
@@ -107,6 +152,7 @@ function AppRoutes() {
         {/* Public Landing Route (Default Home) */}
         <Route path="/" element={<Welcome />} />
         <Route path="/welcome" element={<Navigate to="/" replace />} />
+        <Route path="/contact" element={<Contact />} />
 
         {/* Public Authentication Routes */}
         <Route path="/login" element={<Login />} />
@@ -205,6 +251,8 @@ function AppRoutes() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/care-summary" element={<CareSummary />} />
           <Route path="/care-summary/:patientId" element={<CareSummary />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
 
           {/* Fallback 404 */}
           <Route path="*" element={<NotFound />} />

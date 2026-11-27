@@ -1,122 +1,103 @@
 /**
  * LATROCORE API Client
- * Interfaces with FastAPI backend (/api/v1) with JWT auth support.
+ * Routes all protected endpoints through `apiClient` (Axios with in-memory JWT + 401 refresh queue)
+ * and auth lifecycle endpoints through `authClient` (same-origin Vite proxy or configured API origin).
  */
 
-function resolveApiBase() {
-  let base = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || '';
-  if (!base && typeof window !== 'undefined') {
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      base = 'http://127.0.0.1:8000/api/v1';
-    } else {
-      base = '/api/v1';
-    }
+import { apiClient, authClient, getAccessToken, setAccessToken } from '../lib/axios';
+
+function resolveApiPrefix() {
+  const explicit = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || '';
+  if (!explicit) {
+    // Always use relative same-origin '/api/v1' so Vite proxy and SameSite=Strict cookies stay same-origin
+    return '/api/v1';
   }
-  if (base && !base.startsWith('http://') && !base.startsWith('https://') && !base.startsWith('/')) {
+  let base = explicit;
+  if (!base.startsWith('http://') && !base.startsWith('https://') && !base.startsWith('/')) {
     base = `https://${base}`;
   }
-  if (base && !base.endsWith('/api/v1') && !base.endsWith('/api')) {
+  if (!base.endsWith('/api/v1') && !base.endsWith('/api')) {
     base = base.replace(/\/+$/, '') + '/api/v1';
   }
   return base;
 }
 
-const API_BASE = resolveApiBase();
-
-import { getAccessToken, setAccessToken, performSilentRefresh } from '../lib/axios';
-
-function getToken() {
-  const inMemory = getAccessToken();
-  if (inMemory) return inMemory;
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return localStorage.getItem('latrocore_token') || '';
-  }
-  return '';
-}
+const API_PREFIX = resolveApiPrefix();
 
 export function setToken(token) {
-  setAccessToken(token);
-  if (typeof window !== 'undefined' && window.localStorage) {
-    if (token) {
-      localStorage.setItem('latrocore_token', token);
-    } else {
-      localStorage.removeItem('latrocore_token');
-    }
-  }
+  setAccessToken(token || null);
 }
 
-async function request(endpoint, options = {}, isRetry = false) {
-  const isFormData = options.body instanceof FormData;
-  const headers = {
-    'X-Requested-With': 'XMLHttpRequest',
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(options.headers || {}),
-  };
+export function getToken() {
+  return getAccessToken() || '';
+}
 
-  const token = getToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+function extractApiError(err) {
+  const detail = err?.response?.data?.detail || err?.message || 'Request failed';
+  const wrapped = new Error(detail);
+  wrapped.status = err?.response?.status;
+  wrapped.response = err?.response;
+  return wrapped;
+}
+
+async function request(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const useAuthTransport = Boolean(options.useAuthClient);
+  const client = useAuthTransport ? authClient : apiClient;
+  const url = useAuthTransport ? endpoint : `${API_PREFIX}${endpoint}`;
+
+  let data = options.body;
+  if (typeof data === 'string') {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      // Keep raw string if not JSON
+    }
   }
 
   try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      credentials: 'include',
-      ...options,
-      headers,
+    const res = await client.request({
+      url,
+      method,
+      data,
+      headers: options.headers,
+      withCredentials: true,
     });
-
-    if (res.status === 401 && !isRetry) {
-      try {
-        const refreshData = await performSilentRefresh();
-        if (refreshData?.accessToken) {
-          const newToken = refreshData.accessToken;
-          setAccessToken(newToken);
-          setToken(newToken);
-          return await request(endpoint, options, true);
-        }
-      } catch (refreshErr) {
-        // Silent refresh failed, fall through to error handling
-      }
-    }
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Request failed: ${res.status}`);
-    }
-
     if (res.status === 204) {
       return null;
     }
-
-    return await res.json();
+    return res.data;
   } catch (err) {
-    console.warn(`[API] ${endpoint} fetch issue:`, err.message);
-    throw err;
+    throw extractApiError(err);
   }
 }
 
 export const api = {
-  // Auth
+  // Auth (uses raw authClient so /auth/* requests never enter the 401 retry loop)
   login: (identifier, password) => {
     const cleanId = (identifier || '').trim();
     return request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ identifier: cleanId, email: cleanId, password }),
+      useAuthClient: true,
+      body: { identifier: cleanId, email: cleanId, password },
     });
   },
   logout: () =>
     request('/auth/logout', {
       method: 'POST',
+      useAuthClient: true,
     }),
   sendOtp: (email, purpose) =>
     request('/auth/send-otp', {
       method: 'POST',
-      body: JSON.stringify({ email, purpose }),
+      useAuthClient: true,
+      body: { email, purpose },
     }),
   verifyOtp: (email, otp, purpose) =>
     request('/auth/verify-otp', {
       method: 'POST',
-      body: JSON.stringify({ email, otp, purpose }),
+      useAuthClient: true,
+      body: { email, otp, purpose },
     }),
   uploadPrescription: (file) => {
     const formData = new FormData();
@@ -129,29 +110,44 @@ export const api = {
   registerPatient: (data) =>
     request('/auth/register/patient', {
       method: 'POST',
-      body: JSON.stringify(data),
+      useAuthClient: true,
+      body: data,
     }),
   registerDoctor: (data) =>
     request('/auth/register/doctor', {
       method: 'POST',
-      body: JSON.stringify(data),
+      useAuthClient: true,
+      body: data,
     }),
   registerPharmacist: (data) =>
     request('/auth/register/pharmacist', {
       method: 'POST',
-      body: JSON.stringify(data),
+      useAuthClient: true,
+      body: data,
     }),
   forgotPassword: (email) =>
     request('/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      useAuthClient: true,
+      body: { email },
     }),
   resetPassword: (data) =>
     request('/auth/reset-password', {
       method: 'POST',
-      body: JSON.stringify(data),
+      useAuthClient: true,
+      body: data,
     }),
   getMe: () => request('/auth/me'),
+  updateMe: (data) =>
+    request('/auth/me', {
+      method: 'PATCH',
+      body: data,
+    }),
+  changePassword: (data) =>
+    request('/auth/change-password', {
+      method: 'POST',
+      body: data,
+    }),
   getAuthStatus: () => request('/auth/status'),
 
   // Admin Clinical Approval & User Governance
@@ -164,7 +160,7 @@ export const api = {
   rejectDoctor: (profileId, reason) =>
     request(`/admin/doctors/${encodeURIComponent(profileId)}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: { reason },
     }),
   getPendingPharmacists: () => request('/admin/pharmacists/pending'),
   approvePharmacist: (profileId) =>
@@ -174,7 +170,7 @@ export const api = {
   rejectPharmacist: (profileId, reason) =>
     request(`/admin/pharmacists/${encodeURIComponent(profileId)}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: { reason },
     }),
   getPendingPatients: () => request('/admin/patients/pending'),
   approvePatient: (patientId) =>
@@ -184,18 +180,18 @@ export const api = {
   rejectPatient: (patientId, reason) =>
     request(`/admin/patients/${encodeURIComponent(patientId)}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ reason }),
+      body: { reason },
     }),
   batchApprove: (data) =>
     request('/admin/approvals/batch-approve', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     }),
   getAllUsers: () => request('/admin/users/all'),
   updateUserStatus: (userId, status) =>
     request(`/admin/users/${encodeURIComponent(userId)}/status`, {
       method: 'POST',
-      body: JSON.stringify({ status }),
+      body: { status },
     }),
   deleteUser: (userId) =>
     request(`/admin/users/${encodeURIComponent(userId)}`, {
@@ -221,7 +217,7 @@ export const api = {
   addObservation: (patientId, data) =>
     request(`/patients/${encodeURIComponent(patientId)}/observations`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     }),
 
   // Prescriptions
@@ -233,17 +229,17 @@ export const api = {
   createPrescription: (patientId, data) =>
     request(`/patients/${encodeURIComponent(patientId)}/prescriptions`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     }),
   activatePrescription: (rxId, version) =>
     request(`/prescriptions/${encodeURIComponent(rxId)}/activate`, {
       method: 'POST',
-      body: JSON.stringify({ version }),
+      body: { version },
     }),
   updatePrescriptionStatus: (rxId, status, notes = '') =>
     request(`/prescriptions/${encodeURIComponent(rxId)}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, notes }),
+      body: { status, notes },
     }),
 
   // Gemini AI Prescription Digitization & Plan Synthesis
@@ -259,7 +255,7 @@ export const api = {
     if (typeof fileOrText === 'string') {
       return request('/prescriptions/analyze-json', {
         method: 'POST',
-        body: JSON.stringify({ text: fileOrText }),
+        body: { text: fileOrText },
       });
     }
     if (fileOrText && typeof fileOrText === 'object') {
@@ -276,7 +272,7 @@ export const api = {
   applyAIPrescription: (data) =>
     request('/prescriptions/apply', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     }),
 
   // Doses
@@ -285,7 +281,7 @@ export const api = {
   recordDoseEvent: (doseInstanceId, data) =>
     request(`/dose-instances/${encodeURIComponent(doseInstanceId)}/events`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     }),
 
   // Tickets / Care Coordination
@@ -302,12 +298,12 @@ export const api = {
   createReferral: (patientId, data) =>
     request(`/patients/${encodeURIComponent(patientId)}/referrals`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     }),
   createTicket: (patientId, data) =>
     request(`/patients/${encodeURIComponent(patientId)}/tickets`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     }),
 
   // AI Assistant
@@ -316,16 +312,32 @@ export const api = {
   sendMessage: (conversationId, content) =>
     request('/conversations/messages', {
       method: 'POST',
-      body: JSON.stringify({ conversation_id: conversationId, content }),
+      body: { conversation_id: conversationId, content },
     }),
-  askAssistant: (content, language = 'en', prescription_context = null) =>
-    request('/conversations/chat', {
+  askAssistant: (content, language = 'en', prescription_context = null, history = null, options = {}) => {
+    const payload = { content, language, prescription_context };
+    if (Array.isArray(history) && history.length > 0) {
+      payload.history = history;
+    }
+    if (options?.uploadId) payload.upload_id = options.uploadId;
+    if (options?.upload_id) payload.upload_id = options.upload_id;
+    if (options?.prescriptionId) payload.prescription_id = options.prescriptionId;
+    if (options?.conversationId) payload.conversation_id = options.conversationId;
+    return request('/conversations/chat', {
       method: 'POST',
-      body: JSON.stringify({ content, language, prescription_context }),
-    }),
+      body: payload,
+    });
+  },
 
   // Notifications
   getNotifications: () => request('/notifications'),
+
+  // Public Contact Enquiries (works without signing in)
+  submitContactEnquiry: (payload) =>
+    request('/contact/enquiries', {
+      method: 'POST',
+      body: payload,
+    }),
 };
 
 export default api;

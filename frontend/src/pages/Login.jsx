@@ -56,7 +56,7 @@ export default function Login() {
 
       const emailLower = (userData?.email || identifier).toLowerCase().trim();
       const userRole = normalizeRole(userData?.role);
-      const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(emailLower);
+      const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'admin@latrocore.com'].includes(emailLower);
 
       const requiresApproval = ['doctor', 'pharmacist'].includes(userRole);
       const isPending = !isDemo && requiresApproval && (userData?.status === 'pending' || userData?.approvalStatus === 'pending');
@@ -71,7 +71,7 @@ export default function Login() {
         pharmacist: ['/pharmacist'],
         admin: ['/admin'],
       };
-      const sharedPrefixes = ['/appointments', '/messages', '/notifications', '/care-summary', '/overview'];
+      const sharedPrefixes = ['/appointments', '/messages', '/notifications', '/care-summary', '/overview', '/profile', '/settings'];
       const allowedPrefixes = [...(roleRoutePrefixes[userRole] || []), ...sharedPrefixes];
 
       if (fromPath && allowedPrefixes.some((prefix) => fromPath.startsWith(prefix))) {

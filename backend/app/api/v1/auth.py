@@ -4,6 +4,7 @@ Implements the Silent Refresh pattern with Argon2id, signed JWTs,
 cryptographic refresh token rotation, reuse detection, and keyed HMAC OTPs.
 """
 
+import hashlib
 import os
 import re
 import json
@@ -36,7 +37,7 @@ from app.core.email import (
     send_password_reset_email,
     send_password_reset_confirmation_email
 )
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_role, get_or_create_patient_profile
 from app.core.rate_limiter import check_login_rate_limit, record_login_failure, record_login_success
 from app.core.csrf import verify_csrf
 from app.models.models import (
@@ -47,7 +48,9 @@ from app.models.models import (
     EmailVerificationOTP,
     Patient,
     DoctorProfile,
-    PharmacistProfile
+    PharmacistProfile,
+    Attachment,
+    PrescriptionUpload
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -136,6 +139,16 @@ class ResetPasswordRequest(BaseModel):
     confirmPassword: str
 
 
+class UpdateProfileRequest(BaseModel):
+    name: str
+    phone: Optional[str] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    currentPassword: str
+    newPassword: str
+
+
 class UserPayload(BaseModel):
     id: str
     name: str
@@ -148,6 +161,9 @@ class UserPayload(BaseModel):
 
 
 class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "Bearer"
+    expires_in: int
     accessToken: str
     tokenType: str = "Bearer"
     expiresIn: int
@@ -201,13 +217,27 @@ CANONICAL_DEMO_USERS = {
         "name": "System Admin",
         "phone": "+91-9876543200",
         "display_id": "ADM-001",
-    }
+    },
+    "doctor@latrocore.com": {
+        "password": "doctor123",
+        "role": "doctor",
+        "name": "Dr. Priya Sharma",
+        "phone": "+91-9876543210",
+        "display_id": "DOC-100001",
+    },
+    "pharmacist@latrocore.com": {
+        "password": "care123",
+        "role": "pharmacist",
+        "name": "Pharm. Rajesh Kumar",
+        "phone": "+91-9876543211",
+        "display_id": "PHARM-100001",
+    },
 }
 
 
 def ensure_canonical_demo_user(email: str, db: Session) -> Optional[User]:
     """
-    Ensure the 4 canonical demonstration accounts always exist in the database,
+    Ensure the seeded staff accounts (admin, doctor, pharmacist) always exist in the database,
     have active approved status, and valid password hashes so they directly log in.
     """
     email_key = email.lower().strip()
@@ -506,6 +536,9 @@ def create_user_auth_session(user: User, request: Request, response: Response, d
     display_id, approval_status = get_user_display_meta(user, db)
 
     return TokenResponse(
+        access_token=access_token,
+        token_type="Bearer",
+        expires_in=expires_in,
         accessToken=access_token,
         tokenType="Bearer",
         expiresIn=expires_in,
@@ -704,11 +737,13 @@ def verify_otp(
 
 @router.post("/upload-prescription")
 async def upload_prescription(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("patient"))
 ):
     """
-    Upload optional prescription file during patient signup.
-    Supports PDF, JPG, JPEG, PNG up to 10 MB per file.
+    Upload prescription file for an authenticated patient.
+    Supports PDF, JPG, JPEG, PNG, WEBP up to 10 MB per file.
     """
     filename = file.filename or "prescription"
     ext = os.path.splitext(filename)[1].lower()
@@ -725,6 +760,7 @@ async def upload_prescription(
             detail="File size exceeds the maximum allowed limit of 10 MB."
         )
 
+    patient = get_or_create_patient_profile(current_user, db)
     upload_dir = os.path.join("uploads", "prescriptions")
     os.makedirs(upload_dir, exist_ok=True)
     safe_name = f"{uuid.uuid4().hex}_{re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)}"
@@ -732,8 +768,39 @@ async def upload_prescription(
     with open(file_path, "wb") as f:
         f.write(contents)
 
+    file_url = f"/uploads/prescriptions/{safe_name}"
+    file_hash = hashlib.sha256(contents).hexdigest()
+    mime_type = file.content_type or "application/octet-stream"
+
+    attachment = Attachment(
+        patient_id=patient.id,
+        file_name=filename,
+        file_path=file_url,
+        file_hash=file_hash,
+        file_size=len(contents),
+        mime_type=mime_type,
+        scan_status="clean",
+        uploaded_by=current_user.id,
+    )
+    upload_rec = PrescriptionUpload(
+        patient_id=patient.id,
+        user_id=current_user.id,
+        file_name=filename,
+        file_path=file_path,
+        file_url=file_url,
+        mime_type=mime_type,
+        file_size=len(contents),
+    )
+    patient.prescription_file_url = file_url
+    patient.prescription_file_name = filename
+    db.add(attachment)
+    db.add(upload_rec)
+    db.commit()
+    db.refresh(upload_rec)
+
     return {
-        "fileUrl": f"/uploads/prescriptions/{safe_name}",
+        "uploadId": upload_rec.id,
+        "fileUrl": file_url,
         "fileName": filename,
         "fileSize": len(contents)
     }
@@ -1164,6 +1231,8 @@ def login(
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     response.headers["Pragma"] = "no-cache"
 
+    verify_csrf(request)
+
     identifier = (req.identifier or req.email or "").strip()
     if not identifier:
         raise HTTPException(
@@ -1336,6 +1405,9 @@ def refresh(
     display_id, approval_status = get_user_display_meta(user, db)
 
     return TokenResponse(
+        access_token=access_token,
+        token_type="Bearer",
+        expires_in=expires_in,
         accessToken=access_token,
         tokenType="Bearer",
         expiresIn=expires_in,
@@ -1355,16 +1427,12 @@ def refresh(
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
     request: Request,
-    response: Response,
     db: Session = Depends(get_db)
 ):
     """
     Idempotent logout: Revoke database session, clear cookie,
-    and reject subsequent access.
+    and reject subsequent access. Works even when Access JWT is expired.
     """
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-
     verify_csrf(request)
 
     raw_refresh_token = request.cookies.get(settings.COOKIE_NAME)
@@ -1382,8 +1450,11 @@ def logout(
                 user_session.revoked_at = datetime.now(timezone.utc)
                 db.commit()
 
-    clear_refresh_cookie(response)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    logout_response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    logout_response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    logout_response.headers["Pragma"] = "no-cache"
+    clear_refresh_cookie(logout_response)
+    return logout_response
 
 
 @router.get("/me", response_model=UserOut)
@@ -1406,6 +1477,89 @@ def get_me(
         approvalStatus=approval_status,
         phone=current_user.phone
     )
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    req: UpdateProfileRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update the authenticated user's editable profile fields."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    current_user.name = validate_full_name(req.name)
+
+    phone = (req.phone or "").strip()
+    if phone:
+        cleaned_phone = re.sub(r"[\s().-]", "", phone)
+        if not re.fullmatch(r"\+?\d{7,15}", cleaned_phone):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please enter a valid mobile number (7-15 digits)."
+            )
+        current_user.phone = cleaned_phone
+    else:
+        current_user.phone = None
+
+    db.commit()
+    db.refresh(current_user)
+    display_id, approval_status = get_user_display_meta(current_user, db)
+    return UserOut(
+        id=current_user.id,
+        email=current_user.email,
+        name=current_user.name,
+        role=current_user.role,
+        status=current_user.status,
+        verified=current_user.verified,
+        displayId=display_id,
+        approvalStatus=approval_status,
+        phone=current_user.phone
+    )
+
+
+@router.post("/change-password")
+def change_password(
+    req: ChangePasswordRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Change the authenticated user's password and revoke all active sessions."""
+    if not verify_password(req.currentPassword, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect."
+        )
+    is_valid, err_msg = validate_password_strength(req.newPassword)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err_msg)
+    if verify_password(req.newPassword, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from your current password."
+        )
+
+    now = datetime.now(timezone.utc)
+    current_user.password_hash = hash_password(req.newPassword)
+    active_sessions = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_revoked == False
+    ).all()
+    for user_session in active_sessions:
+        user_session.is_revoked = True
+        user_session.revoked_at = now
+
+    db.add(AuditEvent(
+        actor_id=current_user.id,
+        action="password_changed",
+        record_type="user",
+        record_id=current_user.id
+    ))
+    db.commit()
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    clear_refresh_cookie(response)
+    return {"message": "Password changed. Please sign in again."}
 
 
 @router.get("/status")

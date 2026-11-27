@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from app.core.database import get_db
+from app.core.database import get_db, delete_users_with_records, purge_dummy_patient_accounts
 from app.core.dependencies import get_current_user, require_role
 from app.core.email import send_approval_decision_notification
 from app.models.models import User, DoctorProfile, PharmacistProfile, Patient, AuditEvent
@@ -658,32 +658,9 @@ def delete_user(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    from app.models.models import (
-        Patient, DoctorProfile, PharmacistProfile, Session as UserSession,
-        Assignment, Observation, ScreeningTask, Investigation,
-        Referral, Ticket, Note, Notification
-    )
-
-    pat = db.query(Patient).filter(Patient.user_id == user_id).first()
-    if pat:
-        db.query(Observation).filter(Observation.patient_id == pat.id).delete()
-        db.query(ScreeningTask).filter(ScreeningTask.patient_id == pat.id).delete()
-        db.query(Investigation).filter(Investigation.patient_id == pat.id).delete()
-        db.query(Referral).filter(Referral.patient_id == pat.id).delete()
-        db.query(Ticket).filter(Ticket.patient_id == pat.id).delete()
-        db.query(Note).filter(Note.patient_id == pat.id).delete()
-        db.query(Assignment).filter(Assignment.patient_id == pat.id).delete()
-        db.delete(pat)
-
-    db.query(DoctorProfile).filter(DoctorProfile.user_id == user_id).delete()
-    db.query(PharmacistProfile).filter(PharmacistProfile.user_id == user_id).delete()
-    db.query(Assignment).filter(Assignment.user_id == user_id).delete()
-    db.query(UserSession).filter(UserSession.user_id == user_id).delete()
-    db.query(Notification).filter(Notification.user_id == user_id).delete()
-
     name = target_user.name
     email = target_user.email
-    db.delete(target_user)
+    delete_users_with_records(db, [user_id])
     db.commit()
 
     return {"message": f"User {name} ({email}) deleted successfully."}
@@ -694,23 +671,11 @@ def purge_demo_data(
     db: Session = Depends(get_db),
     admin_user: User = Depends(require_role("admin"))
 ):
-    """Purge all synthetic demo data and demo users, preserving real registered users and admin."""
-    from sqlalchemy import text
-    demo_emails = "('patient@latrocore.com', 'patient2@latrocore.com', 'doctor@latrocore.com', 'pharmacist@latrocore.com')"
-    db.execute(text(f"DELETE FROM dose_instances WHERE prescription_item_id IN (SELECT id FROM prescription_items WHERE prescription_id IN (SELECT id FROM prescriptions WHERE prescriber_id IN (SELECT id FROM users WHERE email IN {demo_emails})))"))
-    db.execute(text(f"DELETE FROM prescription_items WHERE prescription_id IN (SELECT id FROM prescriptions WHERE prescriber_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
-    db.execute(text(f"DELETE FROM prescriptions WHERE prescriber_id IN (SELECT id FROM users WHERE email IN {demo_emails})"))
-    db.execute(text(f"DELETE FROM observations WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
-    db.execute(text(f"DELETE FROM screening_tasks WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
-    db.execute(text(f"DELETE FROM investigations WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
-    db.execute(text(f"DELETE FROM referrals WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
-    db.execute(text(f"DELETE FROM tickets WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
-    db.execute(text(f"DELETE FROM notes WHERE patient_id IN (SELECT id FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails}))"))
-    db.execute(text(f"DELETE FROM assignments WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails})"))
-    db.execute(text(f"DELETE FROM patients WHERE user_id IN (SELECT id FROM users WHERE email IN {demo_emails})"))
-    db.execute(text("DELETE FROM doctor_profiles WHERE user_id IN (SELECT id FROM users WHERE email = 'doctor@latrocore.com')"))
-    db.execute(text("DELETE FROM pharmacist_profiles WHERE user_id IN (SELECT id FROM users WHERE email = 'pharmacist@latrocore.com')"))
-    db.execute(text(f"DELETE FROM users WHERE email IN {demo_emails}"))
+    """Purge dummy patient demonstration accounts and records, preserving staff and real users."""
+    removed = purge_dummy_patient_accounts(db)
     db.commit()
 
-    return {"message": "All demonstration accounts and records purged successfully."}
+    return {
+        "message": "Dummy patient demonstration accounts and records purged successfully.",
+        "purgedCount": removed,
+    }

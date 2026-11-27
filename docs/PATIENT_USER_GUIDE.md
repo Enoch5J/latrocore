@@ -14,7 +14,7 @@ Whether you are tracking daily blood sugars, ensuring tablets are taken on time 
 ## Table of Contents
 1. [Patient Dashboard & Daily Vitals Overview](#1-patient-dashboard--daily-vitals-overview)
 2. [Quick Links & Fast Shortcuts](#2-quick-links--fast-shortcuts)
-3. [Tablet Scheduler & Audible Alarm Engine](#3-tablet-scheduler--audible-alarm-engine)
+3. [Medication Schedule & Personal Reminder Times](#3-medication-schedule--personal-reminder-times)
 4. [Diabetes Test Reminder Schedule (Quarterly & Annual Tiers)](#4-diabetes-test-reminder-schedule)
 5. [Diabetic Diet Plan & Macro Budget](#5-diabetic-diet-plan--macro-budget)
 6. [Doctor & Pharmacist Consulting (Tele-Consults)](#6-doctor--pharmacist-consulting)
@@ -62,22 +62,22 @@ When you are on the go, you shouldn't have to navigate through multiple menus ju
 
 ---
 
-## 3. Tablet Scheduler & Audible Alarm Engine
+## 3. Medication Schedule & Personal Reminder Times
 
 ### What It Is
-A smart, interactive medication clock that sits on your dashboard to guide you through your exact medicine routine throughout the day.
+The **Medications** page shows your active prescriptions and the reminder times currently set for each medicine. You can adjust your personal reminder times to better fit your day.
 
 ### Purpose & Health Benefit
-Missing doses or taking tablets at the wrong time (such as taking Metformin on an empty stomach) can lead to stomach upset or sudden sugar spikes. 
-
-The **Tablet Scheduler** ensures you never miss a dose:
-- **Real-Time Sound Alarm**: When it is time to take your tablet (e.g. 08:30 AM), your phone or computer plays a gentle chime and speaks out: *"Reminder: Time to take your tablet Metformin HCl"*.
-- **Food Instructions**: Clearly states whether each tablet must be taken before meals, with food, or after dinner.
-- **Audible On/Off Toggle**: You can turn the sound alarm ON or Muted with a single button if you are in a meeting or sleeping.
+Reminder times can be personalized without changing your clinician-authorized prescription. Your dose, frequency, and medical instructions remain as prescribed.
 
 ### How to Use It
-1. When your alarm rings, click the green **"Take & Stop"** button. This automatically logs your dose into your clinical history, increases your adherence score, and dismisses the alarm chime.
-2. If you took your tablet without waiting for the alarm, simply click the **"Taken"** button next to the medicine in the list.
+1. Open **Medications** from the patient sidebar and find the medicine under **Active Prescriptions**.
+2. Select **Edit reminder times**, add or change one or more times, then save.
+3. The updated times appear in today's pending dose schedule and are saved for future daily schedules on this device.
+4. On the Medications page, select **Enable browser alerts** and allow notifications if you want a browser alert when a dose is due. LATROCORE must remain open; browser alerts do not run while the portal is closed.
+5. Mark a dose as taken or not taken from today's schedule to keep your adherence history up to date.
+
+Changing a reminder does **not** change when you should medically take the medicine. Follow your prescription and contact your care team before changing a dose or treatment schedule.
 
 ---
 

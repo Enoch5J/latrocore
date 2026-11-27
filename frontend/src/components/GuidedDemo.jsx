@@ -29,7 +29,7 @@ const DEMO_STEPS = [
     desc: 'Review active prescriptions. Mark today’s pending dose as "Taken" to observe immediate adherence percentage updates with duplicate prevention.',
   },
   {
-    title: '4. Multilingual Clinical AI Assistant',
+    title: '4. Multilingual Latro AI Assistant',
     role: 'patient',
     userId: 'pat-001',
     route: '/patient/assistant',

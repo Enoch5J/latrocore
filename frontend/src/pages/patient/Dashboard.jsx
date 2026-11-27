@@ -12,10 +12,11 @@ import {
 import PrescriptionUploadModal from '../../components/patient/PrescriptionUploadModal';
 import MetricsHub from '../../components/patient/MetricsHub';
 import { AIFaceAvatar } from '../../components/FloatingAIAssistant';
+import FormattedAIMessage from '../../components/common/FormattedAIMessage';
 import doctorImg from '../../assets/images/doctor.png';
 import pharmacistImg from '../../assets/images/pharmacist.png';
 import { formatDate, formatTime, isToday, formatDateTime } from '../../data/demoDate';
-import { getProgressionData, addAppointment, applyAIPrescriptionToPatient } from '../../services/dataService';
+import { getProgressionData, addAppointment } from '../../services/dataService';
 import { api } from '../../services/api';
 import { getAssistantResponse, formatPrescriptionInsights } from '../../services/assistantEngine';
 
@@ -24,6 +25,7 @@ export default function PatientDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [pendingReviewRx, setPendingReviewRx] = useState(null);
 
   // Consultation Modal State
   const [consultModalOpen, setConsultModalOpen] = useState(false);
@@ -89,9 +91,12 @@ export default function PatientDashboard() {
 
   const prescriptionContext = useMemo(() => {
     if (!activeMedicines || activeMedicines.length === 0) return null;
-    return activeMedicines.map(m =>
-      `- ${m.name} (Dose: ${m.dose || 'unclear'}, Route: ${m.route || 'Oral'}, Frequency: ${m.frequency || 'As prescribed'}, Meal Timing: ${m.foodInstruction || m.meal_timing || 'With meals'})`
-    ).join('\n');
+    return activeMedicines.map(m => {
+      const times = Array.isArray(m.scheduleTimes) && m.scheduleTimes.length > 0
+        ? m.scheduleTimes.join(', ')
+        : (Array.isArray(m.times) && m.times.length > 0 ? m.times.join(', ') : 'not specified');
+      return `- ${m.name} | Dose: ${m.dose || 'not specified'} | Route: ${m.route || 'not specified'} | Frequency: ${m.frequency || 'not specified'} | Schedule Times: ${times} | Meal Timing: ${m.foodInstruction || m.meal_timing || 'not specified'} | Instructions: ${m.instructions || 'not specified'}`;
+    }).join('\n');
   }, [activeMedicines]);
 
   const medicineInsights = useMemo(() => formatPrescriptionInsights(activeMedicines), [activeMedicines]);
@@ -102,35 +107,44 @@ export default function PatientDashboard() {
   const [directUploadingRx, setDirectUploadingRx] = useState(false);
   const [aiActiveTab, setAiActiveTab] = useState('insights'); // 'insights' | 'adverse' | 'lifestyle' | 'schedule'
   const [aiMessages, setAiMessages] = useState([]);
+  const [lastUploadId, setLastUploadId] = useState(null);
   const aiFileInputRef = useRef(null);
 
   useEffect(() => {
-    if (activeMedicines.length > 0) {
-      setAiMessages([
-        {
-          id: 'welcome-synced',
-          role: 'assistant',
-          text: `📋 **Active Prescription Synced (${activeMedicines.length} Medicines):**\n` +
-            activeMedicines.map(m => `• **${m.name}** — ${m.dose || 'dose unclear'} (${m.foodInstruction || m.meal_timing || 'With meals'})`).join('\n') +
-            `\n\n🔒 **Strict AI Guardrails Active:** My clinical responses, adverse effect analyses, and routine tips are locked strictly to these detected medications. Zero unrelated medicines will be suggested. Any unreadable entry is stated as 'unclear'.`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }
-      ]);
-    } else {
-      setAiMessages([
+    setAiMessages(prev => {
+      const onlyWelcome = prev.length === 0 || (prev.length === 1 && String(prev[0].id || '').startsWith('welcome'));
+      if (!onlyWelcome) return prev;
+      if (activeMedicines.length > 0) {
+        return [
+          {
+            id: 'welcome-synced',
+            role: 'assistant',
+            text: `📋 **Active Prescription Synced (${activeMedicines.length} Medicines):**\n` +
+              activeMedicines.map(m => `• **${m.name}** — ${m.dose || 'dose not specified'} (${m.foodInstruction || m.meal_timing || m.instructions || 'timing not specified'})`).join('\n') +
+              `\n\n🔒 **Strict AI Guardrails Active:** My prescription responses are grounded strictly in these detected medications without guessing missing fields, and you can also ask general health questions.`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }
+        ];
+      }
+      return [
         {
           id: 'welcome-default',
           role: 'assistant',
-          text: `Hello! I'm your Clinical AI Copilot. When you upload your prescription (either via the top "Upload Prescription" button or directly below), your medicines will automatically sync here so I can prepare lifestyle tips, adverse effects, and dosage timing without guessing.`,
+          text: `Hello! I'm Latro AI. When you upload your prescription (either via the top "Upload Prescription" button or directly below), your medicines will automatically sync here so I can explain dosage and timing without guessing, or answer any general health questions.`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
-      ]);
-    }
-  }, [activeMedicines.length]);
+      ];
+    });
+  }, [activeMedicines]);
 
   const handleDashboardAiSend = async (queryText = null) => {
     const q = (queryText || aiInput).trim();
     if (!q) return;
+
+    const history = aiMessages
+      .filter((m) => !m.isLoading && !String(m.id || '').startsWith('welcome'))
+      .slice(-12)
+      .map((m) => ({ role: m.role, content: m.text }));
 
     const userMsg = {
       id: `u-${Date.now()}`,
@@ -154,7 +168,13 @@ export default function PatientDashboard() {
     setAiLoading(true);
 
     try {
-      const res = await api.askAssistant(q, 'en', prescriptionContext);
+      const res = await api.askAssistant(
+        q,
+        'en',
+        prescriptionContext,
+        history,
+        lastUploadId ? { upload_id: lastUploadId } : {}
+      );
       const assistantMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
@@ -163,7 +183,7 @@ export default function PatientDashboard() {
       };
       setAiMessages(prev => prev.map(m => m.id === tempLoadingId ? assistantMsg : m));
     } catch {
-      const fallback = getAssistantResponse(q, 'en', prescriptionContext, activeMedicines);
+      const fallback = getAssistantResponse(q, 'en', prescriptionContext, activeMedicines, history);
       const fallbackMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
@@ -215,38 +235,25 @@ export default function PatientDashboard() {
         return;
       }
 
-      applyAIPrescriptionToPatient(patientId, result);
-      try {
-        await api.applyAIPrescription({
-          patient_id: patientId,
-          ...result,
-        });
-      } catch (applyErr) {
-        console.warn('Backend DB apply sync notice (continuing with local state):', applyErr);
+      if (result.upload_id) {
+        setLastUploadId(result.upload_id);
       }
 
-      refreshData();
+      if (!Array.isArray(result.medicines) || result.medicines.length === 0) {
+        throw new Error('Could not identify any prescribed medications in this document.');
+      }
 
-      const medsList = (result.medicines || []).map(m => {
-        const isUnclear = !m.name || m.name.toLowerCase().includes('unclear') || !m.dose || String(m.dose).toLowerCase().includes('unclear');
-        return `• **${m.name || 'unclear'}** — ${m.dose || 'dose unclear'} (${m.frequency || 'frequency unclear'}, ${m.meal_timing || m.instructions || 'With meals'})${isUnclear ? ' ⚠️ [Unclear entry flagged]' : ''}`;
-      }).join('\n');
+      setPendingReviewRx({ ...result, _reviewInstanceId: Date.now() });
+      setUploadModalOpen(true);
 
-      const responseText = `✅ **Prescription Successfully Synchronized!**\n\n` +
-        `**Doctor:** ${result.doctor_name || 'Attending Physician'}\n` +
-        `**Clinic:** ${result.clinic_name || 'Clinical Care Station'}\n` +
-        `**Diagnosis:** ${result.diagnosis || 'Type 2 Diabetes Mellitus'}\n\n` +
-        `**Detected Medications:**\n${medsList}\n\n` +
-        `🔒 **Strict AI Guardrails Active:** My clinical responses, adverse effect analyses, and lifestyle tips are now locked strictly to these detected medications with zero hallucination. If any medicine or dose was illegible, it is marked as 'unclear' for safety rather than guessed.`;
-
-      const successMsg = {
+      const readyMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        text: responseText,
+        text: '📋 **Prescription Ready for Review**\n\nI opened **Review your care plan** starting on Medications so you can check your Medications, Diet Plan, and Daily Routine before clicking **Accept & Apply**.',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setAiMessages(prev => prev.map(m => m.id === tempLoadingId ? successMsg : m));
-      addToast({ type: 'success', message: 'Prescription synchronized with AI Assistant' });
+      setAiMessages(prev => prev.map(m => m.id === tempLoadingId ? readyMsg : m));
+      addToast({ type: 'success', message: 'Prescription extracted. Review your care plan.' });
     } catch (err) {
       const isThrottled = err?.message && (err.message.includes('503') || err.message.toLowerCase().includes('peak demand') || err.message.toLowerCase().includes('high demand') || err.message.toLowerCase().includes('throttled'));
       const friendlyDetail = isThrottled
@@ -705,19 +712,19 @@ export default function PatientDashboard() {
       </div>
 
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* [AI INTEGRATION] Clinical AI Assistant & Prescription Sync */}
+      {/* [AI INTEGRATION] Latro AI Assistant & Prescription Sync */}
       {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section id="clinical-ai-sync" className="card border-2 border-emerald-500/30 bg-white shadow-md rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="card-header bg-gradient-to-r from-[#FAF6EF] via-[#F0F7F4] to-[#FAF6EF] border-b border-[#E8DCC8] p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-[#022A16] to-[#044D29] border border-emerald-500/40 flex items-center justify-center shrink-0 shadow-xs">
-              <AIFaceAvatar size={26} />
+            <div className="shrink-0 flex items-center justify-center">
+              <AIFaceAvatar size={42} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-black text-lg text-slate-950">
-                  Clinical AI Assistant & Prescription Sync
+                  Latro AI Assistant & Prescription Sync
                 </h2>
                 {activeMedicines.length > 0 ? (
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#046A38] border border-[#A8D7BD] flex items-center gap-1">
@@ -855,7 +862,7 @@ export default function PatientDashboard() {
                             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600 font-medium">
                               <span><strong className="text-slate-700">Frequency:</strong> {med.frequency || 'unclear'}</span>
                               <span>•</span>
-                              <span><strong className="text-slate-700">Food:</strong> {med.foodInstruction || med.meal_timing || 'With meals'}</span>
+                              <span><strong className="text-slate-700">Food:</strong> {med.foodInstruction || med.meal_timing || 'Not specified'}</span>
                               {med.route && (
                                 <>
                                   <span>•</span>
@@ -1013,8 +1020,8 @@ export default function PatientDashboard() {
                 <div className="pb-3 border-b border-slate-100">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
-                      <Bot size={16} className="text-[#046A38]" />
-                      <h3 className="font-black text-sm text-slate-950">Ask Prescription AI Copilot</h3>
+                      <AIFaceAvatar size={24} />
+                      <h3 className="font-black text-sm text-slate-950">Ask Latro AI</h3>
                     </div>
                     <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
                       Zero Hallucination Guard
@@ -1062,8 +1069,8 @@ export default function PatientDashboard() {
                       className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       {msg.role === 'assistant' && (
-                        <div className="w-7 h-7 rounded-xl bg-gradient-to-b from-[#022A16] to-[#044D29] border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs overflow-hidden">
-                          <AIFaceAvatar size={20} />
+                        <div className="shrink-0 mt-0.5 flex items-start justify-center">
+                          <AIFaceAvatar size={30} />
                         </div>
                       )}
 
@@ -1087,7 +1094,11 @@ export default function PatientDashboard() {
                           </div>
                         ) : (
                           <>
-                            <p className="whitespace-pre-wrap">{msg.text}</p>
+                            {msg.role === 'assistant' ? (
+                              <FormattedAIMessage text={msg.text} />
+                            ) : (
+                              <p className="whitespace-pre-wrap">{msg.text}</p>
+                            )}
                             <div className={`mt-1.5 text-[10px] font-semibold text-right ${
                               msg.role === 'user' ? 'text-emerald-100/70' : 'text-slate-400'
                             }`}>
@@ -1731,8 +1742,13 @@ export default function PatientDashboard() {
       {/* Electronic Prescription Upload & Verification Modal */}
       <PrescriptionUploadModal
         isOpen={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
+        initialPrescription={pendingReviewRx}
+        onClose={() => {
+          setUploadModalOpen(false);
+          setPendingReviewRx(null);
+        }}
         onPrescriptionApplied={() => {
+          setPendingReviewRx(null);
           refreshData();
         }}
       />

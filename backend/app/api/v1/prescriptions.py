@@ -1,5 +1,6 @@
 """Prescription routes — create, activate, revise, list, and Gemini AI Digitization."""
 
+import hashlib
 import os
 import re
 import json
@@ -10,9 +11,22 @@ from pydantic import BaseModel
 from datetime import datetime, timezone, date, timedelta
 from typing import Optional, List, Dict, Any
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, get_optional_current_user, check_patient_access, require_role
+from app.core.dependencies import (
+    get_current_user,
+    check_patient_access,
+    require_role,
+    get_or_create_patient_profile,
+)
 from app.models.models import (
-    User, Patient, CarePlan, Prescription, PrescriptionItem, DoseInstance, AuditEvent
+    User,
+    Patient,
+    CarePlan,
+    Prescription,
+    PrescriptionItem,
+    DoseInstance,
+    AuditEvent,
+    Attachment,
+    PrescriptionUpload,
 )
 from app.services.prescription_ai import analyze_prescription_with_gemini
 
@@ -46,9 +60,9 @@ class PrescriptionActivate(BaseModel):
 
 class AIPrescriptionMedicine(BaseModel):
     name: str
-    dose: str
-    route: str = "Oral"
-    frequency: str
+    dose: str | None = None
+    route: str | None = "Oral"
+    frequency: str | None = None
     schedule_times: list[str] = []
     meal_timing: str | None = None
     is_prn: bool = False
@@ -325,69 +339,361 @@ ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
 MAX_FILE_SIZE = 12 * 1024 * 1024  # 12 MB
 
 
+def validate_uploaded_prescription_meta(filename: Optional[str]) -> str:
+    clean_name = filename or "prescription"
+    ext = os.path.splitext(clean_name)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file format '{ext}'. Allowed formats: PDF, PNG, JPG, JPEG, WEBP."
+        )
+    return clean_name
+
+
+def format_prescription_context_from_dict(parsed: Dict[str, Any]) -> Optional[str]:
+    """Serialize extracted prescription data faithfully without guessing missing timings."""
+    medicines = parsed.get("medicines") or []
+    if not medicines:
+        return None
+    lines = []
+    meta_parts = []
+    if parsed.get("doctor_name"):
+        meta_parts.append(f"Prescriber: {parsed['doctor_name']}")
+    if parsed.get("diagnosis"):
+        meta_parts.append(f"Diagnosis: {parsed['diagnosis']}")
+    if parsed.get("prescription_date"):
+        meta_parts.append(f"Date: {parsed['prescription_date']}")
+    if meta_parts:
+        lines.append("Document Metadata: " + " | ".join(meta_parts))
+
+    for m in medicines:
+        if not isinstance(m, dict):
+            continue
+        name = m.get("name") or "unclear"
+        dose = m.get("dose") or "not specified"
+        route = m.get("route") or "not specified"
+        frequency = m.get("frequency") or "not specified"
+        times = m.get("schedule_times") or []
+        times_str = ", ".join(str(t) for t in times) if times else "not specified"
+        meal_timing = m.get("meal_timing") or m.get("food_instructions") or "not specified"
+        instructions = m.get("instructions") or "not specified"
+        lines.append(
+            f"- {name} | Dose: {dose} | Route: {route} | Frequency: {frequency} "
+            f"| Schedule Times: {times_str} | Meal Timing: {meal_timing} | Instructions: {instructions}"
+        )
+    return "\n".join(lines) if lines else None
+
+
+def get_patient_prescription_context(
+    user: User,
+    db: Session,
+    upload_id: Optional[str] = None,
+    prescription_id: Optional[str] = None,
+) -> Optional[str]:
+    """Load prescription context strictly for the authenticated patient (never another patient's)."""
+    if user.role != "patient":
+        return None
+
+    patient = db.query(Patient).filter(Patient.user_id == user.id).first()
+
+    if upload_id:
+        upload_rec = db.query(PrescriptionUpload).filter(PrescriptionUpload.id == upload_id).first()
+        if not upload_rec:
+            raise HTTPException(status_code=404, detail="Uploaded prescription not found")
+        if upload_rec.user_id != user.id and (not patient or upload_rec.patient_id != patient.id):
+            raise HTTPException(status_code=403, detail="Not authorized to access this prescription upload")
+        if upload_rec.extracted_json:
+            try:
+                return format_prescription_context_from_dict(json.loads(upload_rec.extracted_json))
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return None
+
+    if prescription_id:
+        rx = db.query(Prescription).filter(Prescription.id == prescription_id).first()
+        if not rx:
+            raise HTTPException(status_code=404, detail="Prescription not found")
+        if not patient or rx.patient_id != patient.id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this prescription")
+        items = [
+            {
+                "name": it.medicine_name,
+                "dose": it.dose,
+                "route": it.route,
+                "frequency": it.frequency,
+                "schedule_times": json.loads(it.schedule_times) if it.schedule_times else [],
+                "meal_timing": it.food_instructions,
+                "instructions": it.food_instructions,
+            }
+            for it in rx.items
+        ]
+        return format_prescription_context_from_dict({"medicines": items})
+
+    # Default: fetch the patient's latest uploaded prescription or active Rx
+    latest_upload = (
+        db.query(PrescriptionUpload)
+        .filter(PrescriptionUpload.user_id == user.id)
+        .order_by(PrescriptionUpload.created_at.desc())
+        .first()
+    )
+    if latest_upload and latest_upload.extracted_json:
+        try:
+            ctx = format_prescription_context_from_dict(json.loads(latest_upload.extracted_json))
+            if ctx:
+                return ctx
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    if patient:
+        active_rx = (
+            db.query(Prescription)
+            .filter(Prescription.patient_id == patient.id, Prescription.status == "active")
+            .order_by(Prescription.created_at.desc())
+            .first()
+        )
+        if active_rx and active_rx.items:
+            items = [
+                {
+                    "name": it.medicine_name,
+                    "dose": it.dose,
+                    "route": it.route,
+                    "frequency": it.frequency,
+                    "schedule_times": json.loads(it.schedule_times) if it.schedule_times else [],
+                    "meal_timing": it.food_instructions,
+                    "instructions": it.food_instructions,
+                }
+                for it in active_rx.items
+            ]
+            return format_prescription_context_from_dict({"medicines": items})
+
+    return None
+
+
+async def save_and_analyze_prescription(
+    db: Session,
+    current_user: User,
+    file_bytes: Optional[bytes] = None,
+    filename: Optional[str] = None,
+    mime_type: Optional[str] = None,
+    text_content: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Validate, analyze with Gemini, store securely, and link ownership to current patient."""
+    if current_user.role != "patient":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only signed-in patients can upload prescriptions.",
+        )
+
+    parsed = await analyze_prescription_with_gemini(
+        file_bytes=file_bytes,
+        mime_type=mime_type,
+        text_content=text_content,
+    )
+
+    patient = get_or_create_patient_profile(current_user, db)
+    saved_url = None
+    file_path = None
+    clean_name = filename or "prescription"
+
+    if file_bytes is not None:
+        upload_dir = os.path.join("uploads", "prescriptions")
+        os.makedirs(upload_dir, exist_ok=True)
+        safe_name = f"{uuid.uuid4().hex}_{re.sub(r'[^a-zA-Z0-9_.-]', '_', clean_name)}"
+        file_path = os.path.join(upload_dir, safe_name)
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+        saved_url = f"/uploads/prescriptions/{safe_name}"
+
+        attachment = Attachment(
+            patient_id=patient.id,
+            file_name=clean_name,
+            file_path=saved_url,
+            file_hash=hashlib.sha256(file_bytes).hexdigest(),
+            file_size=len(file_bytes),
+            mime_type=mime_type or "image/jpeg",
+            scan_status="clean",
+            uploaded_by=current_user.id,
+        )
+        db.add(attachment)
+        patient.prescription_file_url = saved_url
+        patient.prescription_file_name = clean_name
+
+    upload_rec = PrescriptionUpload(
+        patient_id=patient.id,
+        user_id=current_user.id,
+        file_name=clean_name if file_bytes is not None else "text-prescription",
+        file_path=file_path,
+        file_url=saved_url,
+        mime_type=mime_type if file_bytes is not None else "text/plain",
+        file_size=len(file_bytes) if file_bytes is not None else len((text_content or "").encode("utf-8")),
+        extracted_json=json.dumps(parsed),
+    )
+    db.add(upload_rec)
+    db.commit()
+    db.refresh(upload_rec)
+
+    parsed["upload_id"] = upload_rec.id
+    if saved_url:
+        parsed["file_url"] = saved_url
+    return parsed
+
+
 @router.post("/prescriptions/analyze")
 async def analyze_prescription_endpoint(
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
-    current_user: Optional[User] = Depends(get_optional_current_user)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("patient")),
 ):
     """
     Directly extracts and digitizes an uploaded doctor prescription (image/PDF or text)
-    using Gemini AI multimodal vision. Returns the structured electronic prescription
-    with medication timings, clinical diet plan, and synchronized daily schedule.
-    
-    STRICT: Zero hardcoded/mock fallback.
+    using Gemini AI multimodal vision for signed-in patients only.
+    Returns 401 for guests and 403 for signed-in non-patients.
     """
     file_bytes = None
     mime_type = None
-    saved_url = None
+    filename = None
 
     if file:
-        filename = file.filename or "prescription"
-        ext = os.path.splitext(filename)[1].lower()
-        if ext not in ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file format '{ext}'. Allowed formats: PDF, PNG, JPG, JPEG, WEBP."
-            )
-        
+        filename = validate_uploaded_prescription_meta(file.filename)
         file_bytes = await file.read()
         if len(file_bytes) > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File size exceeds the maximum allowed limit of 12 MB."
             )
-        
         mime_type = file.content_type or "image/jpeg"
 
-        # Save to uploads directory
-        upload_dir = os.path.join("uploads", "prescriptions")
-        os.makedirs(upload_dir, exist_ok=True)
-        safe_name = f"{uuid.uuid4().hex}_{re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)}"
-        file_path = os.path.join(upload_dir, safe_name)
-        with open(file_path, "wb") as f:
-            f.write(file_bytes)
-        saved_url = f"/uploads/prescriptions/{safe_name}"
-
-    parsed = await analyze_prescription_with_gemini(
+    return await save_and_analyze_prescription(
+        db=db,
+        current_user=current_user,
         file_bytes=file_bytes,
+        filename=filename,
         mime_type=mime_type,
-        text_content=text
+        text_content=text,
     )
-
-    if saved_url:
-        parsed["file_url"] = saved_url
-
-    return parsed
 
 
 @router.post("/prescriptions/analyze-json")
 async def analyze_prescription_json_endpoint(
     req: AnalyzeTextRequest,
-    current_user: Optional[User] = Depends(get_optional_current_user)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("patient")),
 ):
-    """Analyze digital prescription text using Gemini AI."""
-    return await analyze_prescription_with_gemini(text_content=req.text)
+    """Analyze digital prescription text using Gemini AI (signed-in patients only)."""
+    return await save_and_analyze_prescription(
+        db=db,
+        current_user=current_user,
+        text_content=req.text,
+    )
+
+
+@router.get("/prescriptions/uploads")
+def list_my_prescription_uploads(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("patient")),
+):
+    """List only the signed-in patient's own uploaded prescriptions."""
+    uploads = (
+        db.query(PrescriptionUpload)
+        .filter(PrescriptionUpload.user_id == current_user.id)
+        .order_by(PrescriptionUpload.created_at.desc())
+        .all()
+    )
+    results = []
+    for u in uploads:
+        parsed = None
+        if u.extracted_json:
+            try:
+                parsed = json.loads(u.extracted_json)
+            except (json.JSONDecodeError, TypeError):
+                parsed = None
+        results.append({
+            "id": u.id,
+            "file_name": u.file_name,
+            "file_url": u.file_url,
+            "mime_type": u.mime_type,
+            "file_size": u.file_size,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "extracted": parsed,
+        })
+    return {"uploads": results}
+
+
+@router.get("/prescriptions/uploads/{upload_id}")
+def get_prescription_upload_detail(
+    upload_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve a single uploaded prescription, enforcing patient self-only access."""
+    upload_rec = db.query(PrescriptionUpload).filter(PrescriptionUpload.id == upload_id).first()
+    if not upload_rec:
+        raise HTTPException(status_code=404, detail="Uploaded prescription not found")
+
+    if current_user.role == "patient":
+        patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
+        if upload_rec.user_id != current_user.id and (not patient or upload_rec.patient_id != patient.id):
+            raise HTTPException(status_code=403, detail="Not authorized to access this prescription upload")
+    elif current_user.role in ("doctor", "pharmacist", "care_team"):
+        check_patient_access(upload_rec.patient_id, current_user, db)
+    elif current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    parsed = None
+    if upload_rec.extracted_json:
+        try:
+            parsed = json.loads(upload_rec.extracted_json)
+        except (json.JSONDecodeError, TypeError):
+            parsed = None
+
+    return {
+        "id": upload_rec.id,
+        "patient_id": upload_rec.patient_id,
+        "file_name": upload_rec.file_name,
+        "file_url": upload_rec.file_url,
+        "mime_type": upload_rec.mime_type,
+        "file_size": upload_rec.file_size,
+        "created_at": upload_rec.created_at.isoformat() if upload_rec.created_at else None,
+        "extracted": parsed,
+    }
+
+
+@router.get("/prescriptions/{rx_id}")
+def get_prescription_by_id(
+    rx_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve a specific prescription only if authorized for that patient."""
+    rx = db.query(Prescription).filter(Prescription.id == rx_id).first()
+    if not rx:
+        raise HTTPException(status_code=404, detail="Prescription not found")
+    check_patient_access(rx.patient_id, current_user, db)
+    return {
+        "id": rx.id,
+        "patient_id": rx.patient_id,
+        "status": rx.status,
+        "version": rx.version,
+        "notes": rx.notes,
+        "created_at": rx.created_at.isoformat() if rx.created_at else None,
+        "activated_at": rx.activated_at.isoformat() if rx.activated_at else None,
+        "items": [
+            {
+                "id": item.id,
+                "medicine_name": item.medicine_name,
+                "strength": item.strength,
+                "dose": item.dose,
+                "unit": item.unit,
+                "route": item.route,
+                "frequency": item.frequency,
+                "schedule_times": json.loads(item.schedule_times) if item.schedule_times else [],
+                "food_instructions": item.food_instructions,
+                "is_prn": item.is_prn,
+            }
+            for item in rx.items
+        ],
+    }
 
 
 @router.post("/prescriptions/apply")
@@ -406,44 +712,40 @@ def apply_ai_prescription_endpoint(
     if not req.medicines:
         raise HTTPException(status_code=422, detail="At least one medicine is required to activate a prescription.")
 
-    # 1. Resolve Patient
+    # 1. Resolve Patient (strictly isolate patients to their own profile)
     patient = None
     if current_user.role == "patient":
-        # Resolve patient associated with authenticated patient user
-        patient = db.query(Patient).filter(
-            (Patient.user_id == current_user.id) | (Patient.id == current_user.id)
-        ).first()
-
-        if not patient and req.patient_id:
-            patient = db.query(Patient).filter(
+        if req.patient_id:
+            requested_patient = db.query(Patient).filter(
                 (Patient.id == req.patient_id) | (Patient.user_id == req.patient_id)
             ).first()
+            if requested_patient and requested_patient.user_id != current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Patients can only manage their own prescriptions."
+                )
 
-        if not patient:
-            from app.models.models import gen_uuid
-            import random
-            target_id = req.patient_id if (req.patient_id and len(req.patient_id) > 15) else gen_uuid()
-            patient = Patient(
-                id=target_id,
-                user_id=current_user.id,
-                patient_id_display=f"PAT-{random.randint(100000, 999999)}",
-                approval_status="approved"
-            )
-            db.add(patient)
-            db.flush()
+        patient = get_or_create_patient_profile(current_user, db)
+
+        if req.file_url:
+            other_upload = db.query(PrescriptionUpload).filter(
+                PrescriptionUpload.file_url == req.file_url,
+                PrescriptionUpload.user_id != current_user.id
+            ).first()
+            other_attachment = db.query(Attachment).filter(
+                Attachment.file_path == req.file_url,
+                Attachment.uploaded_by != current_user.id
+            ).first()
+            if other_upload or other_attachment:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Not authorized to reference another patient's uploaded file."
+                )
     else:
         # Clinician (doctor, pharmacist, care_team, admin)
         if not req.patient_id:
             raise HTTPException(status_code=400, detail="patient_id is required when creating a prescription as a clinician.")
-        try:
-            patient = check_patient_access(req.patient_id, current_user, db)
-        except HTTPException:
-            # Fallback for demo / development environments if mock patient ID was supplied
-            patient = db.query(Patient).filter(
-                (Patient.id == req.patient_id) | (Patient.user_id == req.patient_id)
-            ).first() or db.query(Patient).first()
-            if not patient:
-                raise
+        patient = check_patient_access(req.patient_id, current_user, db)
 
     now = datetime.now(timezone.utc)
 
@@ -476,31 +778,21 @@ def apply_ai_prescription_endpoint(
     db.add(rx)
     db.flush()
 
-    # 4. Insert Prescription Items & Generate Dose Instances
+    # 4. Insert Prescription Items & Generate Dose Instances without inventing missing timings
     for med in req.medicines:
-        # Normalize schedule times
         times = med.schedule_times or []
-        if not times:
-            freq_lower = med.frequency.lower()
-            if "twice" in freq_lower or "bid" in freq_lower:
-                times = ["08:00", "20:00"]
-            elif "three" in freq_lower or "tid" in freq_lower:
-                times = ["08:00", "13:00", "20:00"]
-            elif "night" in freq_lower or "bedtime" in freq_lower:
-                times = ["21:30"]
-            else:
-                times = ["08:00"]
-
-        food_inst = med.meal_timing or med.instructions or "With meals"
+        freq_str = med.frequency or "not specified"
+        dose_str = med.dose or "not specified"
+        food_inst = med.meal_timing or med.instructions or None
 
         item = PrescriptionItem(
             prescription_id=rx.id,
             medicine_name=med.name,
-            strength=med.dose,
-            dose=med.dose,
+            strength=dose_str,
+            dose=dose_str,
             route=med.route or "Oral",
-            frequency=med.frequency,
-            schedule_times=json.dumps(times),
+            frequency=freq_str,
+            schedule_times=json.dumps(times) if times else None,
             food_instructions=food_inst,
             start_date=date.today(),
             end_date=date.today() + timedelta(days=30),
@@ -509,7 +801,7 @@ def apply_ai_prescription_endpoint(
         db.add(item)
         db.flush()
 
-        # Generate 14 days of scheduled dose instances for the patient
+        # Generate 14 days of scheduled dose instances only when explicit times exist
         generate_dose_instances(item, db, days=14)
 
     # 5. Create or Update CarePlan with Diet Plan and Daily Schedule

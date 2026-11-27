@@ -13,6 +13,7 @@ export default function PhoneInputWithCountry({
   required = true,
   label = 'Mobile Number',
   className = '',
+  id = 'phone-input',
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIso, setSelectedIso] = useState('in');
@@ -90,7 +91,7 @@ export default function PhoneInputWithCountry({
     <div className={`relative ${className}`} ref={containerRef} onKeyDown={handleKeyDown}>
       {/* Label */}
       <div className="flex items-center justify-between mb-1.5 gap-2">
-        <label className="block text-sm font-semibold text-stone-700 shrink-0">
+        <label htmlFor={id} className="block text-sm font-semibold text-stone-700 shrink-0">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
         <span className="text-xs text-stone-400 font-normal truncate">
@@ -131,6 +132,7 @@ export default function PhoneInputWithCountry({
 
         {/* Phone Number Input */}
         <input
+          id={id}
           ref={phoneInputRef}
           type="tel"
           disabled={disabled}

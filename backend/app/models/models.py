@@ -319,6 +319,21 @@ class Attachment(Base):
     investigation = relationship("Investigation", back_populates="attachments")
 
 
+class PrescriptionUpload(Base):
+    __tablename__ = "prescription_uploads"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    patient_id = Column(String(36), ForeignKey("patients.id"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    file_name = Column(String(255), nullable=True)
+    file_path = Column(String(500), nullable=True)
+    file_url = Column(String(500), nullable=True)
+    mime_type = Column(String(100), nullable=True)
+    file_size = Column(Integer, nullable=True)
+    extracted_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
 # ─── 15. Screening Tasks ────────────────────────────────────────────
 
 class ScreeningTask(Base):
@@ -584,5 +599,21 @@ class PharmacistProfile(Base):
     
     user = relationship("User", foreign_keys=[user_id], back_populates="pharmacist_profile")
     approver = relationship("User", foreign_keys=[approved_by])
+
+
+# ─── 27. Public Contact Enquiries ─────────────────────────────────────
+
+class ContactEnquiry(Base):
+    __tablename__ = "contact_enquiries"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    full_name = Column(String(120), nullable=False)
+    email = Column(String(255), nullable=False, index=True)
+    phone = Column(String(30), nullable=True)
+    topic = Column(String(80), nullable=False)
+    message = Column(Text, nullable=False)
+    status = Column(String(30), default="new", nullable=False)
+    ip_address = Column(String(45), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
 

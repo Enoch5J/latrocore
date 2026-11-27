@@ -1,6 +1,6 @@
 # LATROCORE Enterprise Authentication & Identity System
 
-A production-grade, secure full-stack authentication application implementing the **Silent Refresh** pattern with **Argon2id** password hashing, short-lived signed JWTs, cryptographically secure rotating refresh tokens in `__Host-` cookies, multi-worker rate limiting, and comprehensive CSRF defenses.
+A production-grade, secure full-stack authentication application implementing the **Silent Refresh** pattern with **Argon2id** password hashing, short-lived signed JWTs (`sub`, `sid`, `iss`, `aud`, `iat`, `exp`, unique `jti`), cryptographically secure rotating refresh tokens in `__Secure-` cookies, multi-worker rate limiting, and comprehensive CSRF/Origin defenses.
 
 ---
 
@@ -9,19 +9,19 @@ A production-grade, secure full-stack authentication application implementing th
 ### Token Strategy & Silent Refresh Pattern
 - **Short-Lived Access Token (15 Minutes)**:
   - Formatted as a signed JWT (`HS256`).
-  - Claims: `sub` (User ID), `sid` (Session ID), `iss` (`latrocore-auth`), `aud` (`latrocore-client`), `iat`, `exp`.
+  - Claims: `sub` (User ID), `sid` (Session ID), `iss` (`latrocore-auth`), `aud` (`latrocore-client`), `iat`, `exp`, and unique `jti`.
   - Stored **strictly in memory** on the client (`inMemoryAccessToken`).
   - Never persisted to `localStorage`, `sessionStorage`, cookies, or browser URLs.
 - **Long-Lived Refresh Token (7 Days)**:
-  - Generated as a 64-byte cryptographically secure random string (`secrets.token_urlsafe(64)`).
-  - Stored in the database **only as a SHA-256 hash**. The raw token is never saved in the database or server logs.
-  - Delivered exclusively via a secure cookie named `__Host-refresh`.
+  - Generated as a 32-byte cryptographically secure random string (`secrets.token_urlsafe(32)`).
+  - Stored in PostgreSQL **only as a SHA-256 hex digest** with a unique index. The raw token is never saved in the database or server logs.
+  - Delivered exclusively via `Set-Cookie` using cookie name `__Secure-refresh`.
 - **Cookie Security Specifications**:
   - `HttpOnly = True` (inaccessible to client-side scripts, neutralizing XSS exfiltration).
   - `Secure = True` (transmitted exclusively over TLS/HTTPS).
   - `SameSite = Strict` (preventing cross-site request inclusion).
-  - `Path = /`
-  - No `Domain` attribute (as required by RFC 6265bis for `__Host-` prefixed cookies).
+  - `Path = /auth` (scoped strictly to the auth routes; match `/api/v1/auth` if proxying behind an API prefix).
+  - `Max-Age = 604800` (7 days) and no `Domain` attribute (host-only cookie).
 - **Atomic Rotation & Reuse Detection**:
   - Every successful call to `POST /auth/refresh` marks the previous token hash as consumed (`is_consumed = True`, `consumed_at = utcnow()`) and generates a new refresh token.
   - Database row locking (`SELECT ... FOR UPDATE`) prevents concurrent refresh races.
@@ -36,7 +36,7 @@ A production-grade, secure full-stack authentication application implementing th
 |---|---|---|
 | **Password Storage** | Argon2id (`m=65536, t=3, p=4`) | GPU / ASIC brute-force, rainbow tables |
 | **Credential Storage** | Access Token in memory only; non-sensitive `hasSession=true` in localStorage | Persistent token theft via XSS |
-| **Token Transmission** | `__Host-refresh` cookie (`HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`) | Token sniffing, script access, subdomain hijacking |
+| **Token Transmission** | `__Secure-refresh` cookie (`HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/auth`, host-only) | Token sniffing, script access, cross-site inclusion |
 | **CSRF Defense** | Strict Origin matching + mandatory custom header `X-Requested-With: XMLHttpRequest` | Cross-site request forgery |
 | **Replay Defense** | Token family rotation, consumed hash retention, immediate family revocation | Stolen refresh token replay |
 | **Rate Limiting** | Database-backed multi-worker limiter (max 5/account, 10/IP per 15 min) | Credential stuffing, brute-force attacks |
@@ -135,44 +135,63 @@ latrocore/
 
 ---
 
-### HTTPS Development Setup
+### Local HTTPS & Same-Site Deployment Setup
 
-RFC 6265bis mandates that cookies with the `__Host-` prefix require `Secure=True` and will be rejected by browsers over unencrypted HTTP. To maintain `Secure=True` during development without weakening cookie security:
+Refresh cookies use `Secure=True`, `SameSite=Strict`, and `Path=/auth`. To preserve these attributes locally and in production:
 
-1. **Generate development TLS certificates**:
+1. **Generate local TLS certificates** (included SANs for `localhost` and `127.0.0.1`):
    ```bash
+   cd backend
    python generate_certs.py
    ```
-   This generates `cert.pem` and `key.pem` with Subject Alternative Names for `localhost` and `127.0.0.1`.
+   This generates `backend/cert.pem` and `backend/key.pem`.
 
 2. **Run FastAPI with HTTPS**:
    ```bash
-   uvicorn main:app --ssl-keyfile key.pem --ssl-certfile cert.pem --port 8000 --reload
+   .\.venv\Scripts\python.exe -m uvicorn main:app --ssl-keyfile key.pem --ssl-certfile cert.pem --port 8000 --reload
+   ```
+   Or for standard HTTP behind a same-origin proxy:
+   ```bash
+   .\.venv\Scripts\python.exe -m uvicorn main:app --port 8000 --reload
    ```
 
-3. **Or run with standard HTTP (proxying via Vite / Caddy / mkcert)**:
-   ```bash
-   uvicorn main:app --port 8000 --reload
+3. **Start the Vite Frontend (same-origin proxy to `/auth` and `/api`)**:
+   - **Recommended Local HTTPS**:
+     ```bash
+     cd ../frontend
+     npm install
+     npm run dev:https
+     ```
+     Serves at `https://localhost:5173` and proxies `/auth`, `/dashboard`, `/admin`, `/api`, and `/uploads` to `https://127.0.0.1:8000`.
+   - **Standard HTTP Localhost Proxy**:
+     ```bash
+     npm run dev
+     ```
+     Serves at `http://localhost:5173` (always open `http://localhost:5173` or `https://localhost:5173` rather than mixing `localhost` and `127.0.0.1`, because `SameSite=Strict` cookies set on `localhost` will not be sent across hostnames).
+
+4. **Production Same-Origin Reverse Proxy (`SameSite=Strict` + `Path=/auth`)**:
+   If your frontend and backend would otherwise sit on separate domains, place both behind one reverse proxy origin (e.g., Nginx or Caddy):
+   ```caddy
+   app.example.com {
+     handle /auth* {
+       reverse_proxy 127.0.0.1:8000
+     }
+     handle /api* {
+       reverse_proxy 127.0.0.1:8000
+     }
+     handle /dashboard* {
+       reverse_proxy 127.0.0.1:8000
+     }
+     handle {
+       reverse_proxy 127.0.0.1:5173
+     }
+   }
    ```
+   In `.env`, set `ALLOWED_ORIGINS=https://app.example.com` and match `COOKIE_PATH=/auth` (or `/api/v1/auth` if routing auth under an `/api/v1` prefix).
 
----
-
-### Frontend Setup
-
-1. **Navigate to the frontend directory**:
+5. **Production Build**:
    ```bash
-   cd ../frontend
-   npm install
-   ```
-
-2. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
-   The Vite dev server runs at `http://localhost:5173` and proxies `/auth`, `/dashboard`, and `/api` to the FastAPI backend at `http://127.0.0.1:8000`.
-
-3. **Production Build**:
-   ```bash
+   cd frontend
    npm run build
    ```
 
@@ -181,14 +200,14 @@ RFC 6265bis mandates that cookies with the `__Host-` prefix require `Secure=True
 ## 5. Running Automated Tests
 
 ### Backend Test Suite (Pytest)
-Executes 10 automated security tests covering password verification, cookie attributes, database hashing, silent refresh rotation, reuse detection, logout invalidation, CSRF defense, and rate limiting:
+Validates password verification, cookie attributes, SHA-256 digest-only storage, unique index, `jti` claims, silent refresh rotation, reuse detection, logout invalidation of both JWT and refresh cookie, CSRF/Origin validation, 401 vs 403 checks, and rate limiting:
 ```bash
 cd backend
-.\.venv\Scripts\pytest tests\test_auth.py -v
+.\.venv\Scripts\pytest tests/test_auth.py -v
 ```
 
 ### Frontend Test Suite (Vitest)
-Executes 6 automated tests verifying memory-only storage, concurrent 401 queue deduplication, refresh failure propagation, retry-loop prevention, and race condition handling:
+Validates memory-only storage, 5-concurrent-401 single-refresh queue, replay loop prevention, late-401 same-session vs cross-session guards, refresh 401 vs network failure recovery, StrictMode reload with `hasSession`, and logout-in-flight races:
 ```bash
 cd frontend
 npm test
@@ -200,8 +219,10 @@ npm test
 
 | Method | Endpoint | Protection | Description |
 |---|---|---|---|
-| `POST` | `/auth/login` | Rate Limiter | Verifies Argon2id password, creates session, sets `__Host-refresh` cookie, returns Access Token. |
-| `POST` | `/auth/refresh` | CSRF + Cookie | Verifies cookie hash, rotates token atomically, checks reuse, returns new Access Token. |
-| `POST` | `/auth/logout` | CSRF + Cookie | Revokes DB session, clears cookie with identical attributes, rejects old Access Tokens. |
-| `GET` | `/auth/me` | Bearer JWT | Returns authenticated user profile from in-memory token. |
-| `GET` | `/dashboard` | Bearer JWT | Protected demonstration endpoint returning telemetry and session status. |
+| `PATCH` | `/auth/me` | Authenticated session | Updates the authenticated user's name and mobile number. |
+| `POST` | `/auth/change-password` | Authenticated session | Verifies the current password, updates its Argon2id hash, and revokes active sessions. |
+| `POST` | `/auth/login` | Rate Limiter + CSRF/Origin | Verifies Argon2id password, creates session, sets `__Secure-refresh` cookie (`Path=/auth`), returns Access Token. |
+| `POST` | `/auth/refresh` | CSRF/Origin + Cookie | Verifies cookie SHA-256 digest, rotates token atomically, checks reuse, returns new Access Token. |
+| `POST` | `/auth/logout` | CSRF/Origin + Cookie | Revokes DB session even if Access JWT expired, clears cookie with matching attrs, returns `204`. |
+| `GET` | `/auth/me` | Bearer JWT + Session Check | Returns authenticated user profile after checking JWT claims and active DB session. |
+| `GET` | `/dashboard` | Bearer JWT + Session Check | Protected demonstration endpoint returning telemetry and session status. |

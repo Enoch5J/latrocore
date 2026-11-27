@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="mint-glow" cx="73%" cy="47%" r="46%">
+      <stop offset="0" stop-color="#E8F5EE" stop-opacity=".9"/>
+      <stop offset=".58" stop-color="#E8F5EE" stop-opacity=".48"/>
+      <stop offset="1" stop-color="#E8F5EE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wave-fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#83B99A" stop-opacity=".22"/>
+      <stop offset=".34" stop-color="#83B99A" stop-opacity=".34"/>
+      <stop offset=".72" stop-color="#6EA987" stop-opacity=".66"/>
+      <stop offset="1" stop-color="#6EA987" stop-opacity=".78"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="700" fill="url(#mint-glow)"/>
+  <g fill="none" stroke="url(#wave-fade)" stroke-linecap="round" stroke-dasharray=".1 8">
+    <path d="M-50 548 C190 454 282 496 450 493 C652 490 746 427 904 359 C1086 281 1244 286 1392 232 C1491 196 1566 147 1650 91" stroke-width="2.2" opacity=".82"/>
+    <path d="M-50 565 C178 474 288 514 458 510 C660 507 754 443 916 375 C1092 301 1250 302 1402 247 C1500 212 1574 163 1650 108" stroke-width="2" opacity=".7"/>
+    <path d="M-50 530 C202 432 278 477 442 476 C642 475 738 411 891 343 C1078 261 1232 269 1382 217 C1482 181 1555 132 1650 75" stroke-width="1.8" opacity=".66"/>
+    <path d="M-50 584 C168 492 302 531 470 527 C673 522 771 459 930 391 C1104 319 1263 317 1416 262 C1510 229 1583 181 1650 127" stroke-width="1.7" opacity=".57"/>
+    <path d="M-50 510 C213 411 269 458 433 459 C633 460 726 394 878 327 C1068 244 1218 252 1368 201 C1471 165 1543 117 1650 59" stroke-width="1.5" opacity=".5"/>
+    <path d="M-50 601 C158 510 316 547 483 543 C685 538 788 474 946 407 C1120 337 1277 334 1432 278 C1520 247 1592 199 1650 146" stroke-width="1.4" opacity=".45"/>
+  </g>
+</svg>

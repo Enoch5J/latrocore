@@ -14,7 +14,7 @@ export function getDefaultDashboardRoute(user) {
   if (email === 'doctor@latrocore.com' || role === 'doctor') return '/doctor/dashboard';
   if (email === 'pharmacist@latrocore.com' || role === 'pharmacist') return '/pharmacist/dashboard';
   if (email === 'admin@latrocore.com' || role === 'admin') return '/admin/dashboard';
-  if (email === 'patient@latrocore.com' || role === 'patient') return '/patient/dashboard';
+  if (role === 'patient') return '/patient/dashboard';
   return '/patient/dashboard';
 }
 
@@ -25,7 +25,7 @@ export function isRoleAllowed(userRole, allowedRoles) {
 }
 
 export default function ProtectedRoute({ children, allowedRoles, redirectTo }) {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshError, retrySessionRefresh, logout } = useAuth();
   const location = useLocation();
 
   // Full-screen clean loading screen during silent session restoration
@@ -46,6 +46,39 @@ export default function ProtectedRoute({ children, allowedRoles, redirectTo }) {
     );
   }
 
+  // Recoverable outage during startup silent refresh: allow retry instead of treating as expired
+  if (!user && refreshError) {
+    return (
+      <div className="min-h-screen bg-[#FAF6EF] flex items-center justify-center p-6 text-stone-800">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-[#E8DCC8] shadow-lg p-6 text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-extrabold text-stone-900">Connection Interrupted</h2>
+            <p className="text-xs text-stone-600 mt-1.5 leading-relaxed">{refreshError}</p>
+          </div>
+          <div className="flex items-center justify-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => retrySessionRefresh()}
+              className="px-5 py-2.5 rounded-xl bg-[#046A38] hover:bg-[#03542C] text-white text-xs font-bold shadow-sm cursor-pointer transition"
+            >
+              Retry Session Restore
+            </button>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer transition"
+            >
+              Sign In Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     // Preserve attempted destination
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -53,7 +86,7 @@ export default function ProtectedRoute({ children, allowedRoles, redirectTo }) {
 
   const userEmail = (user?.email || '').toLowerCase().trim();
   const userRole = normalizeRole(user?.role);
-  const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'patient@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
+  const isDemo = ['doctor@latrocore.com', 'pharmacist@latrocore.com', 'admin@latrocore.com'].includes(userEmail);
 
   // Only doctor and pharmacist require administrative approval
   const requiresApproval = ['doctor', 'pharmacist'].includes(userRole);

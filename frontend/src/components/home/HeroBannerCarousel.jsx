@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePrefersReducedMotion } from '../../hooks/useScrollMotion';
 import {
   ChevronLeft,
   ChevronRight,
@@ -122,10 +123,10 @@ const BANNER_SLIDES = [
     image: bannerImg4,
     buttonText: 'Explore Care Support',
     route: '/overview',
-    hash: '#doctors',
+    hash: '#daily-care-companion',
     badge1: {
       icon: Sparkles,
-      label: 'Clinical AI Companion',
+      label: 'Latro AI Companion',
       value: 'English • தமிழ் • हिन्दी',
       sub: 'Interactive Patient Guidance',
       status: 'emerald',
@@ -149,10 +150,12 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
   const timerRef = useRef(null);
   const carouselRef = useRef(null);
   const navigate = useNavigate();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const activeTilt = prefersReducedMotion ? { x: 0, y: 0 } : tilt;
 
-  // Autoplay timer: 6s
+  // Autoplay timer: 6s (disabled when paused or prefers-reduced-motion)
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || prefersReducedMotion) return;
 
     timerRef.current = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % BANNER_SLIDES.length);
@@ -161,11 +164,11 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isPaused]);
+  }, [isPaused, prefersReducedMotion]);
 
   // Smooth mouse tilt tracking for interactive 3D spatial depth
   const handleMouseMove = (e) => {
-    if (!carouselRef.current) return;
+    if (prefersReducedMotion || !carouselRef.current) return;
     const rect = carouselRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
     const y = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
@@ -211,7 +214,10 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
     }
 
     if (slide.hash && document.querySelector(slide.hash)) {
-      document.querySelector(slide.hash).scrollIntoView({ behavior: 'smooth' });
+      document.querySelector(slide.hash).scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'start',
+      });
       return;
     }
 
@@ -257,7 +263,10 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
           return (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+              aria-hidden={!isActive}
+              className={`absolute inset-0 ${
+                prefersReducedMotion ? 'transition-none' : 'transition-opacity duration-700 ease-in-out'
+              } ${
                 isActive ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
@@ -272,7 +281,7 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                       LATROCORE
                     </span>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/80 border border-[#A8D7BD] text-[9px] font-bold text-[#046A38] shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#046A38] animate-ping" />
+                      <span className={`w-1.5 h-1.5 rounded-full bg-[#046A38] ${!prefersReducedMotion ? 'animate-ping' : ''}`} />
                       <span>3D Telemetry</span>
                     </span>
                   </div>
@@ -290,6 +299,8 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                   {/* Real Clickable CTA Button */}
                   <div className="pt-0.5 sm:pt-1">
                     <button
+                      type="button"
+                      tabIndex={isActive ? undefined : -1}
                       onClick={() => handleSlideAction(slide)}
                       className="inline-flex items-center gap-2 px-5 sm:px-7 py-2 sm:py-2.5 rounded-full bg-[#D84315] hover:bg-[#BF360C] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
                     >
@@ -311,21 +322,25 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                   <div
                     className="relative w-full max-w-[320px] sm:max-w-[360px] md:max-w-[400px] h-[200px] sm:h-[240px] md:h-[280px] flex items-center justify-center preserve-3d"
                     style={{
-                      transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-                      transition: isHovered
+                      transform: prefersReducedMotion
+                        ? 'none'
+                        : `rotateX(${activeTilt.x}deg) rotateY(${activeTilt.y}deg)`,
+                      transition: prefersReducedMotion
+                        ? 'none'
+                        : isHovered
                         ? 'transform 0.12s ease-out'
                         : 'transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)',
                     }}
                   >
                     {/* Layer 1: Ambient Emerald Volumetric Glow (Deepest Z) */}
                     <div
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-radial from-[#046A38]/30 via-[#046A38]/10 to-transparent blur-2xl pointer-events-none animate-glow-pulse"
+                      className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-radial from-[#046A38]/30 via-[#046A38]/10 to-transparent blur-2xl pointer-events-none ${!prefersReducedMotion ? 'animate-glow-pulse' : ''}`}
                       style={{ transform: 'translateZ(-30px)' }}
                     />
 
                     {/* Layer 2: Rotating Concentric Telemetry Radar Ring */}
                     <div
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 h-52 sm:w-64 sm:h-64 rounded-full border border-dashed border-[#A8D7BD]/60 pointer-events-none animate-spin-slow"
+                      className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 h-52 sm:w-64 sm:h-64 rounded-full border border-dashed border-[#A8D7BD]/60 pointer-events-none ${!prefersReducedMotion ? 'animate-spin-slow' : ''}`}
                       style={{ transform: 'translateZ(-15px)' }}
                     >
                       {/* Revolving Orbit Vertex Dot */}
@@ -336,7 +351,9 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                     <div
                       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full bg-gradient-to-br from-[#093322] to-[#046A38] opacity-90 shadow-xl pointer-events-none"
                       style={{
-                        transform: `translateZ(-5px) translateX(${tilt.y * -0.3}px)`,
+                        transform: prefersReducedMotion
+                          ? 'translateZ(-5px)'
+                          : `translateZ(-5px) translateX(${activeTilt.y * -0.3}px)`,
                       }}
                     />
 
@@ -344,7 +361,9 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                     <div
                       className="absolute inset-x-2 bottom-2 sm:bottom-4 h-14 pointer-events-none opacity-85 z-0"
                       style={{
-                        transform: `translateZ(15px) translateY(${tilt.x * -0.4}px)`,
+                        transform: prefersReducedMotion
+                          ? 'translateZ(15px)'
+                          : `translateZ(15px) translateY(${activeTilt.x * -0.4}px)`,
                       }}
                     >
                       <svg viewBox="0 0 300 70" className="w-full h-full fill-none overflow-visible">
@@ -368,14 +387,18 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
 
                     {/* Layer 5: Central Floating 3D Graphic (In front of arch) */}
                     <div
-                      className="relative z-10 flex items-center justify-center animate-float-3d"
+                      className={`relative z-10 flex items-center justify-center ${!prefersReducedMotion ? 'animate-float-3d' : ''}`}
                       style={{
-                        transform: `translateZ(40px) scale(${1 + Math.abs(tilt.x) * 0.005})`,
+                        transform: prefersReducedMotion
+                          ? 'translateZ(40px)'
+                          : `translateZ(40px) scale(${1 + Math.abs(activeTilt.x) * 0.005})`,
                       }}
                     >
                       <img
                         src={slide.image}
                         alt={slide.titleText}
+                        width={1254}
+                        height={1254}
                         className="w-full max-w-[170px] sm:max-w-[210px] md:max-w-[250px] lg:max-w-[280px] h-auto object-contain drop-shadow-[0_18px_25px_rgba(0,0,0,0.25)] transition-transform duration-300 hover:scale-105"
                         loading={idx === 0 ? 'eager' : 'lazy'}
                       />
@@ -384,9 +407,11 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                     {/* Layer 6: Floating 3D Telemetry HUD Card 1 (Top-Left) */}
                     {slide.badge1 && (
                       <div
-                        className="absolute top-1 sm:top-3 left-2 sm:left-4 z-20 flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 sm:py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#E8DCC8] shadow-md transition-transform duration-150 animate-float-3d pointer-events-none whitespace-nowrap"
+                        className={`absolute top-1 sm:top-3 left-2 sm:left-4 z-20 flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 sm:py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#E8DCC8] shadow-md transition-transform duration-150 ${!prefersReducedMotion ? 'animate-float-3d' : ''} pointer-events-none whitespace-nowrap`}
                         style={{
-                          transform: `translateZ(65px) translateX(${tilt.y * 1.2}px) translateY(${tilt.x * 1.2}px)`,
+                          transform: prefersReducedMotion
+                            ? 'translateZ(65px)'
+                            : `translateZ(65px) translateX(${activeTilt.y * 1.2}px) translateY(${activeTilt.x * 1.2}px)`,
                         }}
                       >
                         <div
@@ -406,8 +431,8 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
                                 slide.badge1.status === 'vermilion'
-                                  ? 'bg-[#E34222] animate-ping'
-                                  : 'bg-[#046A38] animate-ping'
+                                  ? `bg-[#E34222] ${!prefersReducedMotion ? 'animate-ping' : ''}`
+                                  : `bg-[#046A38] ${!prefersReducedMotion ? 'animate-ping' : ''}`
                               }`}
                             />
                           </div>
@@ -421,9 +446,11 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
                     {/* Layer 7: Floating 3D Telemetry HUD Card 2 (Bottom-Right) */}
                     {slide.badge2 && (
                       <div
-                        className="absolute bottom-1 sm:bottom-3 right-4 sm:right-8 z-20 flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 sm:py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#E8DCC8] shadow-md transition-transform duration-150 animate-float-3d-reverse pointer-events-none whitespace-nowrap"
+                        className={`absolute bottom-1 sm:bottom-3 right-4 sm:right-8 z-20 flex items-center gap-2 sm:gap-2.5 px-3 py-1.5 sm:py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#E8DCC8] shadow-md transition-transform duration-150 ${!prefersReducedMotion ? 'animate-float-3d-reverse' : ''} pointer-events-none whitespace-nowrap`}
                         style={{
-                          transform: `translateZ(75px) translateX(${tilt.y * -1.3}px) translateY(${tilt.x * -1.3}px)`,
+                          transform: prefersReducedMotion
+                            ? 'translateZ(75px)'
+                            : `translateZ(75px) translateX(${activeTilt.y * -1.3}px) translateY(${activeTilt.x * -1.3}px)`,
                         }}
                       >
                         <div
@@ -454,8 +481,9 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
 
         {/* ── PREVIOUS SLIDE BUTTON ── */}
         <button
+          type="button"
           onClick={handlePrev}
-          className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-slate-800 border border-[#E8DCC8] shadow-md flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
+          className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-slate-800 border border-[#E8DCC8] shadow-md flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
           aria-label="Previous banner slide"
         >
           <ChevronLeft size={20} className="text-[#046A38] stroke-[2.5]" />
@@ -463,8 +491,9 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
 
         {/* ── NEXT SLIDE BUTTON ── */}
         <button
+          type="button"
           onClick={handleNext}
-          className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-slate-800 border border-[#E8DCC8] shadow-md flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
+          className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/90 hover:bg-white text-slate-800 border border-[#E8DCC8] shadow-md flex items-center justify-center opacity-70 sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
           aria-label="Next banner slide"
         >
           <ChevronRight size={20} className="text-[#046A38] stroke-[2.5]" />
@@ -479,6 +508,7 @@ export default function HeroBannerCarousel({ isAuthenticated, onGuidedDemo }) {
           {BANNER_SLIDES.map((slide, idx) => (
             <button
               key={slide.id}
+              type="button"
               onClick={(e) => handleDotClick(idx, e)}
               className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
                 idx === currentIndex

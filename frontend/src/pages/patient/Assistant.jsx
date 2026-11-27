@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../auth/AuthContext';
+import { normalizeRole } from '../../auth/ProtectedRoute';
 import { Modal, Badge } from '../../components/ui';
 import {
-  Bot, Send, Mic, MicOff, Volume2, VolumeX, Globe, MessageSquare, Heart, Phone,
+  Send, Mic, MicOff, Volume2, VolumeX, Globe, MessageSquare, Heart, Phone,
   X, ChevronRight, AlertCircle, Paperclip, Sparkles, CheckCircle2, ShieldCheck,
   FileText, Pill, UploadCloud
 } from 'lucide-react';
@@ -11,6 +13,14 @@ import { getAssistantResponse, getSuggestedQuestions, TOPICS } from '../../servi
 import { addCounsellingRequest, addNotification, addAuditEntry, applyAIPrescriptionToPatient } from '../../services/dataService';
 import { api } from '../../services/api';
 import PrescriptionUploadModal from '../../components/patient/PrescriptionUploadModal';
+import { AIFaceAvatar } from '../../components/FloatingAIAssistant';
+import FormattedAIMessage from '../../components/common/FormattedAIMessage';
+import {
+  getSpeechLocale,
+  resolveSpeechLanguage,
+  speakChatText,
+  stopChatSpeech,
+} from '../../utils/chatSpeech';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', badge: 'EN' },
@@ -23,58 +33,98 @@ const LANGUAGES = [
 
 export default function Assistant() {
   const { currentUser, data, refreshData, addToast } = useApp();
+  const auth = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [lang, setLang] = useState('en');
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const [speechNotice, setSpeechNotice] = useState(null);
   const [showTopics, setShowTopics] = useState(false);
   const [showVoiceSession, setShowVoiceSession] = useState(false);
   const [showCounsellingForm, setShowCounsellingForm] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [isUploadingRx, setIsUploadingRx] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [lastUploadId, setLastUploadId] = useState(null);
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const fileInputRef = useRef(null);
+  const playbackTokenRef = useRef(null);
+  const isMountedRef = useRef(true);
 
-  const patientId = currentUser?.id;
+  useEffect(() => {
+    isMountedRef.current = true;
+    playbackTokenRef.current = 0;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const synth = window.speechSynthesis;
+      const warmVoices = () => synth.getVoices?.();
+      warmVoices();
+      if (typeof synth.addEventListener === 'function') {
+        synth.addEventListener('voiceschanged', warmVoices);
+        return () => {
+          isMountedRef.current = false;
+          synth.removeEventListener('voiceschanged', warmVoices);
+          stopChatSpeech(playbackTokenRef);
+        };
+      }
+    }
+    return () => {
+      isMountedRef.current = false;
+      stopChatSpeech(playbackTokenRef);
+    };
+  }, []);
+
+  const activeUser = auth?.isAuthenticated && auth?.user ? auth.user : currentUser;
+  const isSignedInPatient = Boolean(activeUser && normalizeRole(activeUser.role) === 'patient');
+  const patientId = isSignedInPatient ? activeUser.id : null;
 
   // Active Prescriptions & Medications synced from data
   const activePrescriptions = useMemo(() => {
+    if (!isSignedInPatient || !patientId) return [];
     return (data?.prescriptions || []).filter(p => p.patientId === patientId && p.status === 'active');
-  }, [data?.prescriptions, patientId]);
+  }, [data?.prescriptions, isSignedInPatient, patientId]);
 
   const activeMedicines = useMemo(() => {
+    if (!isSignedInPatient) return [];
     return activePrescriptions.flatMap(rx => rx.medicines || []);
-  }, [activePrescriptions]);
+  }, [activePrescriptions, isSignedInPatient]);
 
   const prescriptionContext = useMemo(() => {
-    if (!activeMedicines || activeMedicines.length === 0) return null;
-    return activeMedicines.map(m =>
-      `- ${m.name} (Dose: ${m.dose || 'unclear'}, Route: ${m.route || 'Oral'}, Frequency: ${m.frequency || 'As prescribed'}, Meal Timing: ${m.foodInstruction || m.meal_timing || 'With meals'})`
-    ).join('\n');
-  }, [activeMedicines]);
+    if (!isSignedInPatient || !activeMedicines || activeMedicines.length === 0) return null;
+    return activeMedicines.map(m => {
+      const times = Array.isArray(m.scheduleTimes) && m.scheduleTimes.length > 0
+        ? m.scheduleTimes.join(', ')
+        : (Array.isArray(m.times) && m.times.length > 0 ? m.times.join(', ') : 'not specified');
+      return `- ${m.name} | Dose: ${m.dose || 'not specified'} | Route: ${m.route || 'not specified'} | Frequency: ${m.frequency || 'not specified'} | Schedule Times: ${times} | Meal Timing: ${m.foodInstruction || m.meal_timing || 'not specified'} | Instructions: ${m.instructions || 'not specified'}`;
+    }).join('\n');
+  }, [activeMedicines, isSignedInPatient]);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   useEffect(() => { scrollToBottom(); }, [messages]);
 
   useEffect(() => {
-    let welcomeText = "Hello! I'm the LATROCORE Clinical AI Assistant. I can help you understand your glucose logs, analyze adverse effects of your prescribed tablets, organize your diet plan, and navigate your care schedule.";
+    let welcomeText = "Hello! I'm Latro AI, your healthcare assistant. I can help you understand general health and medication topics, or explain the instructions and timing on your uploaded prescription.";
     if (activeMedicines.length > 0) {
-      welcomeText += `\n\n📋 Verified Prescription Synced: I have loaded your active regimen (${activeMedicines.map(m => m.name).join(', ')}). All my clinical answers and lifestyle tips are strictly focused on these medicines with zero hallucination.`;
+      welcomeText += `\n\n📋 Verified Prescription Synced: I have loaded your active regimen (${activeMedicines.map(m => m.name).join(', ')}). You can ask about your uploaded medicines or any general health question.`;
     }
-    setMessages([{
-      id: 'welcome',
-      role: 'assistant',
-      lang: 'en',
-      text: welcomeText,
-      time: new Date().toISOString(),
-    }]);
+    setMessages(prev => {
+      if (prev.length === 0 || (prev.length === 1 && String(prev[0].id || '').startsWith('welcome'))) {
+        return [{
+          id: activeMedicines.length > 0 ? 'welcome-synced' : 'welcome',
+          role: 'assistant',
+          lang: 'en',
+          text: welcomeText,
+          time: new Date().toISOString(),
+        }];
+      }
+      return prev;
+    });
     if (searchParams.get('action') === 'counselling') setShowCounsellingForm(true);
-  }, [activeMedicines.length]);
+  }, [activeMedicines]);
 
   // Speech Recognition
   const startListening = useCallback(() => {
@@ -85,7 +135,7 @@ export default function Assistant() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
-    recognition.lang = lang === 'ta' ? 'ta-IN' : lang === 'hi' ? 'hi-IN' : lang === 'ml' ? 'ml-IN' : lang === 'te' ? 'te-IN' : lang === 'kn' ? 'kn-IN' : 'en-IN';
+    recognition.lang = getSpeechLocale(lang);
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
@@ -108,59 +158,91 @@ export default function Assistant() {
   };
 
   // Speech Synthesis
-  const speak = (text, langCode) => {
-    if (!('speechSynthesis' in window)) {
-      addToast({ type: 'info', message: 'Text-to-speech is not available in this browser. The translated text is displayed above.' });
+  const stopSpeaking = () => {
+    stopChatSpeech(playbackTokenRef);
+    setSpeakingMessageId(null);
+  };
+
+  const speak = async (msg) => {
+    const messageObj = typeof msg === 'string' ? { id: 'ad-hoc', text: msg, lang } : msg;
+    if (!messageObj?.text) return;
+
+    if (speakingMessageId === messageObj.id) {
+      stopSpeaking();
       return;
     }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langCode === 'ta' ? 'ta-IN' : langCode === 'hi' ? 'hi-IN' : langCode === 'ml' ? 'ml-IN' : langCode === 'te' ? 'te-IN' : langCode === 'kn' ? 'kn-IN' : 'en-IN';
-    const voices = window.speechSynthesis.getVoices();
-    const match = voices.find(v => v.lang.startsWith(langCode));
-    if (match) utterance.voice = match;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
+
+    setSpeechNotice(null);
+
+    await speakChatText({
+      text: messageObj.text,
+      messageLang: messageObj.lang,
+      uiLang: lang,
+      playbackTokenRef,
+      isStillCurrent: () => isMountedRef.current,
+      onStart: () => {
+        setSpeakingMessageId(messageObj.id);
+      },
+      onEnd: () => {
+        setSpeakingMessageId((curr) => (curr === messageObj.id ? null : curr));
+      },
+      onError: (noticeText) => {
+        setSpeakingMessageId(null);
+        setSpeechNotice(noticeText);
+        addToast({ type: 'info', message: noticeText });
+      },
+      onUnavailable: (noticeText) => {
+        setSpeakingMessageId(null);
+        setSpeechNotice(noticeText);
+        addToast({ type: 'info', message: noticeText });
+      },
+    });
   };
 
-  const stopSpeaking = () => {
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
-  };
-
-  // Send query with full prescription context and strict guardrails
+  // Send query with full prescription context & conversation history
   const handleSend = async (textToSend = null) => {
     const text = (textToSend || input).trim();
     if (!text) return;
-    const userMsg = { id: `u-${Date.now()}`, role: 'user', text, lang, time: new Date().toISOString() };
+    const requestLang = lang;
+
+    const history = messages
+      .filter((m) => !m.isLoading && !String(m.id || '').startsWith('welcome'))
+      .slice(-12)
+      .map((m) => ({ role: m.role, content: m.text }));
+
+    const userMsg = { id: `u-${Date.now()}`, role: 'user', text, lang: requestLang, time: new Date().toISOString() };
     setMessages(prev => [...prev, userMsg]);
     if (!textToSend) setInput('');
 
     const tempLoadingId = `a-loading-${Date.now()}`;
-    const loadingMsg = { id: tempLoadingId, role: 'assistant', text: 'Analyzing clinical guidance with strict prescription guardrails...', isLoading: true, lang, time: new Date().toISOString() };
+    const loadingMsg = { id: tempLoadingId, role: 'assistant', text: 'Analyzing with prescription guardrails...', isLoading: true, lang: requestLang, time: new Date().toISOString() };
     setMessages(prev => [...prev, loadingMsg]);
 
     try {
-      const resData = await api.askAssistant(text, lang, prescriptionContext);
+      const resData = await api.askAssistant(
+        text,
+        requestLang,
+        prescriptionContext,
+        history,
+        lastUploadId ? { upload_id: lastUploadId } : {}
+      );
       const assistantMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: resData.content,
-        lang,
+        lang: resolveSpeechLanguage(resData.content, resData.language || requestLang, requestLang),
         sources: resData.sources,
         modelId: resData.model_id,
         time: new Date().toISOString()
       };
       setMessages(prev => prev.map(m => m.id === tempLoadingId ? assistantMsg : m));
     } catch {
-      const response = getAssistantResponse(text, lang, prescriptionContext, activeMedicines);
+      const response = getAssistantResponse(text, requestLang, prescriptionContext, activeMedicines, history);
       const fallbackMsg = {
         id: `a-${Date.now()}`,
         role: 'assistant',
         text: response.text,
-        lang,
+        lang: resolveSpeechLanguage(response.text, requestLang, requestLang),
         topic: response.topic,
         matched: response.matched,
         time: new Date().toISOString()
@@ -169,13 +251,9 @@ export default function Assistant() {
     }
   };
 
-  // Direct prescription file upload inside AI prompt
-  const handleDirectFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Reset input so user can pick the same file again if desired
-    e.target.value = '';
+  // Direct prescription file upload inside AI prompt (patient-only)
+  const processPrescriptionFile = async (file) => {
+    if (!file || !isSignedInPatient) return;
 
     const userFileMsg = {
       id: `u-file-${Date.now()}`,
@@ -214,6 +292,10 @@ export default function Assistant() {
         return;
       }
 
+      if (result.upload_id) {
+        setLastUploadId(result.upload_id);
+      }
+
       // Automatically apply & sync to patient profile
       applyAIPrescriptionToPatient(patientId, result);
       try {
@@ -228,17 +310,21 @@ export default function Assistant() {
       refreshData();
 
       const medsList = (result.medicines || []).map(m => {
-        const isUnclear = !m.name || m.name.toLowerCase().includes('unclear') || !m.dose || String(m.dose).toLowerCase().includes('unclear');
-        return `• **${m.name || 'unclear'}** — ${m.dose || 'dose unclear'} (${m.frequency || 'frequency unclear'}, ${m.meal_timing || m.instructions || 'With meals'})${isUnclear ? ' ⚠️ [Unclear handwriting flagged]' : ''}`;
+        const nameStr = m.name || 'unclear';
+        const doseStr = m.dose || 'not specified';
+        const freqStr = m.frequency || 'not specified';
+        const timingStr = m.meal_timing || m.instructions || 'timing not specified';
+        const isUnclear = nameStr.toLowerCase().includes('unclear') || String(doseStr).toLowerCase().includes('unclear');
+        return `• **${nameStr}** — ${doseStr} (${freqStr}, ${timingStr})${isUnclear ? ' ⚠️ [Unclear handwriting flagged]' : ''}`;
       }).join('\n');
 
       const responseText = `✅ **Prescription Successfully Synchronized!**\n\n` +
-        `**Doctor:** ${result.doctor_name || 'Attending Physician'}\n` +
-        `**Clinic:** ${result.clinic_name || 'Clinical Care Station'}\n` +
-        `**Diagnosis:** ${result.diagnosis || 'Type 2 Diabetes Mellitus'}\n\n` +
+        `**Doctor:** ${result.doctor_name || 'not specified'}\n` +
+        `**Clinic:** ${result.clinic_name || 'not specified'}\n` +
+        `**Diagnosis:** ${result.diagnosis || 'not specified'}\n\n` +
         `**Detected Medications:**\n${medsList}\n\n` +
-        `**Dietary Strategy:**\n${result.diet_plan?.summary || result.diet_plan?.strategy || 'Low glycemic index, balanced meal timing'}\n\n` +
-        `🔒 **Strict AI Guardrails Active:** My clinical responses, adverse effect analyses, and routine tips are now locked strictly to these detected medications. I will not suggest or hallucinate any outside pharmaceuticals. If any medicine or dose was illegible, it is marked as 'unclear' for safety rather than guessed.`;
+        `**Dietary Strategy:**\n${result.diet_plan?.summary || result.diet_plan?.strategy || 'not specified'}\n\n` +
+        `🔒 **Strict AI Guardrails Active:** My prescription explanations are anchored to these detected medications without guessing missing fields, and you can also ask any general health or medicine question.`;
 
       const successMsg = {
         id: `a-${Date.now()}`,
@@ -248,7 +334,7 @@ export default function Assistant() {
         time: new Date().toISOString()
       };
       setMessages(prev => prev.map(m => m.id === tempLoadingId ? successMsg : m));
-      addToast({ type: 'success', message: 'Prescription synchronized with AI Assistant' });
+      addToast({ type: 'success', message: 'Prescription synchronized with Latro AI' });
     } catch (err) {
       const isThrottled = err?.message && (err.message.includes('503') || err.message.toLowerCase().includes('peak demand') || err.message.toLowerCase().includes('high demand') || err.message.toLowerCase().includes('throttled'));
       const friendlyDetail = isThrottled
@@ -266,6 +352,49 @@ export default function Assistant() {
     } finally {
       setIsUploadingRx(false);
     }
+  };
+
+  const handleDirectFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !isSignedInPatient) return;
+    await processPrescriptionFile(file);
+  };
+
+  const handleDragOver = (e) => {
+    if (!isSignedInPatient) return;
+    const hasFiles = Array.from(e.dataTransfer?.types || []).includes('Files');
+    if (!hasFiles) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingFile) setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = (e) => {
+    if (!isSignedInPatient) return;
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDraggingFile(false);
+    }
+  };
+
+  const handleDrop = async (e) => {
+    if (!isSignedInPatient) return;
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+    await processPrescriptionFile(file);
+  };
+
+  const handlePaste = async (e) => {
+    if (!isSignedInPatient) return;
+    const items = Array.from(e.clipboardData?.items || []);
+    const fileItem = items.find((item) => item.kind === 'file');
+    const file = fileItem ? fileItem.getAsFile() : e.clipboardData?.files?.[0];
+    if (!file) return;
+    e.preventDefault();
+    await processPrescriptionFile(file);
   };
 
   const handleSuggestedQuestion = (q) => {
@@ -289,12 +418,12 @@ export default function Assistant() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-            <Bot size={22} className="text-purple-700" />
+          <div className="shrink-0 flex items-center justify-center">
+            <AIFaceAvatar size={42} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black text-slate-950">Clinical AI Assistant</h1>
+              <h1 className="text-lg font-black text-slate-950">Latro AI</h1>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
                 Gemini Powered
               </span>
@@ -370,7 +499,13 @@ export default function Assistant() {
       )}
 
       {/* Chat Area */}
-      <div className="flex-1 card overflow-hidden flex flex-col border-2 border-slate-200">
+      <div
+        className={`flex-1 card overflow-hidden flex flex-col border-2 ${isSignedInPatient && isDraggingFile ? 'border-emerald-500 ring-2 ring-emerald-400/40' : 'border-slate-200'}`}
+        onDragOver={isSignedInPatient ? handleDragOver : undefined}
+        onDragLeave={isSignedInPatient ? handleDragLeave : undefined}
+        onDrop={isSignedInPatient ? handleDrop : undefined}
+        onPaste={isSignedInPatient ? handlePaste : undefined}
+      >
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/60">
           {messages.map(msg => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -381,8 +516,8 @@ export default function Assistant() {
               }`}>
                 {msg.role === 'assistant' && (
                   <div className="flex items-center gap-2 mb-1.5 pb-1 border-b border-slate-100">
-                    <Bot size={15} className="text-purple-700" />
-                    <span className="text-xs font-black text-purple-900 uppercase tracking-wider">Clinical AI</span>
+                    <AIFaceAvatar size={22} />
+                    <span className="text-xs font-black text-[#046A38] uppercase tracking-wider">Latro AI</span>
                     {activeMedicines.length > 0 && (
                       <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded-full border border-emerald-300 ml-auto">
                         Rx Guardrail Active
@@ -403,20 +538,40 @@ export default function Assistant() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    {msg.role === 'assistant' ? (
+                      <FormattedAIMessage text={msg.text} className="text-sm font-medium" />
+                    ) : (
+                      <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    )}
                     <div className="flex items-center justify-between mt-2.5 pt-1 border-t border-slate-100/60 text-[11px] font-semibold">
                       <span className={msg.role === 'user' ? 'text-teal-200' : 'text-slate-600'}>
                         {new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      {msg.role === 'assistant' && (
-                        <button
-                          onClick={() => speak(msg.text, msg.lang || lang)}
-                          className="p-1 rounded hover:bg-slate-100 text-slate-700 hover:text-slate-950 cursor-pointer"
-                          title="Read aloud"
-                        >
-                          {isSpeaking ? <VolumeX size={15} onClick={(e) => { e.stopPropagation(); stopSpeaking(); }} /> : <Volume2 size={15} />}
-                        </button>
-                      )}
+                      {msg.role === 'assistant' && (() => {
+                        const isMsgSpeaking = speakingMessageId === msg.id;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => speak(msg)}
+                            className="p-1 rounded hover:bg-slate-100 text-slate-700 hover:text-slate-950 cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                            title={isMsgSpeaking ? 'Stop audio' : 'Read aloud'}
+                            aria-label={isMsgSpeaking ? 'Stop reading message aloud' : 'Read message aloud'}
+                            aria-pressed={isMsgSpeaking}
+                          >
+                            {isMsgSpeaking ? (
+                              <>
+                                <VolumeX size={15} />
+                                <span>Mute</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 size={15} />
+                                <span>Listen</span>
+                              </>
+                            )}
+                          </button>
+                        );
+                      })()}
                     </div>
                   </>
                 )}
@@ -425,6 +580,24 @@ export default function Assistant() {
           ))}
           <div ref={messagesEndRef} />
         </div>
+
+        {speechNotice && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="bg-amber-50 border-t border-amber-200 px-4 py-2 flex items-center justify-between gap-2 text-xs font-medium text-amber-950"
+          >
+            <span>{speechNotice}</span>
+            <button
+              type="button"
+              onClick={() => setSpeechNotice(null)}
+              className="text-amber-800 hover:text-amber-950 p-0.5 rounded shrink-0 cursor-pointer"
+              aria-label="Dismiss audio notice"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Suggested Clinical Questions */}
         {messages.length <= 2 && (
@@ -444,29 +617,40 @@ export default function Assistant() {
           </div>
         )}
 
-        {/* Input Bar with Direct Prescription Upload Button */}
+        {/* Input Bar with Patient-Only Prescription Upload */}
         <div className="border-t-2 border-slate-200 p-3 sm:p-4 bg-white">
-          {/* Hidden file input for direct prescription upload */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleDirectFileUpload}
-            accept="image/png,image/jpeg,image/webp,application/pdf"
-            className="hidden"
-          />
+          {isSignedInPatient && isDraggingFile && (
+            <div className="mb-2 rounded-xl bg-emerald-50 border border-emerald-300 px-3 py-1.5 text-center text-xs font-bold text-emerald-800">
+              Drop your prescription photo or PDF here to analyze
+            </div>
+          )}
+
+          {/* Hidden file input for direct prescription upload (patient-only) */}
+          {isSignedInPatient && (
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleDirectFileUpload}
+              accept="image/png,image/jpeg,image/webp,application/pdf"
+              className="hidden"
+            />
+          )}
 
           <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
-            {/* Direct Upload Button */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingRx}
-              className="p-2.5 rounded-xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-all cursor-pointer flex items-center gap-1"
-              title="Directly upload prescription photo or PDF into AI"
-            >
-              <Paperclip size={18} />
-              <span className="hidden md:inline text-xs font-extrabold">Upload Rx</span>
-            </button>
+            {/* Direct Upload Button (patient-only) */}
+            {isSignedInPatient && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingRx}
+                className="p-2.5 rounded-xl border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-all cursor-pointer flex items-center gap-1"
+                title="Directly upload prescription photo or PDF into AI"
+                aria-label="Upload prescription"
+              >
+                <Paperclip size={18} />
+                <span className="hidden md:inline text-xs font-extrabold">Upload Rx</span>
+              </button>
+            )}
 
             {/* Mic Button */}
             <button
@@ -487,12 +671,13 @@ export default function Assistant() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={isSignedInPatient ? handlePaste : undefined}
               placeholder={
                 isListening
                   ? 'Listening... Speak clearly into your mic'
                   : activeMedicines.length > 0
-                  ? 'Ask about side effects, meal timings, or diet for your prescribed medicines...'
-                  : 'Ask about glucose logs, dosages, diet, or upload your prescription...'
+                  ? 'Ask about your prescription or any general health or medication question...'
+                  : 'Ask about medications, health topics, or upload your prescription...'
               }
               className="input flex-1 text-sm font-semibold text-slate-950 placeholder:text-slate-500"
             />

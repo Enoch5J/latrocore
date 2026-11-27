@@ -32,10 +32,12 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
     
     # Cookies
-    COOKIE_NAME: str = os.getenv("COOKIE_NAME", "__Host-refresh")
+    # Note: Path=/auth works with __Secure- prefix or standard cookie names without Domain attribute.
+    # (RFC 6265bis forbids Path != '/' when using the '__Host-' prefix.)
+    COOKIE_NAME: str = os.getenv("COOKIE_NAME", "__Secure-refresh")
     COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "true").lower() in ("true", "1", "yes")
-    COOKIE_SAMESITE: str = os.getenv("COOKIE_SAMESITE", "none" if os.getenv("ENVIRONMENT") == "production" else "strict")
-    COOKIE_PATH: str = "/"
+    COOKIE_SAMESITE: str = os.getenv("COOKIE_SAMESITE", "strict")
+    COOKIE_PATH: str = os.getenv("COOKIE_PATH", "/auth")
     
     # CORS & CSRF
     ALLOWED_ORIGINS: List[str] = [
@@ -52,6 +54,7 @@ class Settings(BaseSettings):
         "ALLOW_ORIGIN_REGEX",
         r"^https:\/\/.*\.vercel\.app$|^https:\/\/.*\.railway\.app$|^https:\/\/.*\.onrender\.com$"
     )
+    ALLOW_MISSING_ORIGIN: bool = os.getenv("ALLOW_MISSING_ORIGIN", "true").lower() in ("true", "1", "yes")
     CSRF_HEADER_NAME: str = "x-requested-with"
     CSRF_HEADER_VALUE: str = "xmlhttprequest"
     

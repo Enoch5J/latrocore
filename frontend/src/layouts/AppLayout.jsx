@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { normalizeRole } from '../auth/ProtectedRoute';
 import { Avatar } from '../components/ui';
+import UserProfileDropdown from '../components/common/UserProfileDropdown';
+import { getRoleDisplayLabel, getUserInitial } from '../utils/userProfile';
 import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
-  Bot, Heart, Users, Settings, AlertTriangle, ChevronDown, ChevronRight,
+  Bot, Heart, Users, Settings, AlertTriangle, ChevronRight,
   Home, BarChart3, ClipboardCheck, Package, ShieldAlert
 } from 'lucide-react';
 
@@ -54,13 +56,33 @@ export const ROLE_NAV = {
 
 ROLE_NAV.care_team = ROLE_NAV.pharmacist;
 
+function getBrowserAlertsEnabled() {
+  return typeof window !== 'undefined'
+    && 'Notification' in window
+    && window.Notification.permission === 'granted';
+}
+
+function subscribeToBrowserAlertPermission(onChange) {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('latrocore:notification-permission-changed', onChange);
+  return () => window.removeEventListener(
+    'latrocore:notification-permission-changed',
+    onChange
+  );
+}
+
 export default function AppLayout() {
   const { currentUser, data, setUser, addToast } = useApp();
   const { user: authUser, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const browserAlertsEnabled = useSyncExternalStore(
+    subscribeToBrowserAlertPermission,
+    getBrowserAlertsEnabled,
+    () => false
+  );
+  const notifiedDoseIds = useRef(new Set());
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -122,18 +144,63 @@ export default function AppLayout() {
     ),
   } : null;
 
+  const effectiveRole = (activeUser?.role === 'care_team' || activeUser?.role === 'pharmacist')
+    ? 'pharmacist'
+    : activeUser?.role;
+  const navItems = ROLE_NAV[effectiveRole] || ROLE_NAV[activeUser?.role] || [];
+  const notifications = data?.notifications?.filter(n => n.userId === activeUser?.id) || [];
+  const unreadCount = notifications.filter(n => !n.read).length;
+  const isPharmacist = activeUser?.role === 'pharmacist' || activeUser?.role === 'care_team';
+  const roleName = isPharmacist ? 'Pharmacist / Pharm D' : getRoleDisplayLabel(activeUser?.role);
+  const switchableUsers = Object.values(data?.users || {}).filter(
+    u => ['pat-001', 'doc-001', 'pharm-001', 'admin-001'].includes(u.id)
+  );
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined'
+      || !('Notification' in window)
+      || !browserAlertsEnabled
+      || !activeUser?.id
+    ) return undefined;
+
+    const timers = [];
+    const now = new Date();
+    const today = now.toDateString();
+    const pendingDoses = (data?.doseEvents || []).filter((dose) =>
+      dose.patientId === activeUser.id
+        && dose.status === 'pending'
+        && new Date(dose.scheduledTime).toDateString() === today
+    );
+
+    pendingDoses.forEach((dose) => {
+      if (notifiedDoseIds.current.has(dose.id)) return;
+      const delayUntilDose = new Date(dose.scheduledTime).getTime() - now.getTime();
+      const sendReminder = () => {
+        if (
+          notifiedDoseIds.current.has(dose.id)
+          || window.Notification.permission !== 'granted'
+        ) return;
+        notifiedDoseIds.current.add(dose.id);
+        new window.Notification('Medication reminder', {
+          body: 'A scheduled dose is due. Open LATROCORE to view your medicine schedule.',
+          tag: `dose-${dose.id}`,
+        });
+      };
+
+      if (delayUntilDose > 0) {
+        timers.push(window.setTimeout(sendReminder, delayUntilDose));
+      } else if (delayUntilDose >= -15 * 60 * 1000) {
+        sendReminder();
+      }
+    });
+
+    return () => timers.forEach(window.clearTimeout);
+  }, [activeUser?.id, browserAlertsEnabled, data?.doseEvents]);
+
   if (!activeUser) {
     return <Navigate to="/login" replace />;
   }
-
-  const effectiveRole = (activeUser.role === 'care_team' || activeUser.role === 'pharmacist')
-    ? 'pharmacist'
-    : activeUser.role;
-  const navItems = ROLE_NAV[effectiveRole] || ROLE_NAV[activeUser.role] || [];
-  const notifications = data?.notifications?.filter(n => n.userId === activeUser.id) || [];
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const isPharmacist = activeUser.role === 'pharmacist' || activeUser.role === 'care_team';
-  const roleName = isPharmacist ? 'Pharmacist / Pharm D' : activeUser.role.charAt(0).toUpperCase() + activeUser.role.slice(1);
 
   const handleRoleSwitch = (userId) => {
     const user = data?.users?.[userId];
@@ -147,7 +214,6 @@ export default function AppLayout() {
         admin: '/admin/dashboard',
       };
       navigate(defaultRoutes[user.role] || '/');
-      setProfileMenuOpen(false);
       setMobileMenuOpen(false);
       addToast({ type: 'info', message: `Switched to ${user.name} (${user.role})` });
     }
@@ -162,7 +228,6 @@ export default function AppLayout() {
     } catch (err) {
       console.warn('Sign out completed with notice:', err);
     } finally {
-      setProfileMenuOpen(false);
       setMobileMenuOpen(false);
       navigate('/', { replace: true });
     }
@@ -173,7 +238,7 @@ export default function AppLayout() {
     path: '/' + arr.slice(0, i + 1).join('/'),
   }));
 
-  const SidebarContent = ({ onNavigate, forceExpand = false }) => {
+  const SidebarContent = ({ onNavigate, forceExpand = false, showAccountLinks = true }) => {
     const showText = forceExpand || sidebarOpen;
     return (
       <nav className="flex-1 py-4 space-y-1.5 px-3 overflow-y-auto">
@@ -227,6 +292,32 @@ export default function AppLayout() {
             </NavLink>
           );
         })}
+        {showAccountLinks && (
+          <>
+            <div className="my-3 border-t border-[#E8DCC8]" />
+            {[
+              { to: '/profile', icon: User, label: 'Profile' },
+              { to: '/settings', icon: Settings, label: 'Settings' },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.to;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={onNavigate}
+                  title={!showText ? item.label : undefined}
+                  className={`flex items-center gap-3.5 px-3.5 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                    isActive ? 'bg-[#046A38] text-white shadow-xs' : 'text-slate-800 hover:bg-[#E8F5EE] hover:text-[#046A38]'
+                  }`}
+                >
+                  <Icon size={20} className="shrink-0" />
+                  {showText && <span className="truncate text-sm font-bold">{item.label}</span>}
+                </NavLink>
+              );
+            })}
+          </>
+        )}
       </nav>
     );
   };
@@ -288,7 +379,9 @@ export default function AppLayout() {
 
             {/* Mobile User Card */}
             <div className="p-4 border-b-2 border-[#E8DCC8] bg-[#FAF6EF] flex items-center gap-3">
-              <Avatar user={activeUser} size="md" />
+              <div className="w-10 h-10 rounded-xl bg-[#046A38] text-white font-bold text-sm flex items-center justify-center shrink-0">
+                {getUserInitial(activeUser)}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-slate-950 text-sm truncate">{activeUser.name}</p>
                 <p className="text-xs font-bold text-[#046A38]">{roleName}</p>
@@ -296,31 +389,53 @@ export default function AppLayout() {
             </div>
 
             {/* Navigation links - forceExpand={true} ensures text labels are always visible in drawer */}
-            <SidebarContent onNavigate={() => setMobileMenuOpen(false)} forceExpand={true} />
+            <SidebarContent onNavigate={() => setMobileMenuOpen(false)} forceExpand={true} showAccountLinks={false} />
 
-            {/* Mobile Role Switcher */}
-            <div className="p-4 border-t-2 border-[#E8DCC8] bg-[#FAF6EF]/80">
-              <p className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider mb-2">Switch Active Role</p>
-              <div className="grid grid-cols-2 gap-1.5 mb-3">
-                {Object.values(data?.users || {}).filter(u => ['pat-001', 'doc-001', 'pharm-001', 'admin-001'].includes(u.id)).map(u => (
-                  <button
-                    key={u.id}
-                    onClick={() => handleRoleSwitch(u.id)}
-                    className={`flex items-center gap-2 p-2 rounded-lg text-xs font-bold border text-left cursor-pointer transition-all ${
-                      u.id === activeUser.id ? 'bg-[#046A38] text-white border-[#03542C]' : 'bg-white text-slate-900 border-[#E8DCC8] hover:bg-[#E8F5EE]'
-                    }`}
-                  >
-                    <Avatar user={u} size="xs" />
-                    <span className="truncate">{u.role.toUpperCase()}</span>
-                  </button>
-                ))}
+            {/* Mobile Account Actions */}
+            <div className="p-4 border-t-2 border-[#E8DCC8] bg-[#FAF6EF]/80 space-y-2">
+              {switchableUsers.length > 0 && (
+                <>
+                  <p className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider mb-2">Switch Active Role</p>
+                  <div className="grid grid-cols-2 gap-1.5 mb-3">
+                    {switchableUsers.map(u => (
+                      <button
+                        key={u.id}
+                        onClick={() => handleRoleSwitch(u.id)}
+                        className={`flex items-center gap-2 p-2 rounded-lg text-xs font-bold border text-left cursor-pointer transition-all ${
+                          u.id === activeUser.id ? 'bg-[#046A38] text-white border-[#03542C]' : 'bg-white text-slate-900 border-[#E8DCC8] hover:bg-[#E8F5EE]'
+                        }`}
+                      >
+                        <Avatar user={u} size="xs" />
+                        <span className="truncate">{u.role.toUpperCase()}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setMobileMenuOpen(false); navigate('/profile'); }}
+                  className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-[#112228] bg-white border border-[#E8DCC8] rounded-lg hover:bg-[#E8F5EE] cursor-pointer"
+                >
+                  <User size={14} />
+                  <span>My Profile</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMobileMenuOpen(false); navigate('/settings'); }}
+                  className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-[#112228] bg-white border border-[#E8DCC8] rounded-lg hover:bg-[#E8F5EE] cursor-pointer"
+                >
+                  <Settings size={14} />
+                  <span>Settings</span>
+                </button>
               </div>
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 cursor-pointer"
               >
                 <LogOut size={14} />
-                <span>Sign Out</span>
+                <span>Log Out</span>
               </button>
             </div>
           </div>
@@ -358,7 +473,7 @@ export default function AppLayout() {
           {/* Notifications Trigger */}
           <div className="relative">
             <button
-              onClick={() => { setNotifOpen(!notifOpen); setProfileMenuOpen(false); }}
+              onClick={() => setNotifOpen(!notifOpen)}
               className="relative p-2 rounded-xl hover:bg-[#FAF6EF] text-slate-800 border border-[#E8DCC8] transition-colors cursor-pointer"
               aria-label="Notifications"
             >
@@ -401,63 +516,19 @@ export default function AppLayout() {
             )}
           </div>
 
-          {/* Profile Trigger */}
-          <div className="relative">
-            <button
-              onClick={() => { setProfileMenuOpen(!profileMenuOpen); setNotifOpen(false); }}
-              className="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-1.5 rounded-xl hover:bg-[#FAF6EF] border border-[#E8DCC8] transition-colors cursor-pointer"
-            >
-              <Avatar user={activeUser} size="sm" />
-              <div className="hidden sm:block text-left">
-                <p className="text-sm font-bold text-slate-950 leading-tight truncate max-w-[130px]">{activeUser.name}</p>
-                <p className="text-[11px] font-bold text-[#046A38] uppercase tracking-wide">{roleName}</p>
-              </div>
-              <ChevronDown size={14} className="text-slate-700 hidden sm:block" />
-            </button>
-            {profileMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border-2 border-[#E8DCC8] z-50 animate-fade-in">
-                <div className="p-4 border-b border-[#E8DCC8] bg-[#FAF6EF]/70 rounded-t-2xl">
-                  <div className="flex items-center gap-3">
-                    <Avatar user={activeUser} size="md" />
-                    <div className="min-w-0">
-                      <p className="font-extrabold text-sm text-slate-950 truncate">{activeUser.name}</p>
-                      <p className="text-xs font-semibold text-slate-700 truncate">{activeUser.email}</p>
-                      <span className="badge-primary mt-1.5">{roleName}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-2">
-                  <p className="px-3 py-1.5 text-[11px] font-black text-slate-800 uppercase tracking-wider">Switch Active Role</p>
-                  {Object.values(data?.users || {}).filter(u => ['pat-001', 'doc-001', 'pharm-001', 'admin-001'].includes(u.id) && u.id !== activeUser.id).map(u => (
-                    <button
-                      key={u.id}
-                      onClick={() => handleRoleSwitch(u.id)}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left hover:bg-slate-100 rounded-xl cursor-pointer transition-colors"
-                    >
-                      <Avatar user={u} size="xs" />
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-950 text-xs truncate">{u.name}</p>
-                        <p className="text-[10px] font-semibold text-slate-700 capitalize">{u.role}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <div className="p-2 border-t border-slate-200">
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-50 rounded-xl cursor-pointer transition-colors"
-                  >
-                    <LogOut size={16} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Profile Trigger & Dropdown */}
+          <UserProfileDropdown
+            user={activeUser}
+            compactMobile={true}
+            onMenuOpen={() => setNotifOpen(false)}
+            onLogout={handleSignOut}
+          />
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 overflow-x-hidden">
+        <main className={`flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 overflow-x-hidden ${
+          location.pathname.startsWith('/patient') ? 'patient-portal-content' : ''
+        }`}>
           <Outlet />
         </main>
       </div>

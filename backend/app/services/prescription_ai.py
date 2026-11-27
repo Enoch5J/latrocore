@@ -1,5 +1,5 @@
 """
-LATROCORE Clinical AI — Prescription Digitizer & Clinical Plan Generation Engine.
+Latro AI — Prescription Digitizer & Clinical Plan Generation Engine.
 Interfaces directly with Google Gemini Generative AI (multimodal vision + structured JSON).
 STRICT CLINICAL RULES:
 - Mandatory Document Validation Gate: Rejects non-prescriptions (device photos, icons, clipart, random images).
@@ -41,7 +41,7 @@ def _get_api_key() -> str:
     return key
 
 
-SYSTEM_PROMPT = """You are LATROCORE Clinical AI, an expert medical auditor and prescription digitizer following ADA (American Diabetes Association) and WHO guidelines.
+SYSTEM_PROMPT = """You are Latro AI, an expert medical auditor and prescription digitizer following ADA (American Diabetes Association) and WHO guidelines.
 Your role is to inspect the provided input (image, PDF, or text) and determine with clinical certainty if it is an authentic doctor's prescription.
 
 STEP 1: STRICT PRESCRIPTION VALIDITY AUDIT (MANDATORY GATE)
@@ -61,8 +61,9 @@ If the image is a medical device, equipment icon, illustration, or non-prescript
 
 STRICT MEDICINE EXTRACTION & GUARDRAILS:
 - Strictly process and extract ONLY the medicines explicitly written in the prescription document. Do NOT hallucinate, guess, or suggest unrelated medicines.
-- If any medicine name, dosage, frequency, or instruction is unreadable, smudged, cut off, or unclear, set that specific field to 'unclear' (e.g. name: 'unclear' or dose: 'unclear') rather than guessing.
-- Never guess or approximate unreadable handwriting. Safe medicine practice requires stating 'unclear' rather than guessing.
+- If any medicine name, dosage, frequency, timing, or instruction is unreadable, smudged, cut off, or unclear, set that specific field to 'unclear' (e.g. name: 'unclear' or dose: 'unclear' or meal_timing: 'unclear') rather than guessing.
+- If a detail (such as dose, route, frequency, schedule_times, meal_timing, or instructions) is simply omitted / not written on the prescription, set that field to 'not specified' (and set schedule_times to []) rather than inventing a default like "With meals" or "08:00 AM".
+- Never guess or approximate unreadable handwriting or missing timings. Safe medicine practice requires stating 'unclear' or 'not specified' rather than guessing.
 
 IF THE INPUT IS NOT A VALID PRESCRIPTION:
 Return pure JSON matching:
@@ -89,8 +90,8 @@ Return pure JSON matching:
   "doctor_name": string | null,
   "clinic_name": string | null,
   "patient_name": string | null,
-  "diagnosis": string,
-  "prescription_date": string,
+  "diagnosis": string | null,
+  "prescription_date": string | null,
   "medicines": [
     {
       "name": string,
@@ -128,7 +129,7 @@ Return pure JSON matching:
 }
 
 CLINICAL DIET & SCHEDULE SYNTHESIS:
-While doctors' paper prescription slips do not print full dietary charts, you ARE REQUIRED for authentic prescriptions to synthesize an evidence-based ADA diabetes meal plan ('diet_plan') with carb targets and a 4-part daily medication schedule ('daily_schedule') matching the prescribed medicines and diagnosis. DO NOT leave diet_plan or daily_schedule null.
+While doctors' paper prescription slips do not print full dietary charts, you ARE REQUIRED for authentic prescriptions to synthesize an evidence-based ADA diabetes meal plan ('diet_plan') with carb targets and a 4-part daily schedule summary ('daily_schedule') reflecting ONLY the timings explicitly stated for the prescribed medicines (if a medicine's timing is missing or unclear, mark it as needing verification with the pharmacist or prescriber). DO NOT leave diet_plan or daily_schedule null, and DO NOT invent missing timing inside the 'medicines' array.
 
 DO NOT RETURN ANY MARKDOWN BACKTICKS, INTRODUCTIONS, OR EXPLANATIONS. OUTPUT PURE JSON ONLY."""
 
@@ -212,19 +213,25 @@ def _ensure_clinical_diet_and_schedule(parsed_json: Dict[str, Any]) -> Dict[str,
             freq = (m.get("frequency") or "").lower()
             timing = (m.get("meal_timing") or "").lower()
 
-            if "twice" in freq or "bid" in freq:
-                morning_meds.append(f"{med_str} ({timing or 'with breakfast'})")
-                evening_meds.append(f"{med_str} ({timing or 'with dinner'})")
+            if (not freq or freq in ("unclear", "not specified")) and (not timing or timing in ("unclear", "not specified")):
+                continue
+            elif "twice" in freq or "bid" in freq:
+                timing_label = f" ({timing})" if timing and timing not in ("unclear", "not specified") else ""
+                morning_meds.append(f"{med_str}{timing_label}")
+                evening_meds.append(f"{med_str}{timing_label}")
             elif "three" in freq or "tid" in freq:
                 morning_meds.append(f"{med_str} (morning)")
                 afternoon_meds.append(f"{med_str} (afternoon)")
                 evening_meds.append(f"{med_str} (night)")
             elif "night" in freq or "bed" in freq or "hs" in freq:
-                bedtime_meds.append(f"{med_str} ({timing or 'at bedtime'})")
+                timing_label = timing if timing and timing not in ("unclear", "not specified") else "at bedtime"
+                bedtime_meds.append(f"{med_str} ({timing_label})")
             elif "afternoon" in freq or "lunch" in freq:
-                afternoon_meds.append(f"{med_str} ({timing or 'with lunch'})")
-            else:
-                morning_meds.append(f"{med_str} ({timing or 'morning'})")
+                timing_label = timing if timing and timing not in ("unclear", "not specified") else "with lunch"
+                afternoon_meds.append(f"{med_str} ({timing_label})")
+            elif "morning" in freq or "breakfast" in freq:
+                timing_label = timing if timing and timing not in ("unclear", "not specified") else "morning"
+                morning_meds.append(f"{med_str} ({timing_label})")
 
         parsed_json["daily_schedule"] = {
             "morning": "08:00 AM: Breakfast + " + (", ".join(morning_meds) if morning_meds else "Morning blood glucose check"),

@@ -1,128 +1,262 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  AUTH_LOGOUT_EVENT,
+  AUTH_NETWORK_ERROR_EVENT,
   authClient,
+  beginSession,
+  cancelPendingRetries,
+  endSession,
+  getAccessToken,
+  getIsLoggingOut,
+  getSessionEpoch,
+  isAuthRejectionError,
+  performSilentRefresh,
+  registerRefreshNetworkErrorHandler,
+  registerSessionExpiredHandler,
   setAccessToken,
   setLoggingOutFlag,
-  registerSessionExpiredHandler
 } from '../lib/axios';
-import { setToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
+export function clearLegacyTokenArtifacts() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem('latrocore_token');
+  localStorage.removeItem('latrocore_user');
+}
+
+export function getInitialAuthLoading() {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem('hasSession') === 'true';
+}
+
+export async function restoreAuthSessionFlow({
+  setLoading,
+  setUser,
+  setSessionExpired,
+  setRefreshError,
+}) {
+  clearLegacyTokenArtifacts();
+  const hasSession = getInitialAuthLoading();
+
+  if (!hasSession) {
+    setAccessToken(null);
+    setUser?.(null);
+    setRefreshError?.(null);
+    setLoading?.(false);
+    return false;
+  }
+
+  setLoading?.(true);
+  setRefreshError?.(null);
+  const epochAtStart = getSessionEpoch();
+
+  try {
+    const data = await performSilentRefresh();
+    const token = data?.accessToken || data?.access_token;
+    const userData = data?.user;
+
+    if (!token || getIsLoggingOut() || getSessionEpoch() !== epochAtStart) {
+      return false;
+    }
+
+    setAccessToken(token);
+    setUser?.(userData);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('hasSession', 'true');
+    }
+    setRefreshError?.(null);
+    return true;
+  } catch (err) {
+    if (getIsLoggingOut() || getSessionEpoch() !== epochAtStart) {
+      return false;
+    }
+
+    if (isAuthRejectionError(err)) {
+      endSession('Startup refresh unauthorized');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('hasSession');
+      }
+      setUser?.(null);
+      setSessionExpired?.(true);
+      setRefreshError?.(null);
+    } else {
+      // Network outage / timeout / 5xx: preserve hasSession and expose recoverable retry state
+      setRefreshError?.(
+        err?.response?.status >= 500
+          ? 'Authentication server is temporarily unavailable. Please retry.'
+          : 'Unable to reach the server to restore your session. Please retry.'
+      );
+    }
+    return false;
+  } finally {
+    setLoading?.(false);
+  }
+}
+
+export async function performServerLogoutFlow({ setLogoutError }) {
+  setLogoutError?.(null);
+  try {
+    await authClient.post('/auth/logout');
+    return true;
+  } catch (err) {
+    const errorMsg =
+      err?.response?.data?.detail ||
+      'Could not confirm server sign-out. Please retry to revoke your server session.';
+    setLogoutError?.(errorMsg);
+    return false;
+  }
+}
+
+export async function loginAuthSessionFlow(
+  identifier,
+  password,
+  { setUser, setSessionExpired, setRefreshError, setLogoutError }
+) {
+  setSessionExpired?.(false);
+  setRefreshError?.(null);
+  setLogoutError?.(null);
+  clearLegacyTokenArtifacts();
+
+  const cleanId = (identifier || '').trim();
+  const response = await authClient.post('/auth/login', {
+    identifier: cleanId,
+    email: cleanId,
+    password,
+  });
+  const accessToken = response.data?.accessToken || response.data?.access_token;
+  const userData = response.data?.user;
+
+  // Secure token storage: strictly in memory under a fresh session epoch
+  beginSession(accessToken);
+  setUser?.(userData);
+
+  // Non-sensitive flag only
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('hasSession', 'true');
+  }
+
+  return userData;
+}
+
+export async function logoutAuthSessionFlow({ setUser, setRefreshError, setLogoutError }) {
+  // Immediately block protected UI, cancel pending retries, and prevent delayed refresh from restoring user
+  setLoggingOutFlag(true);
+  cancelPendingRetries('Logged out');
+  endSession('User logged out');
+  setUser?.(null);
+  setRefreshError?.(null);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('hasSession');
+  }
+  clearLegacyTokenArtifacts();
+
+  try {
+    return await performServerLogoutFlow({ setLogoutError });
+  } finally {
+    setLoggingOutFlag(false);
+  }
+}
+
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(getInitialAuthLoading);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [refreshError, setRefreshError] = useState(null);
   const [logoutError, setLogoutError] = useState(null);
 
-  // Prevent duplicate execution under React StrictMode during initial bootstrap
-  const initRanRef = useRef(false);
+  const restoreSession = useCallback(async () => {
+    return restoreAuthSessionFlow({
+      setLoading,
+      setUser,
+      setSessionExpired,
+      setRefreshError,
+    });
+  }, []);
 
   useEffect(() => {
-    // Register callback for when background refresh fails inside axios interceptor
-    registerSessionExpiredHandler(() => {
-      setToken(null);
-      localStorage.removeItem('latrocore_user');
+    let active = true;
+
+    const handleSessionExpired = () => {
+      if (!active) return;
+      clearLegacyTokenArtifacts();
       setUser(null);
+      setRefreshError(null);
       setSessionExpired(true);
-    });
-
-    const restoreSession = async () => {
-      const hasSession = localStorage.getItem('hasSession') === 'true';
-      if (!hasSession) {
-        setAccessToken(null);
-        setToken(null);
-        localStorage.removeItem('latrocore_user');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Silently refresh token on application bootstrap
-        const response = await authClient.post('/auth/refresh');
-        const { accessToken, user: userData } = response.data;
-
-        setAccessToken(accessToken);
-        setToken(accessToken);
-        setUser(userData);
-        localStorage.setItem('hasSession', 'true');
-      } catch (err) {
-        // Cookie missing, revoked, or expired: clear local session flag
-        setAccessToken(null);
-        setToken(null);
-        localStorage.removeItem('hasSession');
-        localStorage.removeItem('latrocore_user');
-        setUser(null);
-        // Only set sessionExpired if user had a previous session
-        if (hasSession) {
-          setSessionExpired(true);
-        }
-      } finally {
-        setLoading(false);
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        navigate('/login', { replace: true });
       }
     };
 
-    if (!initRanRef.current) {
-      initRanRef.current = true;
-      restoreSession();
+    const handleNetworkRefreshError = (message) => {
+      if (!active) return;
+      setRefreshError(
+        message || 'Network interruption while renewing your session. Please retry.'
+      );
+    };
+
+    registerSessionExpiredHandler(handleSessionExpired);
+    registerRefreshNetworkErrorHandler(handleNetworkRefreshError);
+
+    const onWindowLogout = () => handleSessionExpired();
+    const onWindowNetworkError = (evt) => handleNetworkRefreshError(evt?.detail?.message);
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener(AUTH_LOGOUT_EVENT, onWindowLogout);
+      window.addEventListener(AUTH_NETWORK_ERROR_EVENT, onWindowNetworkError);
     }
-  }, []);
 
-  const login = async (identifier, password) => {
-    setSessionExpired(false);
-    setLogoutError(null);
-    setLoggingOutFlag(false);
+    restoreSession();
 
-    const cleanId = (identifier || '').trim();
-    const response = await authClient.post('/auth/login', {
-      identifier: cleanId,
-      email: cleanId,
-      password
+    return () => {
+      active = false;
+      registerSessionExpiredHandler(null);
+      registerRefreshNetworkErrorHandler(null);
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener(AUTH_LOGOUT_EVENT, onWindowLogout);
+        window.removeEventListener(AUTH_NETWORK_ERROR_EVENT, onWindowNetworkError);
+      }
+    };
+  }, [navigate, restoreSession]);
+
+  const login = async (identifier, password) =>
+    loginAuthSessionFlow(identifier, password, {
+      setUser,
+      setSessionExpired,
+      setRefreshError,
+      setLogoutError,
     });
-    const { accessToken, user: userData } = response.data;
-
-    // Secure token storage: strictly in memory
-    setAccessToken(accessToken);
-    setToken(accessToken);
-    setUser(userData);
-
-    // Non-sensitive flag only
-    localStorage.setItem('hasSession', 'true');
-
-    return userData;
-  };
 
   const logout = async () => {
-    setLoggingOutFlag(true);
-    setLogoutError(null);
-
-    try {
-      // Attempt server-side session revocation
-      await authClient.post('/auth/logout');
-    } catch (err) {
-      const errorMsg = err?.response?.data?.detail || 'Failed to revoke server session.';
-      setLogoutError(errorMsg);
-      console.warn('Server session revocation warning:', err);
-    } finally {
-      // Always clear local memory, tokens, and session state
-      setAccessToken(null);
-      setToken(null);
-      localStorage.removeItem('hasSession');
-      localStorage.removeItem('latrocore_user');
-      setUser(null);
-      setLoggingOutFlag(false);
-    }
+    await logoutAuthSessionFlow({
+      setUser,
+      setRefreshError,
+      setLogoutError,
+    });
   };
 
+  const retryLogout = async () => performServerLogoutFlow({ setLogoutError });
+
   const setAuthUser = (userData, accessToken) => {
-    setAccessToken(accessToken);
-    setToken(accessToken);
+    if (accessToken) {
+      beginSession(accessToken);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('hasSession', 'true');
+      }
+    }
     setUser(userData);
-    localStorage.setItem('hasSession', 'true');
+    setSessionExpired(false);
+    setRefreshError(null);
   };
 
   const clearSessionExpired = () => {
     setSessionExpired(false);
+  };
+
+  const clearRefreshError = () => {
+    setRefreshError(null);
   };
 
   return (
@@ -132,11 +266,16 @@ export function AuthProvider({ children }) {
         loading,
         sessionExpired,
         clearSessionExpired,
+        refreshError,
+        clearRefreshError,
+        retrySessionRefresh: restoreSession,
         logoutError,
         setLogoutError,
+        retryLogout,
         login,
         logout,
         setAuthUser,
+        getAccessToken,
         isAuthenticated: !!user,
       }}
     >

@@ -62,7 +62,7 @@ export default function WaitingApproval() {
 
       if (data.status === 'active' || data.approvalStatus === 'approved') {
         setApprovalGranted(true);
-        // Update user in memory & localStorage
+        // Update user in memory without clearing the in-memory access token
         if (user) {
           const updatedUser = {
             ...user,

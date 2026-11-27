@@ -48,8 +48,8 @@ def create_user():
             print("Error: Name cannot be empty.")
             sys.exit(1)
             
-        role = input("Role (admin / doctor / care_team / patient) [admin]: ").strip().lower() or "admin"
-        if role not in ["admin", "doctor", "care_team", "patient"]:
+        role = input("Role (admin / doctor / pharmacist / care_team / patient) [admin]: ").strip().lower() or "admin"
+        if role not in ["admin", "doctor", "pharmacist", "care_team", "patient"]:
             print(f"Error: Invalid role '{role}'.")
             sys.exit(1)
             

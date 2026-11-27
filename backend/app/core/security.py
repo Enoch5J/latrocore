@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, InvalidHashError
@@ -94,8 +95,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def generate_refresh_token() -> str:
-    """Generate a cryptographically secure random string (64 url-safe bytes)."""
-    return secrets.token_urlsafe(64)
+    """Generate a cryptographically secure random string (32 url-safe bytes)."""
+    return secrets.token_urlsafe(32)
 
 
 def hash_refresh_token(token: str) -> str:
@@ -106,7 +107,7 @@ def hash_refresh_token(token: str) -> str:
 def create_access_token(user_id: str, session_id: str, role: str = "user") -> tuple[str, int]:
     """
     Generate short-lived signed JWT access token.
-    Claims: sub (user_id), sid (session_id), role, iss, aud, iat, exp.
+    Claims: sub (user_id), sid (session_id), role, iss, aud, iat, exp, jti.
     Returns (token_string, expires_in_seconds).
     """
     now = datetime.now(timezone.utc)
@@ -120,7 +121,8 @@ def create_access_token(user_id: str, session_id: str, role: str = "user") -> tu
         "iss": settings.JWT_ISSUER,
         "aud": settings.JWT_AUDIENCE,
         "iat": int(now.timestamp()),
-        "exp": int(exp.timestamp())
+        "exp": int(exp.timestamp()),
+        "jti": str(uuid.uuid4()),
     }
     
     token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
@@ -129,7 +131,7 @@ def create_access_token(user_id: str, session_id: str, role: str = "user") -> tu
 
 def decode_access_token(token: str) -> dict:
     """
-    Validate signature, algorithm, expiry, issuer, and audience of an access token.
+    Validate signature, algorithm, expiry, issuer, audience, and jti of an access token.
     Raises PyJWTError or exceptions on failure.
     """
     return jwt.decode(
@@ -139,7 +141,7 @@ def decode_access_token(token: str) -> dict:
         issuer=settings.JWT_ISSUER,
         audience=settings.JWT_AUDIENCE,
         options={
-            "require": ["sub", "sid", "exp", "iss", "aud", "iat"],
+            "require": ["sub", "sid", "exp", "iss", "aud", "iat", "jti"],
             "verify_signature": True,
             "verify_exp": True,
             "verify_iss": True,

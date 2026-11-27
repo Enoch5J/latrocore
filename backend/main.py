@@ -5,17 +5,17 @@ Secure Authentication Engine with Argon2id, Silent Refresh & CSRF Protection.
 
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, Request, Response
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.core.config import settings, validate_security_settings
 from app.core.database import engine, Base, get_db, init_db_schema
 from app.api.v1.router import api_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.dashboard import get_dashboard_data
-from app.core.dependencies import get_current_user
-from app.models.models import User
+from app.core.dependencies import get_current_user, check_patient_access
+from app.models.models import User, Patient, Attachment, PrescriptionUpload
 from sqlalchemy.orm import Session
 
 
@@ -85,9 +85,60 @@ def dashboard_endpoint(
 # Also mount full API under /api/v1
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
-# Static file serving for uploaded prescriptions
+# Authenticated & ownership-checked access for uploaded prescription files
 os.makedirs("uploads/prescriptions", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+@app.get("/uploads/{file_path:path}")
+def get_uploaded_file(
+    file_path: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Serve uploaded files only to the owning patient or authorized clinician/admin."""
+    uploads_root = os.path.realpath("uploads")
+    target_path = os.path.realpath(os.path.join(uploads_root, file_path))
+    if not (target_path == uploads_root or target_path.startswith(uploads_root + os.sep)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid file path")
+
+    normalized_url = f"/uploads/{file_path.lstrip('/')}"
+    upload_rec = db.query(PrescriptionUpload).filter(PrescriptionUpload.file_url == normalized_url).first()
+    attachment_rec = db.query(Attachment).filter(Attachment.file_path == normalized_url).first()
+    owner_patient = db.query(Patient).filter(Patient.prescription_file_url == normalized_url).first()
+
+    owner_patient_id = (
+        (upload_rec.patient_id if upload_rec else None)
+        or (attachment_rec.patient_id if attachment_rec else None)
+        or (owner_patient.id if owner_patient else None)
+    )
+    owner_user_id = (
+        (upload_rec.user_id if upload_rec else None)
+        or (attachment_rec.uploaded_by if attachment_rec else None)
+        or (owner_patient.user_id if owner_patient else None)
+    )
+
+    if current_user.role == "patient":
+        patient = db.query(Patient).filter(Patient.user_id == current_user.id).first()
+        is_owner = (
+            (owner_user_id and owner_user_id == current_user.id)
+            or (patient and owner_patient_id and owner_patient_id == patient.id)
+        )
+        if not is_owner:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this prescription file",
+            )
+    elif current_user.role in ("doctor", "pharmacist", "care_team"):
+        if not owner_patient_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this file")
+        check_patient_access(owner_patient_id, current_user, db)
+    elif current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+
+    if not os.path.isfile(target_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uploaded file not found")
+
+    return FileResponse(target_path)
 
 
 @app.api_route("/", methods=["GET", "HEAD"])

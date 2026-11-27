@@ -115,7 +115,7 @@ async def get_optional_current_user(
         if ensure_utc(user_session.expires_at) <= now:
             return None
         user = db.query(User).filter(User.id == user_id).first()
-        if not user or user.status == "suspended":
+        if not user or user.status == "suspended" or user.status not in ("active", "pending"):
             return None
         return user
     except Exception:
@@ -175,7 +175,7 @@ def check_patient_access(patient_id: str, user: User, db: Session):
     if user.role == "patient" and (patient.user_id == user.id or patient.id == user.id):
         return patient
     
-    if user.role in ("doctor", "care_team"):
+    if user.role in ("doctor", "pharmacist", "care_team"):
         assignment = db.query(Assignment).filter(
             Assignment.patient_id == patient.id,
             Assignment.user_id == user.id,
@@ -189,3 +189,23 @@ def check_patient_access(patient_id: str, user: User, db: Session):
         return patient
     
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for this patient")
+
+
+def get_or_create_patient_profile(user: User, db: Session):
+    """Resolve the Patient profile strictly owned by the authenticated patient user."""
+    from app.models.models import Patient, gen_uuid
+    import secrets
+
+    patient = db.query(Patient).filter(Patient.user_id == user.id).first()
+    if patient:
+        return patient
+
+    patient = Patient(
+        id=gen_uuid(),
+        user_id=user.id,
+        patient_id_display=f"PAT-{secrets.randbelow(900000) + 100000}",
+        approval_status="approved",
+    )
+    db.add(patient)
+    db.flush()
+    return patient

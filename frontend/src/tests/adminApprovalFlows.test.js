@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { api } from '../services/api';
+import { apiClient, setAccessToken } from '../lib/axios';
+
+function parseAdapterBody(data) {
+  if (typeof data === 'string') {
+    return JSON.parse(data);
+  }
+  return data;
+}
 
 describe('Admin Approvals & Status API Client Tests', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    globalThis.fetch = vi.fn();
+    setAccessToken('admin-access-jwt');
+    apiClient.defaults.adapter = null;
   });
 
   it('fetches approvals summary correctly', async () => {
@@ -19,19 +28,19 @@ describe('Admin Approvals & Status API Client Tests', () => {
       activePatients: 15,
     };
 
-    globalThis.fetch.mockResolvedValueOnce({
-      ok: true,
+    const adapterSpy = vi.fn(async (config) => ({
+      data: mockSummary,
       status: 200,
-      json: async () => mockSummary,
-    });
+      statusText: 'OK',
+      headers: {},
+      config,
+    }));
+    apiClient.defaults.adapter = adapterSpy;
 
     const res = await api.getApprovalsSummary();
     expect(res.totalPending).toBe(6);
     expect(res.pendingPatients).toBe(3);
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/admin/approvals/summary'),
-      expect.any(Object)
-    );
+    expect(adapterSpy.mock.calls[0][0].url).toContain('/admin/approvals/summary');
   });
 
   it('fetches pending patients with clinical metadata', async () => {
@@ -47,10 +56,12 @@ describe('Admin Approvals & Status API Client Tests', () => {
       },
     ];
 
-    globalThis.fetch.mockResolvedValueOnce({
-      ok: true,
+    apiClient.defaults.adapter = async (config) => ({
+      data: mockPatients,
       status: 200,
-      json: async () => mockPatients,
+      statusText: 'OK',
+      headers: {},
+      config,
     });
 
     const res = await api.getPendingPatients();
@@ -60,46 +71,46 @@ describe('Admin Approvals & Status API Client Tests', () => {
   });
 
   it('approves a patient and updates status to approved', async () => {
-    globalThis.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    const adapterSpy = vi.fn(async (config) => ({
+      data: {
         message: 'Patient approved successfully',
         status: 'approved',
-      }),
-    });
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    }));
+    apiClient.defaults.adapter = adapterSpy;
 
     const res = await api.approvePatient('pat-1');
     expect(res.status).toBe('approved');
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/admin/patients/pat-1/approve'),
-      expect.objectContaining({ method: 'POST' })
-    );
+    expect(adapterSpy.mock.calls[0][0].url).toContain('/admin/patients/pat-1/approve');
+    expect(adapterSpy.mock.calls[0][0].method.toUpperCase()).toBe('POST');
   });
 
   it('approves a pharmacist and updates status', async () => {
-    globalThis.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    const adapterSpy = vi.fn(async (config) => ({
+      data: {
         message: 'Pharmacist approved successfully',
         status: 'approved',
-      }),
-    });
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    }));
+    apiClient.defaults.adapter = adapterSpy;
 
     const res = await api.approvePharmacist('pharm-1');
     expect(res.status).toBe('approved');
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/admin/pharmacists/pharm-1/approve'),
-      expect.objectContaining({ method: 'POST' })
-    );
+    expect(adapterSpy.mock.calls[0][0].url).toContain('/admin/pharmacists/pharm-1/approve');
+    expect(adapterSpy.mock.calls[0][0].method.toUpperCase()).toBe('POST');
   });
 
   it('checks auth status for waiting approval page', async () => {
-    globalThis.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    const adapterSpy = vi.fn(async (config) => ({
+      data: {
         id: 'user-123',
         name: 'Pending User',
         email: 'pending@latrocore.com',
@@ -107,28 +118,33 @@ describe('Admin Approvals & Status API Client Tests', () => {
         status: 'pending',
         approvalStatus: 'pending',
         displayId: 'PAT-991244',
-      }),
-    });
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    }));
+    apiClient.defaults.adapter = adapterSpy;
 
     const res = await api.getAuthStatus();
     expect(res.status).toBe('pending');
     expect(res.approvalStatus).toBe('pending');
     expect(res.displayId).toBe('PAT-991244');
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/auth/status'),
-      expect.any(Object)
-    );
+    expect(adapterSpy.mock.calls[0][0].url).toContain('/auth/status');
   });
 
   it('batch approves accounts across roles', async () => {
-    globalThis.fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    const adapterSpy = vi.fn(async (config) => ({
+      data: {
         message: 'Successfully approved 3 account(s).',
         approvedCount: 3,
-      }),
-    });
+      },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+    }));
+    apiClient.defaults.adapter = adapterSpy;
 
     const payload = {
       doctorProfileIds: ['doc-1'],
@@ -138,13 +154,8 @@ describe('Admin Approvals & Status API Client Tests', () => {
 
     const res = await api.batchApprove(payload);
     expect(res.approvedCount).toBe(3);
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/admin/approvals/batch-approve'),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify(payload),
-      })
-    );
+    expect(adapterSpy.mock.calls[0][0].url).toContain('/admin/approvals/batch-approve');
+    expect(adapterSpy.mock.calls[0][0].method.toUpperCase()).toBe('POST');
+    expect(parseAdapterBody(adapterSpy.mock.calls[0][0].data)).toEqual(payload);
   });
 });
-

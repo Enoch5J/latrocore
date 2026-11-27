@@ -8,6 +8,7 @@ import doctorImg from '../assets/images/doctor.png';
 import pharmacistImg from '../assets/images/pharmacist.png';
 import latrocoreLogo from '../assets/Latrocore Medical Monogram Logo.png';
 import PhoneInputWithCountry from '../components/common/PhoneInputWithCountry';
+import { validateCountryPhone } from '../utils/countryPhoneValidation';
 import {
   ShieldCheck,
   User,
@@ -263,53 +264,11 @@ export default function Signup() {
     }
   };
 
-  // ── Country-Aware Mobile Validation ────────────────────────────────
-  const validatePhone = (code, val) => {
-    const digits = val.replace(/\D/g, '');
-    if (!digits) {
-      return 'Mobile number is required.';
-    }
-    if (code === '+91') {
-      if (!/^[5-9]\d{9}$/.test(digits)) {
-        return 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).';
-      }
-    } else if (code === '+1') {
-      if (digits.length !== 10) {
-        return 'US/Canada phone number must be 10 digits.';
-      }
-    } else if (code === '+44') {
-      if (digits.length < 10 || digits.length > 11) {
-        return 'UK phone number must be 10 or 11 digits.';
-      }
-    } else if (code === '+971') {
-      if (digits.length !== 9) {
-        return 'UAE phone number must be 9 digits (e.g. 501234567).';
-      }
-    } else if (code === '+65') {
-      if (digits.length !== 8) {
-        return 'Singapore phone number must be 8 digits.';
-      }
-    } else if (code === '+61') {
-      if (digits.length !== 9) {
-        return 'Australia phone number must be 9 digits.';
-      }
-    } else if (code === '+49') {
-      if (digits.length < 10 || digits.length > 11) {
-        return 'German phone number must be 10 or 11 digits.';
-      }
-    } else {
-      if (digits.length < 7 || digits.length > 15) {
-        return 'Phone number must be between 7 and 15 digits.';
-      }
-    }
-    return '';
-  };
-
   const handlePhoneChange = (e) => {
     const val = e.target.value;
     setPhone(val);
     if (phoneError) {
-      setPhoneError(validatePhone(countryCode, val));
+      setPhoneError(validateCountryPhone(countryCode, val));
     }
   };
 
@@ -485,7 +444,7 @@ export default function Signup() {
       }
     }
 
-    const phoneValidation = validatePhone(countryCode, phone);
+    const phoneValidation = validateCountryPhone(countryCode, phone);
     if (phoneValidation) {
       setPhoneError(phoneValidation);
       setFormError(phoneValidation);
@@ -882,7 +841,7 @@ export default function Signup() {
           </div>
 
           <div className="mt-6 sm:mt-8 text-center text-[11px] sm:text-xs text-stone-500">
-            Protected under LATROCORE Enterprise Healthcare Protocols. Compliant with HIPAA & GDPR.
+            Protected with encrypted authentication and role-based clinical access controls.
           </div>
         </div>
       ) : (
@@ -1045,11 +1004,11 @@ export default function Signup() {
                   onCountryCodeChange={(newCode) => {
                     setCountryCode(newCode);
                     if (phone) {
-                      setPhoneError(validatePhone(newCode, phone));
+                      setPhoneError(validateCountryPhone(newCode, phone));
                     }
                   }}
                   error={phoneError}
-                  onBlur={() => setPhoneError(validatePhone(countryCode, phone))}
+                  onBlur={() => setPhoneError(validateCountryPhone(countryCode, phone))}
                   required
                   label="Mobile Number"
                 />

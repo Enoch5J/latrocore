@@ -51,27 +51,15 @@ export function AppProvider({ children }) {
     const data = initializeData();
     dispatch({ type: 'INIT_DATA', payload: data });
 
-    // Restore user session
+    // Purge any legacy persisted auth/user storage so only localStorage.hasSession="true" exists
     try {
-      const savedUser = localStorage.getItem('latrocore_user');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        if (data && data.users && data.users[user.id]) {
-          dispatch({ type: 'SET_USER', payload: data.users[user.id] });
-        } else if (user) {
-          dispatch({ type: 'SET_USER', payload: user });
-        }
-      }
+      localStorage.removeItem('latrocore_user');
+      localStorage.removeItem('latrocore_token');
     } catch (e) { /* ignore */ }
   }, []);
 
   const setUser = useCallback((user) => {
     dispatch({ type: 'SET_USER', payload: user });
-    if (user) {
-      localStorage.setItem('latrocore_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('latrocore_user');
-    }
   }, []);
 
   const refreshData = useCallback(() => {
