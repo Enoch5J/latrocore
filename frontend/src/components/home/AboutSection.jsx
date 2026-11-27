@@ -47,7 +47,7 @@ export default function AboutSection({ onExploreSolutions }) {
     <section
       id="about-latrocore"
       aria-labelledby="about-latrocore-heading"
-      className="home-scroll-target bg-[#FAF8F3] py-12 sm:py-16 lg:py-20"
+      className="home-scroll-target home-band-mint py-12 sm:py-16 lg:py-20"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] gap-10 lg:gap-14 xl:gap-20 items-center">

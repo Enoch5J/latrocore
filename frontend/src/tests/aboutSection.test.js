@@ -131,7 +131,7 @@ describe('Homepage About Latrocore Section', () => {
     expect(html).toContain('href="#care-continuum"');
     expect(html).toContain('Explore our solutions');
     expect(html).toContain('→');
-    expect(html).toContain('bg-[#FAF8F3]');
+    expect(html).toContain('home-band-mint');
   });
 
   it('renders four care highlights in one timeline panel with Lucide icons and highlighted first row', () => {
