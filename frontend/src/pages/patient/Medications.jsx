@@ -36,6 +36,27 @@ function displayReminderTime(value) {
 
 
 
+function isSpecifiedText(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return Boolean(normalized) && normalized !== 'not specified' && normalized !== 'unclear';
+}
+
+function formatMedicineMeta(med) {
+  const parts = [med?.dose, med?.route, med?.frequency].filter(isSpecifiedText);
+  return parts.length > 0 ? parts.join(' • ') : 'Prescribed medicine';
+}
+
+function formatMedicineTiming(med) {
+  const times = (med?.reminderTimes || med?.times || med?.scheduleTimes || [])
+    .map(displayReminderTime)
+    .filter(Boolean)
+    .join(', ');
+  if (isSpecifiedText(med?.foodInstruction)) {
+    return times ? `${med.foodInstruction} (${times})` : `${med.foodInstruction} (No times set)`;
+  }
+  return times || 'No reminder times set';
+}
+
 export default function Medications() {
 
   const { currentUser, data, refreshData, addToast } = useApp();
@@ -372,7 +393,15 @@ export default function Medications() {
 
             ) : (
 
-              todayDoses.map(dose => (
+              todayDoses.map(dose => {
+                const matchedRx = prescriptions.find(rx =>
+                  (rx.medicines || []).some(m => m.id === dose.medicineId || m.name === dose.medicineName)
+                );
+                const matchedMed = matchedRx?.medicines?.find(
+                  m => m.id === dose.medicineId || m.name === dose.medicineName
+                );
+
+                return (
                 <div
                   key={dose.id}
                   className={`card transition shadow-sm rounded-2xl ${
@@ -416,7 +445,19 @@ export default function Medications() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs font-bold text-slate-700 mt-0.5">Scheduled: {formatTime(dose.scheduledTime)}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                          <p className="text-xs font-bold text-slate-700">Scheduled: {formatTime(dose.scheduledTime)}</p>
+                          {matchedRx && matchedMed && (
+                            <button
+                              type="button"
+                              onClick={() => openReminderEditor(matchedRx, matchedMed)}
+                              className="inline-flex items-center gap-1 rounded-md border border-[#A8D7BD] bg-[#E8F5EE]/70 px-2 py-0.5 text-[11px] font-bold text-[#03542C] hover:bg-[#D1EBDD] cursor-pointer transition-colors"
+                            >
+                              <Pencil size={11} aria-hidden="true" />
+                              <span>Edit time</span>
+                            </button>
+                          )}
+                        </div>
                         {dose.actualTime && (
                           <p className="text-xs font-extrabold text-emerald-800 mt-0.5 flex items-center gap-1">
                             <CheckCircle size={12} className="text-emerald-700" />
@@ -460,7 +501,8 @@ export default function Medications() {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -554,7 +596,7 @@ export default function Medications() {
 
                             <p className="font-extrabold text-slate-950 text-sm">{med.name}</p>
 
-                            <p className="text-[11px] font-bold text-slate-700">{med.dose} • {med.route} • {med.frequency}</p>
+                            <p className="text-[11px] font-bold text-slate-700">{formatMedicineMeta(med)}</p>
 
                           </div>
 
@@ -584,7 +626,7 @@ export default function Medications() {
 
                           <span className="text-slate-500 font-medium">Timing:</span>
 
-                          <span>{med.foodInstruction} ({(med.reminderTimes || med.times || med.scheduleTimes || []).map(displayReminderTime).join(', ') || 'No times set'})</span>
+                          <span>{formatMedicineTiming(med)}</span>
 
                         </p>
 

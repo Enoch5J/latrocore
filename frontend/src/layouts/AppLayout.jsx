@@ -5,7 +5,14 @@ import { useAuth } from '../auth/AuthContext';
 import { normalizeRole } from '../auth/ProtectedRoute';
 import { Avatar } from '../components/ui';
 import UserProfileDropdown from '../components/common/UserProfileDropdown';
+import MedicationAlarmModal from '../components/patient/MedicationAlarmModal';
 import { getRoleDisplayLabel, getUserInitial } from '../utils/userProfile';
+import { addAuditEntry, recordDose } from '../services/dataService';
+import {
+  ALARM_SNOOZE_MS,
+  createMedicationAlarmPlayer,
+  findDueOrOverdueDoses,
+} from '../utils/medicationAlarm';
 import {
   LayoutDashboard, Activity, Pill, FileText, Salad, CalendarDays, MessageSquare,
   Bell, ChevronLeft, Menu, X, User, LogOut, Shield, Stethoscope, ClipboardList,
@@ -72,7 +79,7 @@ function subscribeToBrowserAlertPermission(onChange) {
 }
 
 export default function AppLayout() {
-  const { currentUser, data, setUser, addToast } = useApp();
+  const { currentUser, data, setUser, refreshData, addToast } = useApp();
   const { user: authUser, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -83,6 +90,12 @@ export default function AppLayout() {
     () => false
   );
   const notifiedDoseIds = useRef(new Set());
+  const alarmPlayerRef = useRef(null);
+  const [dueAlarmDoses, setDueAlarmDoses] = useState([]);
+  const [snoozedUntil, setSnoozedUntil] = useState({});
+  const [dismissedDoseIds, setDismissedDoseIds] = useState(() => new Set());
+  const [alarmMuted, setAlarmMuted] = useState(false);
+  const [alarmSubmitting, setAlarmSubmitting] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -197,6 +210,116 @@ export default function AppLayout() {
 
     return () => timers.forEach(window.clearTimeout);
   }, [activeUser?.id, browserAlertsEnabled, data?.doseEvents]);
+
+  // In-app due / overdue medicine alarm pop-up + audio chime for patients
+  useEffect(() => {
+    if (activeUser?.role !== 'patient' || !activeUser?.id) {
+      return undefined;
+    }
+
+    const evaluateDoses = () => {
+      const now = new Date();
+      const due = findDueOrOverdueDoses(
+        data?.doseEvents,
+        activeUser.id,
+        now,
+        snoozedUntil,
+        dismissedDoseIds
+      );
+      setDueAlarmDoses(due);
+      return now;
+    };
+
+    const now = evaluateDoses();
+    const todayStr = now.toDateString();
+    const nowMs = now.getTime();
+
+    // Schedule exact wakeup for the earliest upcoming pending dose or snooze expiry today
+    let nextWakeMs = null;
+    (data?.doseEvents || []).forEach((dose) => {
+      if (dose.patientId !== activeUser.id || dose.status !== 'pending') return;
+      if (dismissedDoseIds.has(dose.id)) return;
+      const sched = new Date(dose.scheduledTime);
+      if (sched.toDateString() !== todayStr) return;
+      const wakeAt = Math.max(sched.getTime(), snoozedUntil[dose.id] || 0);
+      if (wakeAt > nowMs && (nextWakeMs === null || wakeAt < nextWakeMs)) {
+        nextWakeMs = wakeAt;
+      }
+    });
+
+    const exactTimer = nextWakeMs !== null
+      ? window.setTimeout(evaluateDoses, Math.max(500, nextWakeMs - nowMs + 250))
+      : null;
+    const pollId = window.setInterval(evaluateDoses, 15000);
+
+    return () => {
+      if (exactTimer !== null) window.clearTimeout(exactTimer);
+      window.clearInterval(pollId);
+    };
+  }, [activeUser?.id, activeUser?.role, data?.doseEvents, snoozedUntil, dismissedDoseIds]);
+
+  useEffect(() => {
+    if (!alarmPlayerRef.current) {
+      alarmPlayerRef.current = createMedicationAlarmPlayer();
+    }
+    const shouldRing = activeUser?.role === 'patient' && dueAlarmDoses.length > 0 && !alarmMuted;
+    if (shouldRing) {
+      alarmPlayerRef.current.start();
+    } else {
+      alarmPlayerRef.current.stop();
+    }
+    return () => {
+      alarmPlayerRef.current?.stop();
+    };
+  }, [activeUser?.role, dueAlarmDoses.length, alarmMuted]);
+
+  const visibleAlarmDoses = activeUser?.role === 'patient' ? dueAlarmDoses : [];
+  const activeAlarmDose = visibleAlarmDoses[0] || null;
+
+  const handleAlarmMarkTaken = async () => {
+    if (!activeAlarmDose || !activeUser?.id || alarmSubmitting) return;
+    setAlarmSubmitting(true);
+    try {
+      await recordDose(activeAlarmDose.id, 'taken', new Date().toISOString(), '');
+      await addAuditEntry({
+        actor: activeUser.id,
+        actorRole: 'patient',
+        action: 'dose_taken',
+        patientId: activeUser.id,
+        recordId: activeAlarmDose.id,
+        details: `${activeAlarmDose.medicineName || 'Medicine'} marked taken from reminder alarm`,
+      });
+      refreshData();
+      addToast({
+        type: 'success',
+        message: `${activeAlarmDose.medicineName || 'Medicine'} marked as taken`,
+      });
+    } finally {
+      setAlarmSubmitting(false);
+    }
+  };
+
+  const handleAlarmSnooze = () => {
+    if (!activeAlarmDose) return;
+    const doseId = activeAlarmDose.id;
+    setSnoozedUntil((prev) => ({ ...prev, [doseId]: Date.now() + ALARM_SNOOZE_MS }));
+    setDueAlarmDoses((prev) => prev.filter((d) => d.id !== doseId));
+    addToast({
+      type: 'info',
+      message: `${activeAlarmDose.medicineName || 'Medicine'} snoozed for 10 minutes`,
+    });
+  };
+
+  const handleAlarmDismiss = () => {
+    if (!activeAlarmDose) return;
+    const doseId = activeAlarmDose.id;
+    setDismissedDoseIds((prev) => {
+      const next = new Set(prev);
+      next.add(doseId);
+      return next;
+    });
+    setDueAlarmDoses((prev) => prev.filter((d) => d.id !== doseId));
+  };
 
   if (!activeUser) {
     return <Navigate to="/login" replace />;
@@ -532,6 +655,19 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {activeAlarmDose && (
+        <MedicationAlarmModal
+          dose={activeAlarmDose}
+          pendingCount={visibleAlarmDoses.length}
+          isMuted={alarmMuted}
+          isSubmitting={alarmSubmitting}
+          onMarkTaken={handleAlarmMarkTaken}
+          onSnooze={handleAlarmSnooze}
+          onToggleMute={() => setAlarmMuted((prev) => !prev)}
+          onDismiss={handleAlarmDismiss}
+        />
+      )}
     </div>
   );
 }
