@@ -71,7 +71,8 @@ export default function PatientSOS() {
   const [caretakers, setCaretakers] = useState(() => {
     try {
       const saved = localStorage.getItem('latrocore_caretakers');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
     } catch {
       return [];
     }
@@ -96,7 +97,7 @@ export default function PatientSOS() {
   // Attending Doctor info (only real assigned user if present)
   const assignedDoctor = useMemo(() => {
     if (!data?.users) return null;
-    const users = Array.isArray(data.users) ? data.users : Object.values(data.users);
+    const users = (Array.isArray(data.users) ? data.users : Object.values(data.users)).filter(Boolean);
     if (currentUser?.assignedDoctor) {
       return users.find(u => u.id === currentUser.assignedDoctor) || null;
     }
@@ -106,7 +107,7 @@ export default function PatientSOS() {
   // Assigned Clinical Pharmacist info (only real assigned user if present)
   const assignedPharmacist = useMemo(() => {
     if (!data?.users) return null;
-    const users = Array.isArray(data.users) ? data.users : Object.values(data.users);
+    const users = (Array.isArray(data.users) ? data.users : Object.values(data.users)).filter(Boolean);
     if (currentUser?.assignedPharmacist) {
       return users.find(u => u.id === currentUser.assignedPharmacist) || null;
     }
@@ -222,7 +223,7 @@ export default function PatientSOS() {
         await addNotification({
           userId: currentUser.assignedDoctor,
           type: 'safety',
-          title: `EMERGENCY SOS: ${currentUser.name || 'Patient'}`,
+          title: `EMERGENCY SOS: ${currentUser?.name || 'Patient'}`,
           message: `CRITICAL ALERT: Patient triggered SOS at ${locationStatus}. Glucose: ${latestGlucose?.value || 'N/A'} mg/dL.`,
           relatedId: event.id,
         });
@@ -403,8 +404,13 @@ export default function PatientSOS() {
               Broadcasting Emergency SOS Signal!
             </h2>
             <p className="text-sm sm:text-base font-semibold text-rose-100">
-              Broadcasting emergency alerts with your live GPS location to Caretaker{' '}
-              <strong>{primaryCaretaker.name}</strong>, attending Diabetologist, and ambulance services.
+              Broadcasting emergency alerts with your live GPS location to{' '}
+              {primaryCaretaker?.name ? (
+                <>
+                  Caretaker <strong>{primaryCaretaker.name}</strong>,{' '}
+                </>
+              ) : null}
+              attending Diabetologist, and ambulance services.
             </p>
             <div className="pt-2">
               <button

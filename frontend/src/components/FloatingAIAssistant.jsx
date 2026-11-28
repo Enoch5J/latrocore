@@ -730,9 +730,6 @@ export default function FloatingAIAssistant({ initialOpen = false, initialGreeti
                   <h3 className="font-bold text-sm text-white tracking-tight leading-tight">
                     Latro AI
                   </h3>
-                  <p className="text-xs text-emerald-100/90 leading-tight mt-0.5 font-normal">
-                    Doctor AI Decision Support
-                  </p>
                 </div>
               </div>
 

@@ -70,7 +70,8 @@ describe('Doctor Bot AI Avatar and Greeting Popup', () => {
       )
     );
 
-    expect(openHtml).toContain('Doctor AI Decision Support');
+    expect(openHtml).toContain('Latro AI');
+    expect(openHtml).not.toContain('Doctor AI Decision Support');
     expect(openHtml).toContain('src="/doctor-avatar.png"');
     expect(openHtml).not.toContain('ai-face-visor');
   });

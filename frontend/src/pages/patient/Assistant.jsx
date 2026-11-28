@@ -48,6 +48,7 @@ export default function Assistant() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [isUploadingRx, setIsUploadingRx] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
   const [lastUploadId, setLastUploadId] = useState(null);
 
   const messagesEndRef = useRef(null);
@@ -202,7 +203,16 @@ export default function Assistant() {
   // Send query with full prescription context & conversation history
   const handleSend = async (textToSend = null) => {
     const text = (textToSend || input).trim();
-    if (!text) return;
+    const attachedFile = !textToSend ? pendingFile : null;
+    if (!text && !attachedFile) return;
+
+    if (attachedFile) {
+      setPendingFile(null);
+      if (!textToSend) setInput('');
+      await processPrescriptionFile(attachedFile, text);
+      return;
+    }
+
     const requestLang = lang;
 
     const history = messages
@@ -252,13 +262,16 @@ export default function Assistant() {
   };
 
   // Direct prescription file upload inside AI prompt (patient-only)
-  const processPrescriptionFile = async (file) => {
+  const processPrescriptionFile = async (file, userPrompt = '') => {
     if (!file || !isSignedInPatient) return;
 
+    const cleanPrompt = (userPrompt || '').trim();
     const userFileMsg = {
       id: `u-file-${Date.now()}`,
       role: 'user',
-      text: `📎 [Uploaded Prescription Document]: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+      text: cleanPrompt
+        ? `📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)\n\n${cleanPrompt}`
+        : `📎 [Uploaded Prescription Document]: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
       lang,
       time: new Date().toISOString()
     };
@@ -335,6 +348,46 @@ export default function Assistant() {
       };
       setMessages(prev => prev.map(m => m.id === tempLoadingId ? successMsg : m));
       addToast({ type: 'success', message: 'Prescription synchronized with Latro AI' });
+
+      if (cleanPrompt) {
+        const followUpId = `a-followup-${Date.now()}`;
+        setMessages(prev => [
+          ...prev,
+          { id: followUpId, role: 'assistant', text: 'Answering your question about this prescription...', isLoading: true, lang, time: new Date().toISOString() },
+        ]);
+        try {
+          const syncedContext = {
+            ...(prescriptionContext || {}),
+            medicines: result.medicines || [],
+            diagnosis: result.diagnosis || prescriptionContext?.diagnosis,
+          };
+          const qaRes = await api.askAssistant(
+            cleanPrompt,
+            lang,
+            syncedContext,
+            [{ role: 'assistant', content: responseText }],
+            result.upload_id ? { upload_id: result.upload_id } : {}
+          );
+          setMessages(prev => prev.map(m => m.id === followUpId ? {
+            id: `a-${Date.now()}`,
+            role: 'assistant',
+            text: qaRes.content,
+            lang: resolveSpeechLanguage(qaRes.content, qaRes.language || lang, lang),
+            sources: qaRes.sources,
+            modelId: qaRes.model_id,
+            time: new Date().toISOString(),
+          } : m));
+        } catch {
+          const fallback = getAssistantResponse(cleanPrompt, lang, prescriptionContext, result.medicines || activeMedicines, []);
+          setMessages(prev => prev.map(m => m.id === followUpId ? {
+            id: `a-${Date.now()}`,
+            role: 'assistant',
+            text: fallback.text,
+            lang: resolveSpeechLanguage(fallback.text, lang, lang),
+            time: new Date().toISOString(),
+          } : m));
+        }
+      }
     } catch (err) {
       const isThrottled = err?.message && (err.message.includes('503') || err.message.toLowerCase().includes('peak demand') || err.message.toLowerCase().includes('high demand') || err.message.toLowerCase().includes('throttled'));
       const friendlyDetail = isThrottled
@@ -354,11 +407,11 @@ export default function Assistant() {
     }
   };
 
-  const handleDirectFileUpload = async (e) => {
+  const handleDirectFileUpload = (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !isSignedInPatient) return;
-    await processPrescriptionFile(file);
+    setPendingFile(file);
   };
 
   const handleDragOver = (e) => {
@@ -377,24 +430,24 @@ export default function Assistant() {
     }
   };
 
-  const handleDrop = async (e) => {
+  const handleDrop = (e) => {
     if (!isSignedInPatient) return;
     const file = e.dataTransfer?.files?.[0];
     if (!file) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingFile(false);
-    await processPrescriptionFile(file);
+    setPendingFile(file);
   };
 
-  const handlePaste = async (e) => {
+  const handlePaste = (e) => {
     if (!isSignedInPatient) return;
     const items = Array.from(e.clipboardData?.items || []);
     const fileItem = items.find((item) => item.kind === 'file');
     const file = fileItem ? fileItem.getAsFile() : e.clipboardData?.files?.[0];
     if (!file) return;
     e.preventDefault();
-    await processPrescriptionFile(file);
+    setPendingFile(file);
   };
 
   const handleSuggestedQuestion = (q) => {
@@ -636,6 +689,26 @@ export default function Assistant() {
             />
           )}
 
+          {/* Staged attachment preview chip */}
+          {pendingFile && (
+            <div className="mb-2.5 flex items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <Paperclip size={14} className="text-[#046A38] shrink-0" />
+                <span className="font-bold text-[#093322] truncate">{pendingFile.name}</span>
+                <span className="text-slate-600 shrink-0">({(pendingFile.size / 1024).toFixed(1)} KB)</span>
+                <span className="hidden sm:inline text-emerald-800 font-medium">— Type what you want to ask, or click Send</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingFile(null)}
+                aria-label="Remove attachment"
+                className="p-1 rounded-lg hover:bg-emerald-100 text-slate-600 hover:text-slate-900 cursor-pointer shrink-0"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
           <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
             {/* Direct Upload Button (patient-only) */}
             {isSignedInPatient && (
@@ -685,7 +758,7 @@ export default function Assistant() {
             {/* Send Button */}
             <button
               type="submit"
-              disabled={!input.trim() || isUploadingRx}
+              disabled={(!input.trim() && !pendingFile) || isUploadingRx}
               className="btn-primary px-5 font-black text-sm cursor-pointer disabled:opacity-40"
             >
               <Send size={16} />

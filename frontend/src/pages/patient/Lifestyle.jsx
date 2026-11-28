@@ -1135,7 +1135,9 @@ export default function Lifestyle() {
 
                 >
 
-                  {progression.glucoseChecked ? '118 mg/dL Logged' : 'Mark Checked'}
+                  {progression.glucoseChecked
+                    ? (glucoseReadings[0]?.value ? `${glucoseReadings[0].value} mg/dL Logged` : 'Checked')
+                    : 'Mark Checked'}
 
                 </button>
 
@@ -1182,9 +1184,7 @@ export default function Lifestyle() {
               </h3>
 
               <p className="text-xs font-semibold text-slate-600 mt-0.5">
-
-                Full chronological schedule of nutrition, medication titration, physical movement, and vitals
-
+                Daily schedule of meals, medicines, glucose checks, and activity
               </p>
 
             </div>
@@ -1221,7 +1221,11 @@ export default function Lifestyle() {
 
                 <p className="text-sm font-extrabold text-slate-950">Fasting Blood Glucose Check</p>
 
-                <p className="text-xs font-semibold text-slate-600">Self-monitoring: 118 mg/dL (Target: 80 - 130 mg/dL)</p>
+                <p className="text-xs font-semibold text-slate-600">
+                  {glucoseReadings[0]?.value
+                    ? `Self-monitoring: ${glucoseReadings[0].value} mg/dL (Target: 80 - 130 mg/dL)`
+                    : 'No fasting reading logged today (Target: 80 - 130 mg/dL)'}
+                </p>
 
               </div>
 
